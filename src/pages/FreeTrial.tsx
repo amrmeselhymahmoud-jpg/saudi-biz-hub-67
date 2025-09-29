@@ -238,7 +238,7 @@ const FreeTrial = () => {
                   <Checkbox
                     id="terms"
                     checked={formData.agreeToTerms}
-                    onCheckedChange={(checked) => handleInputChange('agreeToTerms', checked === true ? 'true' : 'false')}
+                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, agreeToTerms: checked === true }))}
                     className="border-qoyod-border data-[state=checked]:bg-primary data-[state=checked]:border-primary mt-1"
                   />
                   <Label htmlFor="terms" className="text-qoyod-text text-sm leading-relaxed">
