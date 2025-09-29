@@ -101,15 +101,25 @@ const Dashboard = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-gradient-to-r from-white to-slate-50/80 border-b border-border/60 shadow-sm sticky top-0 z-10 backdrop-blur-sm w-full">
-        {/* Top Navigation */}
+        {/* Top Navigation - Centered */}
         <div className="border-b border-border/30">
-          <div className="px-6 py-2">
-            <nav className="flex items-center justify-center space-x-8 rtl:space-x-reverse">
-              <Link to="/" className="text-sm text-muted-foreground hover:text-primary transition-colors">الصفحة الرئيسية</Link>
-              <Link to="/about" className="text-sm text-muted-foreground hover:text-primary transition-colors">من نحن</Link>
-              <Link to="/features" className="text-sm text-muted-foreground hover:text-primary transition-colors">المميزات</Link>
-              <Link to="/pricing" className="text-sm text-muted-foreground hover:text-primary transition-colors">الأسعار</Link>
-              <a href="#contact" className="text-sm text-muted-foreground hover:text-primary transition-colors">اتصل بنا</a>
+          <div className="px-6 py-3">
+            <nav className="flex items-center justify-center space-x-12 rtl:space-x-reverse">
+              <Link to="/" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors px-4 py-2 rounded-lg hover:bg-primary/5">
+                الصفحة الرئيسية
+              </Link>
+              <Link to="/about" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors px-4 py-2 rounded-lg hover:bg-primary/5">
+                من نحن
+              </Link>
+              <Link to="/features" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors px-4 py-2 rounded-lg hover:bg-primary/5">
+                المميزات
+              </Link>
+              <Link to="/pricing" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors px-4 py-2 rounded-lg hover:bg-primary/5">
+                الأسعار
+              </Link>
+              <a href="#contact" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors px-4 py-2 rounded-lg hover:bg-primary/5">
+                اتصل بنا
+              </a>
             </nav>
           </div>
         </div>
