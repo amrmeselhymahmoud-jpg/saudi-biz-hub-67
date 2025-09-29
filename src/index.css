@@ -2,103 +2,91 @@
 @tailwind components;
 @tailwind utilities;
 
-/* نظام التصميم الشامل - جميع الألوان والتدرجات والخطوط يجب تعريفها هنا 
-جميع الألوان يجب أن تكون HSL
-*/
+/* نظام التصميم لقيود - جميع الألوان يجب أن تكون HSL */
 
 @layer base {
   :root {
-    --background: 210 20% 98%;
-    --foreground: 222.2 84% 4.9%;
+    /* خلفية فاتحة كما في قيود */
+    --background: 0 0% 98%;
+    --foreground: 210 20% 14%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 210 20% 14%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 210 20% 14%;
 
-    /* الألوان الأساسية - أزرق مهني للمنصات المالية */
-    --primary: 217 91% 60%;
+    /* الألوان الأساسية - أزرق قيود */
+    --primary: 209 100% 50%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 217 91% 70%;
+    --primary-dark: 210 100% 40%;
 
-    /* الألوان الثانوية - أخضر للنجاح والنمو */
-    --secondary: 142 76% 36%;
-    --secondary-foreground: 0 0% 100%;
+    /* الألوان الثانوية */
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 210 20% 14%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
 
     /* ألوان التمييز */
-    --accent: 45 100% 51%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 212 100% 48%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 217 91% 60%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 209 100% 50%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
-    /* التدرجات اللونية */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
-    --gradient-secondary: linear-gradient(135deg, hsl(var(--secondary)), hsl(142 76% 46%));
-    --gradient-hero: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 100%);
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100% / 0.8), hsl(210 20% 98%));
+    /* ألوان خاصة لقيود */
+    --qoyod-blue: 209 100% 50%;
+    --qoyod-navy: 221 83% 15%;
+    --qoyod-light-blue: 212 100% 97%;
+    --qoyod-border: 220 13% 91%;
+    --qoyod-text: 210 20% 14%;
+    --qoyod-muted: 215 16% 47%;
+
+    /* التدرجات */
+    --gradient-qoyod: linear-gradient(135deg, hsl(var(--qoyod-blue)), hsl(var(--qoyod-navy)));
+    --gradient-light: linear-gradient(135deg, hsl(var(--qoyod-light-blue)), hsl(0 0% 100%));
 
     /* الظلال */
-    --shadow-soft: 0 4px 20px hsl(var(--primary) / 0.1);
-    --shadow-medium: 0 8px 30px hsl(var(--primary) / 0.15);
-    --shadow-strong: 0 20px 60px hsl(var(--primary) / 0.2);
+    --shadow-qoyod: 0 4px 20px hsl(var(--qoyod-blue) / 0.1);
+    --shadow-card: 0 2px 8px hsl(220 13% 91% / 0.6);
 
     /* الحركات */
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-spring: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    --transition-qoyod: all 0.2s ease-in-out;
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
-
     --card: 222.2 84% 4.9%;
     --card-foreground: 210 40% 98%;
-
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
-
     --primary: 210 40% 98%;
     --primary-foreground: 222.2 47.4% 11.2%;
-
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
-
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
-
     --accent: 217.2 32.6% 17.5%;
     --accent-foreground: 210 40% 98%;
-
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
@@ -120,5 +108,40 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* ألوان قيود المخصصة */
+@layer utilities {
+  .text-qoyod-text {
+    color: hsl(var(--qoyod-text));
+  }
+  
+  .text-qoyod-muted {
+    color: hsl(var(--qoyod-muted));
+  }
+  
+  .text-qoyod-navy {
+    color: hsl(var(--qoyod-navy));
+  }
+  
+  .bg-qoyod-light-blue {
+    background-color: hsl(var(--qoyod-light-blue));
+  }
+  
+  .border-qoyod-border {
+    border-color: hsl(var(--qoyod-border));
+  }
+  
+  .bg-gradient-qoyod {
+    background-image: var(--gradient-qoyod);
+  }
+  
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+  
+  .transition-qoyod {
+    transition: var(--transition-qoyod);
   }
 }
