@@ -6,6 +6,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowRight, Building2, Mail, Phone, User } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { z } from "zod";
+
+// Schema validation
+const trialRequestSchema = z.object({
+  companyName: z.string().trim().min(1, "اسم المنشأة مطلوب").max(100, "اسم المنشأة يجب أن يكون أقل من 100 حرف"),
+  fullName: z.string().trim().min(1, "الاسم الكامل مطلوب").max(100, "الاسم يجب أن يكون أقل من 100 حرف"),
+  email: z.string().trim().email("البريد الإلكتروني غير صحيح").max(255, "البريد الإلكتروني طويل جداً"),
+  phone: z.string().trim().min(1, "رقم الهاتف مطلوب").max(20, "رقم الهاتف طويل جداً"),
+  businessType: z.string().min(1, "نوع النشاط التجاري مطلوب"),
+  agreeToTerms: z.boolean().refine(val => val === true, "يجب الموافقة على الشروط")
+});
 
 const FreeTrial = () => {
   const [formData, setFormData] = useState({
@@ -39,36 +51,34 @@ const FreeTrial = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.companyName || !formData.fullName || !formData.email || !formData.phone || !formData.businessType) {
-      toast({
-        title: "بيانات ناقصة",
-        description: "يرجى إكمال جميع الحقول المطلوبة",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!formData.agreeToTerms) {
-      toast({
-        title: "شروط الاستخدام",
-        description: "يرجى الموافقة على شروط الاستخدام للمتابعة",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsLoading(true);
     
     try {
-      // محاكاة إرسال البيانات
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Validate form data
+      const validatedData = trialRequestSchema.parse(formData);
+      
+      // Save to Supabase
+      const { error } = await supabase
+        .from('trial_requests')
+        .insert({
+          company_name: validatedData.companyName,
+          full_name: validatedData.fullName,
+          email: validatedData.email,
+          phone: validatedData.phone,
+          business_type: validatedData.businessType,
+          terms_agreed: validatedData.agreeToTerms
+        });
+
+      if (error) {
+        throw error;
+      }
+
       toast({
         title: "تم إنشاء حسابك بنجاح!",
-        description: "مرحباً بك في قيود. سيتم إرسال تفاصيل الدخول إلى بريدك الإلكتروني",
+        description: "مرحباً بك في قيود. تم حفظ بياناتك وسيتم التواصل معك قريباً",
       });
       
-      // إعادة تعيين النموذج
+      // Reset form
       setFormData({
         companyName: "",
         fullName: "",
@@ -78,11 +88,21 @@ const FreeTrial = () => {
         agreeToTerms: false,
       });
     } catch (error) {
-      toast({
-        title: "خطأ في التسجيل",
-        description: "حدث خطأ أثناء إنشاء الحساب. يرجى المحاولة مرة أخرى",
-        variant: "destructive",
-      });
+      if (error instanceof z.ZodError) {
+        const firstError = error.issues[0];
+        toast({
+          title: "خطأ في البيانات",
+          description: firstError.message,
+          variant: "destructive",
+        });
+      } else {
+        console.error('Error submitting trial request:', error);
+        toast({
+          title: "خطأ في التسجيل",
+          description: "حدث خطأ أثناء إنشاء الحساب. يرجى المحاولة مرة أخرى",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
