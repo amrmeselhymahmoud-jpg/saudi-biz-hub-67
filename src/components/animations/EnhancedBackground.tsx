@@ -1,9 +1,9 @@
 import React from 'react';
-import { BarChart3, TrendingUp, DollarSign, Shield, Zap, PieChart } from 'lucide-react';
 import BusinessCharts from './BusinessCharts';
 import NetworkGrid from './NetworkGrid';
 import FloatingElements from './FloatingElements';
 import DataStream from './DataStream';
+import IconGrid from './IconGrid';
 
 const EnhancedBackground = () => {
   return (
@@ -36,32 +36,8 @@ const EnhancedBackground = () => {
       {/* Data stream layer */}
       <DataStream />
 
-      {/* Interactive tech icons */}
-      <div className="absolute inset-0 pointer-events-none">
-        {[
-          { Icon: BarChart3, x: 85, y: 15, delay: 0, color: 'text-blue-400' },
-          { Icon: TrendingUp, x: 90, y: 70, delay: 1, color: 'text-green-400' },
-          { Icon: DollarSign, x: 15, y: 25, delay: 0.5, color: 'text-yellow-400' },
-          { Icon: Shield, x: 20, y: 80, delay: 1.5, color: 'text-purple-400' },
-          { Icon: Zap, x: 10, y: 50, delay: 2, color: 'text-orange-400' },
-          { Icon: PieChart, x: 85, y: 45, delay: 2.5, color: 'text-cyan-400' }
-        ].map(({ Icon, x, y, delay, color }, index) => (
-          <div
-            key={index}
-            className={`absolute ${color} animate-bounce opacity-60`}
-            style={{
-              left: `${x}%`,
-              top: `${y}%`,
-              animationDelay: `${delay}s`,
-              animationDuration: '4s'
-            }}
-          >
-            <div className="p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl">
-              <Icon size={24} className="drop-shadow-lg" />
-            </div>
-          </div>
-        ))}
-      </div>
+      {/* Organized icon grid system */}
+      <IconGrid />
 
       {/* Content overlay with enhanced styling */}
       <div className="relative h-full flex items-center justify-center p-12 z-10">
