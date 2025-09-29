@@ -1,6 +1,22 @@
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 const QoyodHeader = () => {
+  const { toast } = useToast();
+
+  const handleFreeTrialClick = () => {
+    toast({
+      title: "التجربة المجانية",
+      description: "سيتم توجيهك لصفحة التسجيل للتجربة المجانية",
+    });
+  };
+
+  const handleLoginClick = () => {
+    toast({
+      title: "تسجيل الدخول",
+      description: "أنت بالفعل في صفحة تسجيل الدخول",
+    });
+  };
   return (
     <header className="bg-white border-b border-qoyod-border">
       <div className="container mx-auto px-4 py-4">
@@ -12,10 +28,10 @@ const QoyodHeader = () => {
             </div>
             
             <nav className="hidden md:flex items-center space-x-6 rtl:space-x-reverse">
-              <a href="#" className="text-qoyod-text hover:text-primary transition-qoyod">عن قيود</a>
-              <a href="#" className="text-qoyod-text hover:text-primary transition-qoyod">المزايا</a>
-              <a href="#" className="text-qoyod-text hover:text-primary transition-qoyod">الأسعار</a>
-              <a href="#" className="text-qoyod-text hover:text-primary transition-qoyod">تسجيل الدخول</a>
+              <button onClick={() => toast({ title: "عن قيود", description: "سيتم توجيهك لصفحة معلومات الشركة" })} className="text-qoyod-text hover:text-primary transition-qoyod">عن قيود</button>
+              <button onClick={() => toast({ title: "المزايا", description: "سيتم توجيهك لصفحة المزايا" })} className="text-qoyod-text hover:text-primary transition-qoyod">المزايا</button>
+              <button onClick={() => toast({ title: "الأسعار", description: "سيتم توجيهك لصفحة الأسعار" })} className="text-qoyod-text hover:text-primary transition-qoyod">الأسعار</button>
+              <button onClick={handleLoginClick} className="text-qoyod-text hover:text-primary transition-qoyod">تسجيل الدخول</button>
             </nav>
           </div>
 
@@ -31,6 +47,7 @@ const QoyodHeader = () => {
             <Button 
               variant="outline" 
               className="border-primary text-primary hover:bg-primary hover:text-white transition-qoyod"
+              onClick={handleFreeTrialClick}
             >
               ابدأ تجربتنا المجانية
             </Button>

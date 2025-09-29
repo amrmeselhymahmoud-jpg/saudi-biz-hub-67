@@ -4,12 +4,61 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useToast } from "@/hooks/use-toast";
 
 const QoyodLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email || !password) {
+      toast({
+        title: "خطأ في البيانات",
+        description: "يرجى إدخال البريد الإلكتروني وكلمة المرور",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    
+    // محاكاة عملية تسجيل الدخول
+    try {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      toast({
+        title: "تم تسجيل الدخول بنجاح",
+        description: "مرحباً بك في منصة قيود",
+      });
+    } catch (error) {
+      toast({
+        title: "خطأ في تسجيل الدخول",
+        description: "يرجى المحاولة مرة أخرى",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleFreeTrialClick = () => {
+    toast({
+      title: "التجربة المجانية",
+      description: "سيتم توجيهك لصفحة التسجيل للتجربة المجانية",
+    });
+  };
+
+  const handleForgotPassword = () => {
+    toast({
+      title: "استعادة كلمة المرور",
+      description: "سيتم إرسال رابط استعادة كلمة المرور إلى بريدك الإلكتروني",
+    });
+  };
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -24,9 +73,10 @@ const QoyodLogin = () => {
           </div>
 
           {/* نموذج تسجيل الدخول */}
-          <Card className="border-qoyod-border shadow-card">
-            <CardContent className="p-8 space-y-6">
-              {/* البريد الإلكتروني */}
+          <form onSubmit={handleLogin}>
+            <Card className="border-qoyod-border shadow-card">
+              <CardContent className="p-8 space-y-6">
+                {/* البريد الإلكتروني */}
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-qoyod-text font-medium">
                   البريد الإلكتروني <span className="text-red-500">*</span>
@@ -56,9 +106,13 @@ const QoyodLogin = () => {
                   <Label htmlFor="password" className="text-qoyod-text font-medium">
                     كلمة المرور <span className="text-red-500">*</span>
                   </Label>
-                  <a href="#" className="text-primary text-sm hover:underline">
+                  <button 
+                    type="button"
+                    onClick={handleForgotPassword}
+                    className="text-primary text-sm hover:underline"
+                  >
                     نسيت كلمة المرور؟
-                  </a>
+                  </button>
                 </div>
                 <div className="relative">
                   <Input
@@ -113,12 +167,14 @@ const QoyodLogin = () => {
                 </Label>
               </div>
 
-              {/* زر تسجيل الدخول */}
-              <Button 
-                className="w-full bg-primary hover:bg-primary-dark text-white py-3 text-lg font-medium transition-qoyod"
-                size="lg"
-              >
-                تسجيل الدخول
+                {/* زر تسجيل الدخول */}
+                <Button 
+                  type="submit"
+                  className="w-full bg-primary hover:bg-primary-dark text-white py-3 text-lg font-medium transition-qoyod"
+                  size="lg"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "جاري تسجيل الدخول..." : "تسجيل الدخول"}
               </Button>
             </CardContent>
           </Card>
@@ -135,11 +191,13 @@ const QoyodLogin = () => {
               <Button 
                 variant="outline" 
                 className="border-primary text-primary hover:bg-primary hover:text-white transition-qoyod"
+                onClick={handleFreeTrialClick}
               >
                 ابدأ تجربتك المجانية
               </Button>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </form>
         </div>
       </div>
 
