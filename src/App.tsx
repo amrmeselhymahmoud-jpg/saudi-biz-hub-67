@@ -8,6 +8,7 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import Invoices from "./pages/Invoices";
+import Customers from "./pages/Customers";
 import FreeTrial from "./pages/FreeTrial";
 import About from "./pages/About";
 import Features from "./pages/Features";
@@ -28,6 +29,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/invoices" element={<Invoices />} />
+              <Route path="/customers" element={<Customers />} />
               <Route path="/free-trial" element={<FreeTrial />} />
               <Route path="/about" element={<About />} />
               <Route path="/features" element={<Features />} />
