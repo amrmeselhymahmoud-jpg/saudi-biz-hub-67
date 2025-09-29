@@ -73,10 +73,36 @@ const FreeTrial = () => {
         throw error;
       }
 
-      toast({
-        title: "تم إنشاء حسابك بنجاح!",
-        description: "مرحباً بك في قيود. تم حفظ بياناتك وسيتم التواصل معك قريباً",
-      });
+      // Send confirmation email
+      try {
+        const emailResponse = await supabase.functions.invoke('send-trial-confirmation', {
+          body: {
+            fullName: validatedData.fullName,
+            email: validatedData.email,
+            companyName: validatedData.companyName,
+            businessType: validatedData.businessType
+          }
+        });
+
+        if (emailResponse.error) {
+          console.error('Error sending confirmation email:', emailResponse.error);
+          toast({
+            title: "تم إنشاء حسابك بنجاح!",
+            description: "تم حفظ بياناتك، ولكن حدث خطأ في إرسال رسالة التأكيد. سيتم التواصل معك قريباً",
+          });
+        } else {
+          toast({
+            title: "تم إنشاء حسابك بنجاح!",
+            description: "مرحباً بك في قيود. تم إرسال رسالة تأكيد على البريد الإلكتروني",
+          });
+        }
+      } catch (emailError) {
+        console.error('Error sending confirmation email:', emailError);
+        toast({
+          title: "تم إنشاء حسابك بنجاح!",
+          description: "تم حفظ بياناتك، ولكن حدث خطأ في إرسال رسالة التأكيد. سيتم التواصل معك قريباً",
+        });
+      }
       
       // Reset form
       setFormData({
