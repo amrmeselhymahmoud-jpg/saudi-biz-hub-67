@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+import AnimatedBackground from "@/components/animations/AnimatedBackground";
 
 const QoyodLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -202,21 +203,8 @@ const QoyodLogin = () => {
         </div>
       </div>
 
-      {/* القسم الأيمن - الخلفية */}
-      <div className="hidden lg:block flex-1 bg-gradient-qoyod relative overflow-hidden">
-        <div className="absolute inset-0 bg-qoyod-navy/10"></div>
-        <div className="relative h-full flex items-center justify-center p-12">
-          <div className="text-center text-white space-y-6">
-            <div className="w-32 h-32 bg-white/20 rounded-full mx-auto flex items-center justify-center mb-8">
-              <span className="text-4xl font-bold">ق</span>
-            </div>
-            <h2 className="text-3xl font-bold">منصة قيود للمحاسبة</h2>
-            <p className="text-xl opacity-90 max-w-md">
-              النظام الأول لإدارة الأعمال والمحاسبة في المملكة العربية السعودية
-            </p>
-          </div>
-        </div>
-      </div>
+      {/* القسم الأيمن - الخلفية المتحركة */}
+      <AnimatedBackground />
     </div>
   );
 };
