@@ -66,7 +66,7 @@ export function AppSidebar() {
   return (
     <Sidebar
       side="right"
-      className={`${collapsed ? "w-16" : "w-72"} border-l bg-gradient-to-b from-slate-50 to-white shadow-xl transition-all duration-300 z-30`}
+      className={`${collapsed ? "w-16" : "w-72"} border-l bg-gradient-to-b from-slate-50 to-white shadow-xl transition-all duration-300 fixed right-0 top-0 h-full z-20`}
       collapsible="icon"
     >
       <SidebarContent className="p-0">

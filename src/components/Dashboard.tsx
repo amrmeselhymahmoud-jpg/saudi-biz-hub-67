@@ -98,7 +98,7 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-gradient-to-r from-white to-slate-50/80 border-b border-border/60 shadow-sm sticky top-0 z-40 backdrop-blur-sm w-full">
+      <header className="bg-gradient-to-r from-white to-slate-50/80 border-b border-border/60 shadow-sm sticky top-0 z-10 backdrop-blur-sm w-full">
         {/* Top Navigation */}
         <div className="border-b border-border/30">
           <div className="px-6 py-2">
