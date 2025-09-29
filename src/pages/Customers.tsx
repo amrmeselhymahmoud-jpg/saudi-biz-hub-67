@@ -1,5 +1,8 @@
-import { Users, Plus, Search, MoreHorizontal, Edit, Trash2, Eye } from "lucide-react";
+import { Users, Plus, Search, MoreHorizontal, Edit, Trash2, Eye, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -17,49 +20,118 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { AddCustomerDialog } from "@/components/customers/AddCustomerDialog";
+import { EditCustomerDialog } from "@/components/customers/EditCustomerDialog";
+
+interface Customer {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  tax_number: string | null;
+  customer_type: string;
+  balance: number;
+  credit_limit: number;
+  notes: string | null;
+  is_active: boolean;
+  created_at: string;
+}
 
 const Customers = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [customerToDelete, setCustomerToDelete] = useState<string | null>(null);
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  // Sample data - will be replaced with Supabase query
-  const customers = [
-    {
-      id: "1",
-      name: "أحمد محمد العلي",
-      email: "ahmed.ali@example.com",
-      phone: "+966 50 111 2222",
-      balance: 5000,
-      creditLimit: 20000,
-      customerType: "individual",
-      isActive: true,
+  // Fetch customers
+  const { data: customers = [], isLoading } = useQuery({
+    queryKey: ["customers"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error("يجب تسجيل الدخول أولاً");
+      }
+
+      const { data, error } = await supabase
+        .from("customers")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data as Customer[];
     },
-    {
-      id: "2",
-      name: "شركة النور للتجارة",
-      email: "info@alnoor.com",
-      phone: "+966 55 333 4444",
-      balance: 12500,
-      creditLimit: 50000,
-      customerType: "company",
-      isActive: true,
+  });
+
+  // Delete customer mutation
+  const deleteCustomerMutation = useMutation({
+    mutationFn: async (customerId: string) => {
+      const { error } = await supabase
+        .from("customers")
+        .delete()
+        .eq("id", customerId);
+
+      if (error) throw error;
     },
-    {
-      id: "3",
-      name: "فاطمة عبدالله",
-      email: "fatima.abdullah@example.com",
-      phone: "+966 56 555 6666",
-      balance: 0,
-      creditLimit: 10000,
-      customerType: "individual",
-      isActive: true,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      toast({
+        title: "تم بنجاح",
+        description: "تم حذف العميل بنجاح",
+      });
+      setDeleteDialogOpen(false);
+      setCustomerToDelete(null);
     },
-  ];
+    onError: (error: Error) => {
+      toast({
+        title: "خطأ",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   const filteredCustomers = customers.filter((customer) =>
     customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    customer.email.toLowerCase().includes(searchQuery.toLowerCase())
+    customer.email?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleEdit = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setEditDialogOpen(true);
+  };
+
+  const handleDelete = (customerId: string) => {
+    setCustomerToDelete(customerId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (customerToDelete) {
+      deleteCustomerMutation.mutate(customerToDelete);
+    }
+  };
+
+  const totalBalance = customers.reduce((sum, c) => sum + c.balance, 0);
 
   return (
     <div className="p-6 space-y-6">
@@ -69,7 +141,7 @@ const Customers = () => {
           <Users className="h-8 w-8 text-primary" />
           <h1 className="text-3xl font-bold text-foreground">العملاء</h1>
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2" onClick={() => setAddDialogOpen(true)}>
           <Plus className="h-4 w-4" />
           إضافة عميل جديد
         </Button>
@@ -79,18 +151,28 @@ const Customers = () => {
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="p-6">
           <div className="text-sm text-muted-foreground">إجمالي العملاء</div>
-          <div className="text-2xl font-bold mt-2">{customers.length}</div>
+          <div className="text-2xl font-bold mt-2">
+            {isLoading ? <Skeleton className="h-8 w-16" /> : customers.length}
+          </div>
         </Card>
         <Card className="p-6">
           <div className="text-sm text-muted-foreground">العملاء النشطين</div>
           <div className="text-2xl font-bold mt-2">
-            {customers.filter((c) => c.isActive).length}
+            {isLoading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+              customers.filter((c) => c.is_active).length
+            )}
           </div>
         </Card>
         <Card className="p-6">
           <div className="text-sm text-muted-foreground">إجمالي المديونيات</div>
           <div className="text-2xl font-bold mt-2">
-            {customers.reduce((sum, c) => sum + c.balance, 0).toLocaleString()} ر.س
+            {isLoading ? (
+              <Skeleton className="h-8 w-24" />
+            ) : (
+              `${totalBalance.toLocaleString()} ر.س`
+            )}
           </div>
         </Card>
       </div>
@@ -121,10 +203,22 @@ const Customers = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredCustomers.length === 0 ? (
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                  <TableCell><Skeleton className="h-8 w-8" /></TableCell>
+                </TableRow>
+              ))
+            ) : filteredCustomers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                  لا توجد نتائج
+                  {searchQuery ? "لا توجد نتائج" : "لا يوجد عملاء. ابدأ بإضافة عميل جديد!"}
                 </TableCell>
               </TableRow>
             ) : (
@@ -133,15 +227,15 @@ const Customers = () => {
                   <TableCell className="font-medium">{customer.name}</TableCell>
                   <TableCell>
                     <Badge variant="outline">
-                      {customer.customerType === "individual" ? "فرد" : "شركة"}
+                      {customer.customer_type === "individual" ? "فرد" : "شركة"}
                     </Badge>
                   </TableCell>
-                  <TableCell>{customer.email}</TableCell>
-                  <TableCell>{customer.phone}</TableCell>
+                  <TableCell>{customer.email || "-"}</TableCell>
+                  <TableCell>{customer.phone || "-"}</TableCell>
                   <TableCell>{customer.balance.toLocaleString()} ر.س</TableCell>
                   <TableCell>
-                    <Badge variant={customer.isActive ? "default" : "secondary"}>
-                      {customer.isActive ? "نشط" : "غير نشط"}
+                    <Badge variant={customer.is_active ? "default" : "secondary"}>
+                      {customer.is_active ? "نشط" : "غير نشط"}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -152,15 +246,14 @@ const Customers = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem className="gap-2">
-                          <Eye className="h-4 w-4" />
-                          عرض
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="gap-2">
+                        <DropdownMenuItem className="gap-2" onClick={() => handleEdit(customer)}>
                           <Edit className="h-4 w-4" />
                           تعديل
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="gap-2 text-destructive">
+                        <DropdownMenuItem 
+                          className="gap-2 text-destructive"
+                          onClick={() => handleDelete(customer.id)}
+                        >
                           <Trash2 className="h-4 w-4" />
                           حذف
                         </DropdownMenuItem>
@@ -173,6 +266,38 @@ const Customers = () => {
           </TableBody>
         </Table>
       </Card>
+
+      {/* Dialogs */}
+      <AddCustomerDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
+      
+      <EditCustomerDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        customer={selectedCustomer}
+      />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
+            <AlertDialogDescription>
+              هذا الإجراء لا يمكن التراجع عنه. سيتم حذف العميل نهائياً من قاعدة البيانات.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteCustomerMutation.isPending && (
+                <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+              )}
+              حذف
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
