@@ -1,8 +1,12 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { Globe, X } from "lucide-react";
 
 const QoyodHeader = () => {
   const { toast } = useToast();
+  const [showNotification, setShowNotification] = useState(true);
+  const [currentLang, setCurrentLang] = useState("AR");
 
   const handleFreeTrialClick = () => {
     toast({
@@ -15,6 +19,23 @@ const QoyodHeader = () => {
     toast({
       title: "تسجيل الدخول",
       description: "أنت بالفعل في صفحة تسجيل الدخول",
+    });
+  };
+
+  const handleLanguageToggle = () => {
+    const newLang = currentLang === "AR" ? "EN" : "AR";
+    setCurrentLang(newLang);
+    toast({
+      title: "تغيير اللغة",
+      description: `تم تغيير اللغة إلى ${newLang}`,
+    });
+  };
+
+  const handleCloseNotification = () => {
+    setShowNotification(false);
+    toast({
+      title: "تم إغلاق التنبيه",
+      description: "تم إخفاء رسالة التنبيه",
     });
   };
   return (
@@ -37,12 +58,15 @@ const QoyodHeader = () => {
 
           {/* أزرار التسجيل */}
           <div className="flex items-center space-x-4 rtl:space-x-reverse">
-            <div className="flex items-center space-x-2 rtl:space-x-reverse text-sm">
-              <span className="text-qoyod-muted">EN</span>
-              <div className="w-6 h-6 bg-qoyod-light-blue rounded-full flex items-center justify-center">
-                <span className="text-xs">🌐</span>
+            <button 
+              onClick={handleLanguageToggle}
+              className="flex items-center space-x-2 rtl:space-x-reverse text-sm hover:bg-qoyod-light-blue p-2 rounded-lg transition-qoyod"
+            >
+              <span className="text-qoyod-muted">{currentLang}</span>
+              <div className="w-6 h-6 bg-qoyod-light-blue rounded-full flex items-center justify-center hover:bg-primary hover:text-white transition-qoyod">
+                <Globe size={12} className="text-primary" />
               </div>
-            </div>
+            </button>
             
             <Button 
               variant="outline" 
@@ -56,14 +80,24 @@ const QoyodHeader = () => {
       </div>
       
       {/* شريط التنبيه */}
-      <div className="bg-red-50 border-b border-red-200 px-4 py-2">
-        <div className="container mx-auto">
-          <p className="text-sm text-red-600 text-center">
-            يجب تسجيل الدخول أو الاشتراك قبل المتابعة
-            <button className="mr-4 text-red-800 hover:underline">×</button>
-          </p>
+      {showNotification && (
+        <div className="bg-red-50 border-b border-red-200 px-4 py-2">
+          <div className="container mx-auto">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-red-600 text-center flex-1">
+                يجب تسجيل الدخول أو الاشتراك قبل المتابعة
+              </p>
+              <button 
+                onClick={handleCloseNotification}
+                className="text-red-800 hover:text-red-900 hover:bg-red-100 p-1 rounded transition-qoyod"
+                aria-label="إغلاق التنبيه"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </header>
   );
 };
