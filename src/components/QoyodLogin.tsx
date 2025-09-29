@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
-import AnimatedBackground from "@/components/animations/AnimatedBackground";
+import EnhancedBackground from "@/components/animations/EnhancedBackground";
 
 const QoyodLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -203,8 +203,8 @@ const QoyodLogin = () => {
         </div>
       </div>
 
-      {/* القسم الأيمن - الخلفية المتحركة */}
-      <AnimatedBackground />
+      {/* القسم الأيمن - الخلفية المتحركة المحسنة */}
+      <EnhancedBackground />
     </div>
   );
 };
