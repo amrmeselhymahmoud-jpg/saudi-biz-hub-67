@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowRight, Mail, Lock, User, Building2 } from "lucide-react";
+import EnhancedBackground from "@/components/animations/EnhancedBackground";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -174,21 +175,21 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* العودة إلى الصفحة الرئيسية */}
-      <div className="container mx-auto px-4 py-6">
-        <Button 
-          variant="outline" 
-          onClick={() => navigate("/")}
-          className="mb-6"
-        >
-          <ArrowRight className="ml-2 h-4 w-4" />
-          العودة إلى الصفحة الرئيسية
-        </Button>
-      </div>
+    <div className="min-h-screen bg-background flex"
+    >
+      {/* القسم الأيسر - النموذج */}
+      <div className="flex-1 flex items-center justify-center p-8">
+        <div className="w-full max-w-md">
+          {/* العودة إلى الصفحة الرئيسية */}
+          <Button 
+            variant="outline" 
+            onClick={() => navigate("/")}
+            className="mb-6"
+          >
+            <ArrowRight className="ml-2 h-4 w-4" />
+            العودة إلى الصفحة الرئيسية
+          </Button>
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-md mx-auto">
           {/* العنوان الرئيسي */}
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-qoyod-text mb-4">
@@ -379,6 +380,9 @@ const Auth = () => {
           </Card>
         </div>
       </div>
+
+      {/* القسم الأيمن - الخلفية المتحركة */}
+      <EnhancedBackground />
     </div>
   );
 };
