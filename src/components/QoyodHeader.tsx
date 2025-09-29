@@ -39,7 +39,7 @@ const QoyodHeader = () => {
     });
   };
   return (
-    <header className="relative z-30 bg-white/80 backdrop-blur-sm border-b border-qoyod-border/30">
+    <header className="bg-white border-b border-qoyod-border">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           {/* الشعار والملاحة */}
@@ -49,9 +49,9 @@ const QoyodHeader = () => {
             </div>
             
             <nav className="hidden md:flex items-center space-x-6 rtl:space-x-reverse">
-              <button onClick={() => navigate("/about")} className="text-qoyod-text hover:text-primary transition-qoyod">{t('header.about')}</button>
-              <button onClick={() => navigate("/features")} className="text-qoyod-text hover:text-primary transition-qoyod">{t('header.features')}</button>
-              <button onClick={() => navigate("/pricing")} className="text-qoyod-text hover:text-primary transition-qoyod">{t('header.pricing')}</button>
+              <button onClick={() => toast({ title: t('header.about'), description: "سيتم توجيهك لصفحة معلومات الشركة" })} className="text-qoyod-text hover:text-primary transition-qoyod">{t('header.about')}</button>
+              <button onClick={() => toast({ title: t('header.features'), description: "سيتم توجيهك لصفحة المزايا" })} className="text-qoyod-text hover:text-primary transition-qoyod">{t('header.features')}</button>
+              <button onClick={() => toast({ title: t('header.pricing'), description: "سيتم توجيهك لصفحة الأسعار" })} className="text-qoyod-text hover:text-primary transition-qoyod">{t('header.pricing')}</button>
               <button onClick={handleLoginClick} className="text-qoyod-text hover:text-primary transition-qoyod">{t('header.login')}</button>
             </nav>
           </div>

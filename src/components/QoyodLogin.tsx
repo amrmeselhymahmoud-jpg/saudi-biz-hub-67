@@ -62,9 +62,9 @@ const QoyodLogin = () => {
   };
 
   return (
-    <div className="relative z-30 min-h-screen flex">
+    <div className="min-h-screen bg-background flex">
       {/* القسم الأيسر - النموذج */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-white/80 backdrop-blur-sm">
+      <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md space-y-8">
           {/* العنوان الرئيسي */}
           <div className="text-center">
@@ -203,7 +203,7 @@ const QoyodLogin = () => {
       </div>
 
       {/* القسم الأيمن - الخلفية */}
-      <div className="hidden lg:block flex-1 bg-gradient-qoyod overflow-hidden">
+      <div className="hidden lg:block flex-1 bg-gradient-qoyod relative overflow-hidden">
         <div className="absolute inset-0 bg-qoyod-navy/10"></div>
         <div className="relative h-full flex items-center justify-center p-12">
           <div className="text-center text-white space-y-6">
