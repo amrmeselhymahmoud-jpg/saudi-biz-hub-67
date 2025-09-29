@@ -180,25 +180,6 @@ const NetworkGrid = () => {
         </g>
       </svg>
 
-      {/* Network activity monitor */}
-      <div className="absolute bottom-8 left-32">
-        <div className="bg-white/10 rounded-lg p-3 backdrop-blur-sm border border-white/20 text-white">
-          <div className="text-xs opacity-60 mb-2">نشاط الشبكة</div>
-          <div className="flex space-x-1">
-            {[...Array(12)].map((_, i) => (
-              <div
-                key={i}
-                className="w-1 bg-gradient-to-t from-blue-500 to-cyan-400 rounded-t animate-pulse"
-                style={{
-                  height: `${Math.random() * 20 + 5}px`,
-                  animationDelay: `${i * 0.1}s`,
-                  animationDuration: '1s'
-                }}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
     </div>
   );
 };
