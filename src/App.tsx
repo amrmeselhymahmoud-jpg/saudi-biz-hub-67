@@ -1,4 +1,3 @@
-import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,9 +6,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
-import Invoices from "./pages/Invoices";
-import Customers from "./pages/Customers";
-import Purchases from "./pages/Purchases";
 import FreeTrial from "./pages/FreeTrial";
 import About from "./pages/About";
 import Features from "./pages/Features";
@@ -29,9 +25,6 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
-              <Route path="/invoices" element={<Invoices />} />
-              <Route path="/customers" element={<Customers />} />
-              <Route path="/purchases" element={<Purchases />} />
               <Route path="/free-trial" element={<FreeTrial />} />
               <Route path="/about" element={<About />} />
               <Route path="/features" element={<Features />} />
