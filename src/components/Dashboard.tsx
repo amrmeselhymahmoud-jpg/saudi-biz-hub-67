@@ -94,9 +94,9 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-gradient-to-r from-white to-slate-50/80 border-b border-border/60 shadow-sm sticky top-0 z-40 backdrop-blur-sm">
+      <header className="bg-gradient-to-r from-white to-slate-50/80 border-b border-border/60 shadow-sm sticky top-0 z-50 backdrop-blur-sm">
         <div className="flex items-center justify-between px-6 py-4">
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-4 rtl:space-x-reverse">
             <SidebarTrigger className="hover:bg-muted rounded-lg p-2 transition-colors" />
             <div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">لوحة التحكم</h1>
@@ -104,7 +104,8 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-4 rtl:space-x-reverse"
+          >
             {/* Search */}
             <div className="relative hidden md:block">
               <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -124,7 +125,7 @@ const Dashboard = () => {
 
             {/* User Menu */}
             <div className="flex items-center space-x-3">
-              <div className="hidden sm:block text-left">
+              <div className="hidden sm:block text-right">
                 <p className="text-sm font-semibold text-foreground">{user?.email}</p>
                 <p className="text-xs text-muted-foreground">مدير النظام</p>
               </div>
