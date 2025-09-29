@@ -14,7 +14,16 @@ import {
   DollarSign,
   ShoppingCart,
   Calendar,
-  Menu
+  Menu,
+  Banknote,
+  CreditCard,
+  Building,
+  Calculator,
+  HelpCircle,
+  Target,
+  Globe,
+  Receipt,
+  MonitorSpeaker
 } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
 
@@ -31,21 +40,22 @@ import {
 } from "@/components/ui/sidebar"
 
 const mainMenuItems = [
-  { title: "لوحة التحكم", url: "/", icon: Home },
-  { title: "الفواتير", url: "/invoices", icon: FileText },
-  { title: "العملاء", url: "/customers", icon: Users },
-  { title: "المخزون", url: "/inventory", icon: Package },
+  { title: "لوحة المتابعة", url: "/", icon: Home },
+  { title: "المنتجات", url: "/products", icon: Package },
+  { title: "المشتريات", url: "/purchases", icon: ShoppingCart },
+  { title: "المنتجات والتكاليف", url: "/products-costs", icon: Calculator },
+  { title: "الأطوال المالية", url: "/financial-periods", icon: Calendar },
+  { title: "البوابات", url: "/gateways", icon: Globe },
+  { title: "المحاسبة", url: "/accounting", icon: Banknote },
+  { title: "النهام والمشاريع", url: "/projects", icon: Building },
   { title: "التقارير", url: "/reports", icon: BarChart3 },
 ]
 
-const quickActions = [
-  { title: "فاتورة جديدة", url: "/invoices/new", icon: Plus },
-  { title: "عميل جديد", url: "/customers/new", icon: Users },
-  { title: "منتج جديد", url: "/inventory/new", icon: Package },
-]
-
-const settingsItems = [
+const additionalItems = [
+  { title: "الخدمات البرمجية", url: "/services", icon: MonitorSpeaker },
   { title: "الإعدادات", url: "/settings", icon: Settings },
+  { title: "تقرير على هذه الصفحة", url: "/page-report", icon: FileText },
+  { title: "مركز المساعدة", url: "/help", icon: HelpCircle },
 ]
 
 export function AppSidebar() {
@@ -111,16 +121,16 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Quick Actions */}
+        {/* Additional Services */}
         <SidebarGroup className="px-3 py-4">
           {!collapsed && (
             <SidebarGroupLabel className="text-xs font-medium text-muted-foreground px-3 mb-2">
-              إجراءات سريعة
+              خدمات إضافية
             </SidebarGroupLabel>
           )}
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1">
-              {quickActions.map((item) => (
+              {additionalItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild className="h-10">
                     <NavLink 
@@ -136,29 +146,6 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        {/* Settings */}
-        <div className="mt-auto">
-          <SidebarGroup className="px-3 py-4">
-            <SidebarGroupContent>
-              <SidebarMenu className="space-y-1">
-                {settingsItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild className="h-10">
-                      <NavLink 
-                        to={item.url}
-                        className={`${getNavCls(item.url)} flex items-center space-x-3 rtl:space-x-reverse px-3 py-2 rounded-lg transition-colors`}
-                      >
-                        <item.icon className="h-5 w-5 flex-shrink-0" />
-                        {!collapsed && <span className="text-sm">{item.title}</span>}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        </div>
       </SidebarContent>
     </Sidebar>
   )
