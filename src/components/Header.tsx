@@ -23,10 +23,10 @@ const Header = () => {
           </nav>
 
           <div className="flex items-center space-x-4 rtl:space-x-reverse">
-            <Button variant="outline" className="hidden sm:flex">
+            <Button variant="outline" className="hidden sm:flex" onClick={() => window.location.href = '/auth'}>
               تسجيل الدخول
             </Button>
-            <Button variant="default" className="bg-gradient-primary hover:opacity-90">
+            <Button variant="default" className="bg-gradient-primary hover:opacity-90" onClick={() => window.location.href = '/free-trial'}>
               ابدأ التجربة المجانية
             </Button>
           </div>
