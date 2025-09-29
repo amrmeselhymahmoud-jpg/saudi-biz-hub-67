@@ -33,14 +33,12 @@ const QoyodLogin = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <main className="flex-1 overflow-hidden flex">
-          <div className="flex-1">
-            <Dashboard />
-          </div>
-          <div className="w-80 h-fit m-4 rounded-lg">
-            <AppSidebar />
-          </div>
+        <main className="flex-1 overflow-hidden">
+          <Dashboard />
         </main>
+        <div className="w-80 border-r bg-card">
+          <AppSidebar />
+        </div>
       </div>
     </SidebarProvider>
   );
