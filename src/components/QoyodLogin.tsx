@@ -62,25 +62,9 @@ const QoyodLogin = () => {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden flex">
-      {/* Animated Background */}
-      <div className="fixed inset-0 z-0 bg-gradient-to-br from-blue-100 via-indigo-50 to-purple-100">
-        {/* Floating animated shapes */}
-        <div className="absolute top-16 left-16 w-32 h-32 bg-blue-400/30 rounded-full animate-bounce"></div>
-        <div className="absolute top-32 right-24 w-24 h-24 bg-purple-400/40 rounded-full animate-pulse"></div>
-        <div className="absolute bottom-32 left-1/4 w-40 h-40 bg-pink-400/25 rounded-full animate-ping"></div>
-        <div className="absolute bottom-20 right-16 w-28 h-28 bg-indigo-500/35 rounded-full animate-spin" style={{animationDuration: '12s'}}></div>
-        
-        {/* Additional floating elements */}
-        <div className="absolute top-1/2 left-8 w-20 h-20 bg-cyan-400/30 rounded-full animate-bounce" style={{animationDelay: '1s'}}></div>
-        <div className="absolute top-1/3 right-1/3 w-16 h-16 bg-green-400/40 rounded-full animate-pulse" style={{animationDelay: '2s'}}></div>
-        
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-r from-white/70 via-white/30 to-white/60"></div>
-      </div>
-
+    <div className="min-h-screen flex">
       {/* القسم الأيسر - النموذج */}
-      <div className="relative z-10 flex-1 flex items-center justify-center p-8 bg-white/80 backdrop-blur-sm">
+      <div className="flex-1 flex items-center justify-center p-8 bg-white/80 backdrop-blur-sm">
         <div className="w-full max-w-md space-y-8">
           {/* العنوان الرئيسي */}
           <div className="text-center">
@@ -219,7 +203,7 @@ const QoyodLogin = () => {
       </div>
 
       {/* القسم الأيمن - الخلفية */}
-      <div className="relative z-10 hidden lg:block flex-1 bg-gradient-qoyod overflow-hidden">
+      <div className="hidden lg:block flex-1 bg-gradient-qoyod overflow-hidden">
         <div className="absolute inset-0 bg-qoyod-navy/10"></div>
         <div className="relative h-full flex items-center justify-center p-12">
           <div className="text-center text-white space-y-6">

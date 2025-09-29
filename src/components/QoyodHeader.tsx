@@ -39,7 +39,7 @@ const QoyodHeader = () => {
     });
   };
   return (
-    <header className="bg-white border-b border-qoyod-border">
+    <header className="bg-white/80 backdrop-blur-sm border-b border-qoyod-border/30">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           {/* الشعار والملاحة */}
