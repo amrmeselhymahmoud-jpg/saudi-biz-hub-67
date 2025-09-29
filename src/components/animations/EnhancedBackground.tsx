@@ -1,5 +1,4 @@
 import React from 'react';
-import BusinessCharts from './BusinessCharts';
 import NetworkGrid from './NetworkGrid';
 import FloatingElements from './FloatingElements';
 import IconGrid from './IconGrid';
@@ -28,9 +27,6 @@ const EnhancedBackground = () => {
       
       {/* Network grid layer */}
       <NetworkGrid />
-      
-      {/* Business charts layer */}
-      <BusinessCharts />
 
       {/* Organized icon grid system */}
       <IconGrid />
