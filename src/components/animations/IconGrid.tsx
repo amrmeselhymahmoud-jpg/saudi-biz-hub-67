@@ -11,17 +11,13 @@ import {
   Users,
   Settings,
   Database,
-  CreditCard,
-  Archive,
-  Clock,
-  Globe,
-  Lock
+  CreditCard
 } from 'lucide-react';
 
 const IconGrid = () => {
-  // Circular arrangement around the center
+  // Circular arrangement around the center - keeping only essential accounting icons
   const iconRings = [
-    // Inner ring - Core functions
+    // Inner ring - Core accounting functions
     {
       radius: 120,
       icons: [
@@ -41,23 +37,16 @@ const IconGrid = () => {
         { Icon: Database, color: 'text-indigo-400', label: 'البيانات', angle: 315 }
       ]
     },
-    // Outer ring - Extended features
+    // Outer ring - Extended accounting features
     {
       radius: 240,
       icons: [
         { Icon: PieChart, color: 'text-cyan-400', label: 'التحليل', angle: 0 },
-        { Icon: CreditCard, color: 'text-purple-400', label: 'المدفوعات', angle: 60 },
-        { Icon: Zap, color: 'text-pink-400', label: 'الأتمتة', angle: 120 },
+        { Icon: CreditCard, color: 'text-purple-400', label: 'المدفوعات', angle: 120 },
         { Icon: Settings, color: 'text-slate-400', label: 'الإعدادات', angle: 180 },
-        { Icon: Archive, color: 'text-gray-400', label: 'الأرشيف', angle: 240 },
-        { Icon: Clock, color: 'text-blue-300', label: 'التوقيت', angle: 300 }
+        { Icon: Zap, color: 'text-pink-400', label: 'الأتمتة', angle: 240 }
       ]
     }
-  ];
-
-  const cornerIcons = [
-    { Icon: Globe, color: 'text-teal-400', label: 'الشبكة', position: 'top-8 left-8' },
-    { Icon: Lock, color: 'text-rose-400', label: 'التشفير', position: 'top-8 right-8' },
   ];
 
   return (
@@ -141,30 +130,10 @@ const IconGrid = () => {
         </div>
       </div>
 
-      {/* Corner accent icons */}
-      {cornerIcons.map((corner, index) => {
-        const { Icon, color, label, position } = corner;
-        return (
-          <div key={index} className={`absolute ${position}`}>
-            <div className={`${color} animate-pulse`} style={{ animationDelay: `${index * 0.5}s` }}>
-              <div className="group relative">
-                <div className="p-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 shadow-lg hover:scale-110 transition-all duration-300">
-                  <Icon size={20} className="drop-shadow-lg" />
-                </div>
-                <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-xs text-white/70 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  {label}
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      })}
-
       {/* Connection lines between rings */}
       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
         {[...Array(8)].map((_, i) => {
           const angle = i * 45;
-          const radian = (angle * Math.PI) / 180;
           return (
             <div
               key={i}
@@ -181,13 +150,13 @@ const IconGrid = () => {
 
       {/* Floating data particles */}
       <div className="absolute inset-0">
-        {[...Array(12)].map((_, i) => (
+        {[...Array(8)].map((_, i) => (
           <div
             key={i}
             className="absolute w-1 h-1 bg-white/40 rounded-full animate-ping"
             style={{
-              left: `${20 + Math.random() * 60}%`,
-              top: `${20 + Math.random() * 60}%`,
+              left: `${25 + Math.random() * 50}%`,
+              top: `${25 + Math.random() * 50}%`,
               animationDelay: `${Math.random() * 3}s`,
               animationDuration: `${2 + Math.random() * 2}s`
             }}
@@ -198,13 +167,13 @@ const IconGrid = () => {
       {/* Category labels */}
       <div className="absolute top-16 left-1/2 transform -translate-x-1/2">
         <div className="bg-white/5 rounded-full px-4 py-2 backdrop-blur-sm border border-white/10">
-          <span className="text-white/60 text-xs font-medium">نظام إدارة متكامل</span>
+          <span className="text-white/60 text-xs font-medium">نظام محاسبة متكامل</span>
         </div>
       </div>
       
       <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2">
         <div className="bg-white/5 rounded-full px-4 py-2 backdrop-blur-sm border border-white/10">
-          <span className="text-white/60 text-xs font-medium">حلول محاسبية ذكية</span>
+          <span className="text-white/60 text-xs font-medium">حلول مالية ذكية</span>
         </div>
       </div>
     </div>
