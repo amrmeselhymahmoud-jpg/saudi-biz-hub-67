@@ -85,104 +85,106 @@ import HelpCenter from "./pages/HelpCenter";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <LanguageProvider>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/free-trial" element={<FreeTrial />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/features" element={<Features />} />
-              <Route path="/pricing" element={<Pricing />} />
-              <Route path="/auth" element={<Auth />} />
+const App = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <LanguageProvider>
+          <AuthProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/free-trial" element={<FreeTrial />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/features" element={<Features />} />
+                <Route path="/pricing" element={<Pricing />} />
+                <Route path="/auth" element={<Auth />} />
 
-              {/* Protected Routes with Layout */}
-              <Route element={<Layout />}>
-                <Route path="/" element={<Dashboard />} />
-                
-                {/* Sales */}
-                <Route path="/customers" element={<Customers />} />
-                <Route path="/quotes" element={<Quotes />} />
-                <Route path="/sales-invoices" element={<SalesInvoices />} />
-                <Route path="/customer-bonds" element={<CustomerBonds />} />
-                
-                {/* Purchases */}
-                <Route path="/suppliers" element={<Suppliers />} />
-                <Route path="/purchase-orders" element={<PurchaseOrders />} />
-                <Route path="/purchase-invoices" element={<PurchaseInvoices />} />
-                <Route path="/simple-invoices" element={<SimpleInvoices />} />
-                <Route path="/supplier-bonds" element={<SupplierBonds />} />
-                
-                {/* Products & Costs */}
-                <Route path="/products-costs" element={<ProductsCosts />} />
-                <Route path="/locations" element={<Locations />} />
-                <Route path="/manufacturing-orders" element={<ManufacturingOrders />} />
-                
-                {/* Fixed Assets */}
-                <Route path="/fixed-assets" element={<FixedAssets />} />
-                <Route path="/depreciation" element={<Depreciation />} />
-                <Route path="/recoveries" element={<Recoveries />} />
-                <Route path="/additions" element={<Additions />} />
-                
-                {/* Payroll */}
-                <Route path="/payroll" element={<Payroll />} />
-                
-                {/* Accounting */}
-                <Route path="/deferred-invoices" element={<DeferredInvoices />} />
-                <Route path="/annual-entries" element={<AnnualEntries />} />
-                <Route path="/manual-entries" element={<ManualEntries />} />
-                <Route path="/chart-of-accounts" element={<ChartOfAccounts />} />
-                <Route path="/budgets" element={<Budgets />} />
-                <Route path="/commercial-documents" element={<CommercialDocuments />} />
-                <Route path="/recurring-transactions" element={<RecurringTransactions />} />
-                
-                {/* Projects & Tasks */}
-                <Route path="/projects" element={<Projects />} />
-                <Route path="/tasks" element={<Tasks />} />
-                <Route path="/project-reports" element={<ProjectReports />} />
-                
-                {/* Professional Services */}
-                <Route path="/basic-service" element={<BasicService />} />
-                <Route path="/training-service" element={<TrainingService />} />
-                <Route path="/invoice-design-service" element={<InvoiceDesignService />} />
-                <Route path="/opening-balance-service" element={<OpeningBalanceService />} />
-                <Route path="/account-transfer-service" element={<AccountTransferService />} />
-                <Route path="/consulting-services" element={<ConsultingServices />} />
-                <Route path="/qoyod-academy" element={<QoyodAcademy />} />
-                
-                {/* Settings */}
-                <Route path="/general-settings" element={<GeneralSettings />} />
-                <Route path="/financial-contexts" element={<FinancialContexts />} />
-                <Route path="/number-settings" element={<NumberSettings />} />
-                <Route path="/subscription-settings" element={<SubscriptionSettings />} />
-                <Route path="/electronic-linking" element={<ElectronicLinking />} />
-                <Route path="/foreign-currencies" element={<ForeignCurrencies />} />
-                <Route path="/taxes" element={<Taxes />} />
-                <Route path="/payroll-settings" element={<PayrollSettings />} />
-                <Route path="/users" element={<Users />} />
-                <Route path="/payment-terms" element={<PaymentTerms />} />
-                <Route path="/additional-fields" element={<AdditionalFields />} />
-                <Route path="/profile-edit" element={<ProfileEdit />} />
-                <Route path="/attachments" element={<Attachments />} />
-                
-                {/* Footer */}
-                <Route path="/about-page" element={<AboutPage />} />
-                <Route path="/help-center" element={<HelpCenter />} />
-              </Route>
+                {/* Protected Routes with Layout */}
+                <Route element={<Layout />}>
+                  <Route path="/" element={<Dashboard />} />
+                  
+                  {/* Sales */}
+                  <Route path="/customers" element={<Customers />} />
+                  <Route path="/quotes" element={<Quotes />} />
+                  <Route path="/sales-invoices" element={<SalesInvoices />} />
+                  <Route path="/customer-bonds" element={<CustomerBonds />} />
+                  
+                  {/* Purchases */}
+                  <Route path="/suppliers" element={<Suppliers />} />
+                  <Route path="/purchase-orders" element={<PurchaseOrders />} />
+                  <Route path="/purchase-invoices" element={<PurchaseInvoices />} />
+                  <Route path="/simple-invoices" element={<SimpleInvoices />} />
+                  <Route path="/supplier-bonds" element={<SupplierBonds />} />
+                  
+                  {/* Products & Costs */}
+                  <Route path="/products-costs" element={<ProductsCosts />} />
+                  <Route path="/locations" element={<Locations />} />
+                  <Route path="/manufacturing-orders" element={<ManufacturingOrders />} />
+                  
+                  {/* Fixed Assets */}
+                  <Route path="/fixed-assets" element={<FixedAssets />} />
+                  <Route path="/depreciation" element={<Depreciation />} />
+                  <Route path="/recoveries" element={<Recoveries />} />
+                  <Route path="/additions" element={<Additions />} />
+                  
+                  {/* Payroll */}
+                  <Route path="/payroll" element={<Payroll />} />
+                  
+                  {/* Accounting */}
+                  <Route path="/deferred-invoices" element={<DeferredInvoices />} />
+                  <Route path="/annual-entries" element={<AnnualEntries />} />
+                  <Route path="/manual-entries" element={<ManualEntries />} />
+                  <Route path="/chart-of-accounts" element={<ChartOfAccounts />} />
+                  <Route path="/budgets" element={<Budgets />} />
+                  <Route path="/commercial-documents" element={<CommercialDocuments />} />
+                  <Route path="/recurring-transactions" element={<RecurringTransactions />} />
+                  
+                  {/* Projects & Tasks */}
+                  <Route path="/projects" element={<Projects />} />
+                  <Route path="/tasks" element={<Tasks />} />
+                  <Route path="/project-reports" element={<ProjectReports />} />
+                  
+                  {/* Professional Services */}
+                  <Route path="/basic-service" element={<BasicService />} />
+                  <Route path="/training-service" element={<TrainingService />} />
+                  <Route path="/invoice-design-service" element={<InvoiceDesignService />} />
+                  <Route path="/opening-balance-service" element={<OpeningBalanceService />} />
+                  <Route path="/account-transfer-service" element={<AccountTransferService />} />
+                  <Route path="/consulting-services" element={<ConsultingServices />} />
+                  <Route path="/qoyod-academy" element={<QoyodAcademy />} />
+                  
+                  {/* Settings */}
+                  <Route path="/general-settings" element={<GeneralSettings />} />
+                  <Route path="/financial-contexts" element={<FinancialContexts />} />
+                  <Route path="/number-settings" element={<NumberSettings />} />
+                  <Route path="/subscription-settings" element={<SubscriptionSettings />} />
+                  <Route path="/electronic-linking" element={<ElectronicLinking />} />
+                  <Route path="/foreign-currencies" element={<ForeignCurrencies />} />
+                  <Route path="/taxes" element={<Taxes />} />
+                  <Route path="/payroll-settings" element={<PayrollSettings />} />
+                  <Route path="/users" element={<Users />} />
+                  <Route path="/payment-terms" element={<PaymentTerms />} />
+                  <Route path="/additional-fields" element={<AdditionalFields />} />
+                  <Route path="/profile-edit" element={<ProfileEdit />} />
+                  <Route path="/attachments" element={<Attachments />} />
+                  
+                  {/* Footer */}
+                  <Route path="/about-page" element={<AboutPage />} />
+                  <Route path="/help-center" element={<HelpCenter />} />
+                </Route>
 
-              {/* Catch-all Route */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
-    </LanguageProvider>
-  </QueryClientProvider>
-);
+                {/* Catch-all Route */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </TooltipProvider>
+          </AuthProvider>
+        </LanguageProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
