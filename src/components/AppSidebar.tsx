@@ -70,26 +70,26 @@ export function AppSidebar() {
 
   const getNavCls = (path: string) =>
     isActive(path) 
-      ? "bg-white/10 text-white border-r-2 border-white font-medium shadow-sm backdrop-blur-sm" 
-      : "text-slate-200 hover:bg-white/5 hover:text-white transition-all duration-200"
+      ? "bg-white/20 text-white border-r-2 border-white font-medium shadow-sm backdrop-blur-sm" 
+      : "text-white/80 hover:bg-white/10 hover:text-white transition-all duration-200"
 
   return (
     <Sidebar
       side="right"
-      className={`${collapsed ? "w-16" : "w-72"} border-l bg-gradient-to-b from-slate-800 via-slate-900 to-slate-950 shadow-2xl transition-all duration-300 fixed right-0 top-0 h-full z-20`}
+      className={`${collapsed ? "w-16" : "w-72"} border-l bg-gradient-to-b from-primary to-primary/90 shadow-2xl transition-all duration-300 fixed right-0 top-0 h-full z-20 backdrop-blur-sm border-primary/20`}
       collapsible="icon"
     >
       <SidebarContent className="p-0">
         {/* Header */}
         {!collapsed && (
-          <div className="p-6 border-b border-white/10 bg-gradient-to-r from-slate-700/30 to-slate-800/30 backdrop-blur-sm">
+          <div className="p-6 border-b border-white/20 bg-gradient-to-r from-primary/80 to-primary backdrop-blur-sm">
             <div className="flex items-center space-x-3 rtl:space-x-reverse">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-                <span className="text-white font-bold text-xl">ق</span>
+              <div className="w-10 h-10 bg-gradient-to-br from-white to-white/90 rounded-xl flex items-center justify-center shadow-lg">
+                <span className="text-primary font-bold text-xl">ق</span>
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white">QOYOD</h2>
-                <p className="text-xs text-slate-300 font-medium">نظام المحاسبة الذكي</p>
+                <h2 className="text-xl font-bold text-white drop-shadow-sm">QOYOD</h2>
+                <p className="text-xs text-white/90 font-medium">نظام المحاسبة الذكي</p>
               </div>
             </div>
           </div>
@@ -125,7 +125,7 @@ export function AppSidebar() {
         </SidebarGroup>
 
         {/* Settings Section */}
-        <div className="mt-auto border-t border-white/10 bg-gradient-to-r from-slate-800/30 to-slate-900/30 backdrop-blur-sm">
+        <div className="mt-auto border-t border-white/20 bg-gradient-to-r from-primary/60 to-primary/80 backdrop-blur-sm">
           <SidebarGroup className="px-4 py-4">
             <SidebarGroupContent>
               <SidebarMenu className="space-y-1">

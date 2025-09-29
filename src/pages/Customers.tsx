@@ -124,24 +124,24 @@ const Customers = () => {
         <main className="mr-72 min-h-screen">
           <div className="min-h-screen bg-background">
             {/* Header */}
-            <header className="bg-gradient-to-r from-white to-slate-50/80 border-b border-border/60 shadow-sm sticky top-0 z-10 backdrop-blur-sm w-full">
+            <header className="bg-gradient-to-r from-primary/5 to-primary/10 border-b border-primary/20 shadow-sm sticky top-0 z-10 backdrop-blur-sm w-full">
               {/* Top Navigation - Centered */}
-              <div className="border-b border-border/30">
+              <div className="border-b border-primary/15 bg-gradient-to-r from-primary/8 to-primary/5">
                 <div className="px-6 py-3">
                   <nav className="flex items-center justify-center space-x-12 rtl:space-x-reverse">
-                    <Link to="/" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors px-4 py-2 rounded-lg hover:bg-primary/5">
+                    <Link to="/" className="text-sm font-medium text-primary/80 hover:text-primary transition-colors px-4 py-2 rounded-lg hover:bg-primary/10 border hover:border-primary/20">
                       الصفحة الرئيسية
                     </Link>
-                    <Link to="/about" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors px-4 py-2 rounded-lg hover:bg-primary/5">
+                    <Link to="/about" className="text-sm font-medium text-primary/80 hover:text-primary transition-colors px-4 py-2 rounded-lg hover:bg-primary/10 border hover:border-primary/20">
                       من نحن
                     </Link>
-                    <Link to="/features" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors px-4 py-2 rounded-lg hover:bg-primary/5">
+                    <Link to="/features" className="text-sm font-medium text-primary/80 hover:text-primary transition-colors px-4 py-2 rounded-lg hover:bg-primary/10 border hover:border-primary/20">
                       المميزات
                     </Link>
-                    <Link to="/pricing" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors px-4 py-2 rounded-lg hover:bg-primary/5">
+                    <Link to="/pricing" className="text-sm font-medium text-primary/80 hover:text-primary transition-colors px-4 py-2 rounded-lg hover:bg-primary/10 border hover:border-primary/20">
                       الأسعار
                     </Link>
-                    <a href="#contact" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors px-4 py-2 rounded-lg hover:bg-primary/5">
+                    <a href="#contact" className="text-sm font-medium text-primary/80 hover:text-primary transition-colors px-4 py-2 rounded-lg hover:bg-primary/10 border hover:border-primary/20">
                       اتصل بنا
                     </a>
                   </nav>
