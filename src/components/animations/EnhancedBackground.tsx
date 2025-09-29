@@ -2,7 +2,6 @@ import React from 'react';
 import BusinessCharts from './BusinessCharts';
 import NetworkGrid from './NetworkGrid';
 import FloatingElements from './FloatingElements';
-import DataStream from './DataStream';
 import IconGrid from './IconGrid';
 
 const EnhancedBackground = () => {
@@ -32,9 +31,6 @@ const EnhancedBackground = () => {
       
       {/* Business charts layer */}
       <BusinessCharts />
-      
-      {/* Data stream layer */}
-      <DataStream />
 
       {/* Organized icon grid system */}
       <IconGrid />
