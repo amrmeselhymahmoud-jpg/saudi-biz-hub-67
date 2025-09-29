@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const QoyodLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -15,14 +16,15 @@ const QoyodLogin = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { t, isRTL } = useLanguage();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email || !password) {
       toast({
-        title: "خطأ في البيانات",
-        description: "يرجى إدخال البريد الإلكتروني وكلمة المرور",
+        title: t('message.dataError'),
+        description: t('message.emailPasswordRequired'),
         variant: "destructive",
       });
       return;
@@ -34,13 +36,13 @@ const QoyodLogin = () => {
     try {
       await new Promise(resolve => setTimeout(resolve, 2000));
       toast({
-        title: "تم تسجيل الدخول بنجاح",
-        description: "مرحباً بك في منصة قيود",
+        title: t('message.loginSuccess'),
+        description: t('message.welcomeQoyod'),
       });
     } catch (error) {
       toast({
-        title: "خطأ في تسجيل الدخول",
-        description: "يرجى المحاولة مرة أخرى",
+        title: t('message.loginError'),
+        description: t('message.tryAgain'),
         variant: "destructive",
       });
     } finally {
@@ -54,8 +56,8 @@ const QoyodLogin = () => {
 
   const handleForgotPassword = () => {
     toast({
-      title: "استعادة كلمة المرور",
-      description: "سيتم إرسال رابط استعادة كلمة المرور إلى بريدك الإلكتروني",
+      title: t('message.passwordReset'),
+      description: t('message.passwordResetDesc'),
     });
   };
 
@@ -67,7 +69,7 @@ const QoyodLogin = () => {
           {/* العنوان الرئيسي */}
           <div className="text-center">
             <h1 className="text-3xl font-bold text-qoyod-text mb-2">
-              مرحبا بكم في قيود
+              {t('login.welcome')}
             </h1>
           </div>
 
