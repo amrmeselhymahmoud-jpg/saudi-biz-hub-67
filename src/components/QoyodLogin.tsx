@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +14,7 @@ const QoyodLogin = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,10 +49,7 @@ const QoyodLogin = () => {
   };
 
   const handleFreeTrialClick = () => {
-    toast({
-      title: "التجربة المجانية",
-      description: "سيتم توجيهك لصفحة التسجيل للتجربة المجانية",
-    });
+    navigate("/free-trial");
   };
 
   const handleForgotPassword = () => {

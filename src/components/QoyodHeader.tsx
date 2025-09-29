@@ -1,18 +1,17 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Globe, X } from "lucide-react";
 
 const QoyodHeader = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [showNotification, setShowNotification] = useState(true);
   const [currentLang, setCurrentLang] = useState("AR");
 
   const handleFreeTrialClick = () => {
-    toast({
-      title: "التجربة المجانية",
-      description: "سيتم توجيهك لصفحة التسجيل للتجربة المجانية",
-    });
+    navigate("/free-trial");
   };
 
   const handleLoginClick = () => {
