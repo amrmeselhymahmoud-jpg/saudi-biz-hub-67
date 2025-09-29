@@ -62,7 +62,7 @@ const QoyodLogin = () => {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="relative z-30 min-h-screen flex">
       {/* القسم الأيسر - النموذج */}
       <div className="flex-1 flex items-center justify-center p-8 bg-white/80 backdrop-blur-sm">
         <div className="w-full max-w-md space-y-8">
