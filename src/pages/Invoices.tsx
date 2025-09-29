@@ -17,6 +17,7 @@ import {
   DollarSign
 } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Link } from "react-router-dom";
 
 const Invoices = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -118,6 +119,20 @@ const Invoices = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-gradient-to-r from-white to-slate-50/80 border-b border-border/60 shadow-sm sticky top-0 z-50 backdrop-blur-sm">
+        {/* Top Navigation */}
+        <div className="border-b border-border/30">
+          <div className="px-6 py-2">
+            <nav className="flex items-center justify-center space-x-8 rtl:space-x-reverse">
+              <Link to="/" className="text-sm text-muted-foreground hover:text-primary transition-colors">الصفحة الرئيسية</Link>
+              <Link to="/about" className="text-sm text-muted-foreground hover:text-primary transition-colors">من نحن</Link>
+              <Link to="/features" className="text-sm text-muted-foreground hover:text-primary transition-colors">المميزات</Link>
+              <Link to="/pricing" className="text-sm text-muted-foreground hover:text-primary transition-colors">الأسعار</Link>
+              <a href="#contact" className="text-sm text-muted-foreground hover:text-primary transition-colors">اتصل بنا</a>
+            </nav>
+          </div>
+        </div>
+        
+        {/* Main Header */}
         <div className="flex items-center justify-between px-6 py-4">
           <div className="flex items-center space-x-4 rtl:space-x-reverse">
             <SidebarTrigger className="hover:bg-muted rounded-lg p-2 transition-colors" />
