@@ -180,25 +180,6 @@ const NetworkGrid = () => {
         </g>
       </svg>
 
-      {/* Floating connection status indicators */}
-      <div className="absolute top-8 right-32 space-y-2">
-        {[
-          { status: 'متصل', count: '1,247', color: 'bg-green-500' },
-          { status: 'قيد المعالجة', count: '89', color: 'bg-yellow-500' },
-          { status: 'غير متصل', count: '12', color: 'bg-red-500' }
-        ].map((item, i) => (
-          <div 
-            key={i}
-            className="flex items-center space-x-2 rtl:space-x-reverse bg-white/10 rounded-lg p-2 backdrop-blur-sm border border-white/20 text-white text-xs animate-pulse"
-            style={{ animationDelay: `${i * 0.3}s` }}
-          >
-            <div className={`w-2 h-2 rounded-full ${item.color} animate-pulse`}></div>
-            <span className="opacity-60">{item.status}:</span>
-            <span className="font-mono">{item.count}</span>
-          </div>
-        ))}
-      </div>
-
       {/* Network activity monitor */}
       <div className="absolute bottom-8 left-32">
         <div className="bg-white/10 rounded-lg p-3 backdrop-blur-sm border border-white/20 text-white">
