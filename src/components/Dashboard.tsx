@@ -94,17 +94,17 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-card border-b border-border shadow-sm sticky top-0 z-40">
+      <header className="bg-gradient-to-r from-white to-slate-50/80 border-b border-border/60 shadow-sm sticky top-0 z-40 backdrop-blur-sm">
         <div className="flex items-center justify-between px-6 py-4">
-          <div className="flex items-center space-x-4 rtl:space-x-reverse">
-            <SidebarTrigger />
+          <div className="flex items-center space-x-4">
+            <SidebarTrigger className="hover:bg-muted rounded-lg p-2 transition-colors" />
             <div>
-              <h1 className="text-xl font-semibold text-foreground">لوحة التحكم</h1>
-              <p className="text-sm text-muted-foreground">مرحباً بك في نظام قيود</p>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">لوحة التحكم</h1>
+              <p className="text-sm text-muted-foreground font-medium">مرحباً بك في نظام قيود الذكي</p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-4 rtl:space-x-reverse">
+          <div className="flex items-center space-x-4">
             {/* Search */}
             <div className="relative hidden md:block">
               <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -117,22 +117,22 @@ const Dashboard = () => {
             {/* Notifications */}
             <Button variant="ghost" size="sm" className="relative">
               <Bell className="h-5 w-5" />
-              <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">
+              <span className="absolute -top-1 -left-1 h-5 w-5 bg-red-500 rounded-full text-xs text-white flex items-center justify-center font-semibold animate-pulse">
                 3
               </span>
             </Button>
 
             {/* User Menu */}
-            <div className="flex items-center space-x-3 rtl:space-x-reverse">
-              <div className="hidden sm:block text-right">
-                <p className="text-sm font-medium text-foreground">{user?.email}</p>
+            <div className="flex items-center space-x-3">
+              <div className="hidden sm:block text-left">
+                <p className="text-sm font-semibold text-foreground">{user?.email}</p>
                 <p className="text-xs text-muted-foreground">مدير النظام</p>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleSignOut}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                className="text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl transition-colors"
               >
                 <LogOut className="h-4 w-4" />
               </Button>

@@ -60,49 +60,50 @@ export function AppSidebar() {
 
   const getNavCls = (path: string) =>
     isActive(path) 
-      ? "bg-primary/10 text-primary border-r-2 border-primary font-medium" 
-      : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+      ? "bg-gradient-to-r from-primary/20 to-primary/10 text-primary border-r-3 border-primary font-semibold shadow-sm" 
+      : "hover:bg-gradient-to-r hover:from-muted/60 hover:to-muted/30 text-muted-foreground hover:text-foreground transition-all duration-200"
 
   return (
     <Sidebar
-      className={`${collapsed ? "w-16" : "w-64"} border-r bg-card transition-all duration-300`}
+      side="right"
+      className={`${collapsed ? "w-16" : "w-72"} border-l bg-gradient-to-b from-slate-50 to-white shadow-xl transition-all duration-300`}
       collapsible="icon"
     >
       <SidebarContent className="p-0">
         {/* Header */}
         {!collapsed && (
-          <div className="p-6 border-b">
-            <div className="flex items-center space-x-3 rtl:space-x-reverse">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-lg">ق</span>
+          <div className="p-6 border-b border-border/60 bg-gradient-to-r from-primary/5 to-primary/10">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center shadow-lg">
+                <span className="text-primary-foreground font-bold text-xl">ق</span>
               </div>
               <div>
-                <h2 className="text-lg font-bold text-foreground">قيود</h2>
-                <p className="text-xs text-muted-foreground">نظام المحاسبة</p>
+                <h2 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">قيود</h2>
+                <p className="text-xs text-muted-foreground font-medium">نظام المحاسبة الذكي</p>
               </div>
             </div>
           </div>
         )}
 
         {/* Main Navigation */}
-        <SidebarGroup className="px-3 py-4">
+        <SidebarGroup className="px-4 py-6">
           {!collapsed && (
-            <SidebarGroupLabel className="text-xs font-medium text-muted-foreground px-3 mb-2">
+            <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground px-4 mb-3 uppercase tracking-wider">
               القائمة الرئيسية
             </SidebarGroupLabel>
           )}
           <SidebarGroupContent>
-            <SidebarMenu className="space-y-1">
+            <SidebarMenu className="space-y-2">
               {mainMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild className="h-10">
+                  <SidebarMenuButton asChild className="h-12">
                     <NavLink 
                       to={item.url} 
                       end={item.url === "/"}
-                      className={`${getNavCls(item.url)} flex items-center space-x-3 rtl:space-x-reverse px-3 py-2 rounded-lg transition-colors`}
+                      className={`${getNavCls(item.url)} flex items-center space-x-4 px-4 py-3 rounded-xl transition-all duration-200`}
                     >
                       <item.icon className="h-5 w-5 flex-shrink-0" />
-                      {!collapsed && <span className="text-sm">{item.title}</span>}
+                      {!collapsed && <span className="text-sm font-medium">{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -112,23 +113,23 @@ export function AppSidebar() {
         </SidebarGroup>
 
         {/* Quick Actions */}
-        <SidebarGroup className="px-3 py-4">
+        <SidebarGroup className="px-4 py-4">
           {!collapsed && (
-            <SidebarGroupLabel className="text-xs font-medium text-muted-foreground px-3 mb-2">
+            <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground px-4 mb-3 uppercase tracking-wider">
               إجراءات سريعة
             </SidebarGroupLabel>
           )}
           <SidebarGroupContent>
-            <SidebarMenu className="space-y-1">
+            <SidebarMenu className="space-y-2">
               {quickActions.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild className="h-10">
+                  <SidebarMenuButton asChild className="h-11">
                     <NavLink 
                       to={item.url}
-                      className={`${getNavCls(item.url)} flex items-center space-x-3 rtl:space-x-reverse px-3 py-2 rounded-lg transition-colors`}
+                      className={`${getNavCls(item.url)} flex items-center space-x-4 px-4 py-2 rounded-xl transition-all duration-200`}
                     >
                       <item.icon className="h-4 w-4 flex-shrink-0" />
-                      {!collapsed && <span className="text-sm">{item.title}</span>}
+                      {!collapsed && <span className="text-sm font-medium">{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -138,19 +139,19 @@ export function AppSidebar() {
         </SidebarGroup>
 
         {/* Settings */}
-        <div className="mt-auto">
-          <SidebarGroup className="px-3 py-4">
+        <div className="mt-auto border-t border-border/60 bg-gradient-to-r from-muted/30 to-muted/10">
+          <SidebarGroup className="px-4 py-4">
             <SidebarGroupContent>
-              <SidebarMenu className="space-y-1">
+              <SidebarMenu className="space-y-2">
                 {settingsItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild className="h-10">
+                    <SidebarMenuButton asChild className="h-12">
                       <NavLink 
                         to={item.url}
-                        className={`${getNavCls(item.url)} flex items-center space-x-3 rtl:space-x-reverse px-3 py-2 rounded-lg transition-colors`}
+                        className={`${getNavCls(item.url)} flex items-center space-x-4 px-4 py-3 rounded-xl transition-all duration-200`}
                       >
                         <item.icon className="h-5 w-5 flex-shrink-0" />
-                        {!collapsed && <span className="text-sm">{item.title}</span>}
+                        {!collapsed && <span className="text-sm font-medium">{item.title}</span>}
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
