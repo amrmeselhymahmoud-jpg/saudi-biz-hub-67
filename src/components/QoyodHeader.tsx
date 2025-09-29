@@ -49,9 +49,9 @@ const QoyodHeader = () => {
             </div>
             
             <nav className="hidden md:flex items-center space-x-6 rtl:space-x-reverse">
-              <button onClick={() => toast({ title: t('header.about'), description: "سيتم توجيهك لصفحة معلومات الشركة" })} className="text-qoyod-text hover:text-primary transition-qoyod">{t('header.about')}</button>
-              <button onClick={() => toast({ title: t('header.features'), description: "سيتم توجيهك لصفحة المزايا" })} className="text-qoyod-text hover:text-primary transition-qoyod">{t('header.features')}</button>
-              <button onClick={() => toast({ title: t('header.pricing'), description: "سيتم توجيهك لصفحة الأسعار" })} className="text-qoyod-text hover:text-primary transition-qoyod">{t('header.pricing')}</button>
+              <button onClick={() => navigate("/about")} className="text-qoyod-text hover:text-primary transition-qoyod">{t('header.about')}</button>
+              <button onClick={() => navigate("/features")} className="text-qoyod-text hover:text-primary transition-qoyod">{t('header.features')}</button>
+              <button onClick={() => navigate("/pricing")} className="text-qoyod-text hover:text-primary transition-qoyod">{t('header.pricing')}</button>
               <button onClick={handleLoginClick} className="text-qoyod-text hover:text-primary transition-qoyod">{t('header.login')}</button>
             </nav>
           </div>
