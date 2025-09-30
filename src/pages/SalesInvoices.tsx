@@ -1,4 +1,4 @@
-import { Receipt, Plus, Search, MoveHorizontal as MoreHorizontal, Eye, CreditCard as Edit, Trash2, Download, Loader as Loader2, DollarSign, Send, Circle as XCircle, FileText } from "lucide-react";
+import { Receipt, Plus, Search, MoreHorizontal, Eye, Edit, Trash2, Download, Loader2, DollarSign, Send, XCircle, FileText } from "lucide-react";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { AddSalesInvoiceDialog } from "@/components/sales/AddSalesInvoiceDialog";
 import {
   Table,
   TableBody,
@@ -73,6 +74,7 @@ const SalesInvoices = () => {
   const [selectedInvoice, setSelectedInvoice] = useState<SalesInvoice | null>(null);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState("");
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -296,7 +298,7 @@ const SalesInvoices = () => {
           <Receipt className="h-8 w-8 text-primary" />
           <h1 className="text-3xl font-bold text-foreground">فواتير المبيعات</h1>
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2" onClick={() => setAddDialogOpen(true)}>
           <Plus className="h-4 w-4" />
           فاتورة جديدة
         </Button>
@@ -599,6 +601,8 @@ const SalesInvoices = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AddSalesInvoiceDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
