@@ -36,13 +36,11 @@ const Layout = () => {
     <div className="min-h-screen bg-background" dir={isRTL ? "rtl" : "ltr"}>
       <QoyodHeader />
       <SidebarProvider>
-        <div className="min-h-screen flex w-full bg-background">
+        <div className="flex w-full">
+          <AppSidebar />
           <main className="flex-1 overflow-auto">
             <Outlet />
           </main>
-          <div className="w-80 border-l bg-card">
-            <AppSidebar />
-          </div>
         </div>
       </SidebarProvider>
     </div>
