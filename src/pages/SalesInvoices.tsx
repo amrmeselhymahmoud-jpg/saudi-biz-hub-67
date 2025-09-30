@@ -1,4 +1,4 @@
-import { Receipt, Plus, Search, MoveHorizontal as MoreHorizontal, Eye, CreditCard as Edit, Trash2, Download, Loader as Loader2 } from "lucide-react";
+import { Receipt, Plus, Search, MoreHorizontal, Eye, Edit, Trash2, Download, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,11 +47,9 @@ interface SalesInvoice {
   paid_amount: number;
   notes: string | null;
   created_at: string;
-}
-
-interface Customer {
-  id: string;
-  name: string;
+  customers?: {
+    name: string;
+  };
 }
 
 const SalesInvoices = () => {
@@ -73,29 +71,17 @@ const SalesInvoices = () => {
 
       const { data, error } = await supabase
         .from("sales_invoices")
-        .select("*")
+        .select(`
+          *,
+          customers (
+            name
+          )
+        `)
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
       return data as SalesInvoice[];
-    },
-  });
-
-  const { data: customers = [] } = useQuery({
-    queryKey: ["customers-list"],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) return [];
-
-      const { data, error } = await supabase
-        .from("customers")
-        .select("id, name")
-        .eq("user_id", user.id);
-
-      if (error) throw error;
-      return data as Customer[];
     },
   });
 
@@ -127,7 +113,8 @@ const SalesInvoices = () => {
   });
 
   const filteredInvoices = invoices.filter((invoice) =>
-    invoice.invoice_number.toLowerCase().includes(searchQuery.toLowerCase())
+    invoice.invoice_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    invoice.customers?.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleDelete = (invoiceId: string) => {
@@ -141,33 +128,47 @@ const SalesInvoices = () => {
     }
   };
 
-  const getCustomerName = (customerId: string | null) => {
-    if (!customerId) return "-";
-    const customer = customers.find((c) => c.id === customerId);
-    return customer?.name || "-";
-  };
+  const getStatusBadge = (status: string, paidAmount: number, totalAmount: number) => {
+    let actualStatus = status;
 
-  const getStatusBadge = (status: string) => {
+    if (status !== 'draft' && status !== 'cancelled') {
+      if (paidAmount === 0) {
+        actualStatus = 'unpaid';
+      } else if (paidAmount >= totalAmount) {
+        actualStatus = 'paid';
+      } else {
+        actualStatus = 'partially_paid';
+      }
+    }
+
     const statusMap = {
-      paid: { label: "مدفوعة", variant: "default" as const },
-      partially_paid: { label: "مدفوعة جزئياً", variant: "secondary" as const },
+      paid: { label: "مدفوعة", variant: "default" as const, className: "bg-green-600" },
+      partially_paid: { label: "مدفوعة جزئياً", variant: "secondary" as const, className: "bg-yellow-600" },
       unpaid: { label: "غير مدفوعة", variant: "destructive" as const },
       draft: { label: "مسودة", variant: "outline" as const },
-      sent: { label: "مرسلة", variant: "secondary" as const },
-      overdue: { label: "متأخرة", variant: "destructive" as const },
       cancelled: { label: "ملغاة", variant: "destructive" as const },
     };
-    const statusInfo = statusMap[status as keyof typeof statusMap] || { label: status, variant: "outline" as const };
-    return <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>;
+
+    const statusInfo = statusMap[actualStatus as keyof typeof statusMap] || {
+      label: actualStatus,
+      variant: "outline" as const,
+      className: ""
+    };
+
+    return (
+      <Badge variant={statusInfo.variant} className={statusInfo.className}>
+        {statusInfo.label}
+      </Badge>
+    );
   };
 
   const totalSales = invoices.reduce((sum, inv) => sum + inv.total_amount, 0);
   const totalPaid = invoices.reduce((sum, inv) => sum + inv.paid_amount, 0);
   const totalUnpaid = totalSales - totalPaid;
+  const paidInvoicesCount = invoices.filter(inv => inv.paid_amount >= inv.total_amount).length;
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Receipt className="h-8 w-8 text-primary" />
@@ -179,12 +180,17 @@ const SalesInvoices = () => {
         </Button>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card className="p-6">
           <div className="text-sm text-muted-foreground">إجمالي الفواتير</div>
           <div className="text-2xl font-bold mt-2">
             {isLoading ? <Skeleton className="h-8 w-16" /> : invoices.length}
+          </div>
+        </Card>
+        <Card className="p-6">
+          <div className="text-sm text-muted-foreground">الفواتير المدفوعة</div>
+          <div className="text-2xl font-bold mt-2 text-green-600">
+            {isLoading ? <Skeleton className="h-8 w-16" /> : paidInvoicesCount}
           </div>
         </Card>
         <Card className="p-6">
@@ -194,16 +200,6 @@ const SalesInvoices = () => {
               <Skeleton className="h-8 w-24" />
             ) : (
               `${totalSales.toLocaleString()} ر.س`
-            )}
-          </div>
-        </Card>
-        <Card className="p-6">
-          <div className="text-sm text-muted-foreground">المبالغ المحصلة</div>
-          <div className="text-2xl font-bold mt-2 text-green-600">
-            {isLoading ? (
-              <Skeleton className="h-8 w-24" />
-            ) : (
-              `${totalPaid.toLocaleString()} ر.س`
             )}
           </div>
         </Card>
@@ -219,18 +215,16 @@ const SalesInvoices = () => {
         </Card>
       </div>
 
-      {/* Search */}
       <div className="relative max-w-md">
         <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="بحث عن فاتورة..."
+          placeholder="بحث عن فاتورة أو عميل..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="pr-10"
         />
       </div>
 
-      {/* Table */}
       <Card>
         <Table>
           <TableHeader>
@@ -241,6 +235,7 @@ const SalesInvoices = () => {
               <TableHead className="text-right">تاريخ الاستحقاق</TableHead>
               <TableHead className="text-right">المبلغ الإجمالي</TableHead>
               <TableHead className="text-right">المبلغ المدفوع</TableHead>
+              <TableHead className="text-right">المتبقي</TableHead>
               <TableHead className="text-right">الحالة</TableHead>
               <TableHead className="text-right">الإجراءات</TableHead>
             </TableRow>
@@ -249,66 +244,73 @@ const SalesInvoices = () => {
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-40" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-6 w-20" /></TableCell>
                   <TableCell><Skeleton className="h-8 w-8" /></TableCell>
                 </TableRow>
               ))
             ) : filteredInvoices.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                   {searchQuery ? "لا توجد نتائج" : "لا توجد فواتير. ابدأ بإنشاء فاتورة جديدة!"}
                 </TableCell>
               </TableRow>
             ) : (
-              filteredInvoices.map((invoice) => (
-                <TableRow key={invoice.id}>
-                  <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
-                  <TableCell>{getCustomerName(invoice.customer_id)}</TableCell>
-                  <TableCell>{new Date(invoice.invoice_date).toLocaleDateString('ar-SA')}</TableCell>
-                  <TableCell>
-                    {invoice.due_date ? new Date(invoice.due_date).toLocaleDateString('ar-SA') : '-'}
-                  </TableCell>
-                  <TableCell>{invoice.total_amount.toLocaleString()} ر.س</TableCell>
-                  <TableCell>{invoice.paid_amount.toLocaleString()} ر.س</TableCell>
-                  <TableCell>{getStatusBadge(invoice.status)}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem className="gap-2">
-                          <Eye className="h-4 w-4" />
-                          عرض
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="gap-2">
-                          <Edit className="h-4 w-4" />
-                          تعديل
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="gap-2">
-                          <Download className="h-4 w-4" />
-                          تحميل PDF
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="gap-2 text-destructive"
-                          onClick={() => handleDelete(invoice.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          حذف
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))
+              filteredInvoices.map((invoice) => {
+                const remaining = invoice.total_amount - invoice.paid_amount;
+                return (
+                  <TableRow key={invoice.id}>
+                    <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
+                    <TableCell>{invoice.customers?.name || "-"}</TableCell>
+                    <TableCell>{new Date(invoice.invoice_date).toLocaleDateString('ar-SA')}</TableCell>
+                    <TableCell>
+                      {invoice.due_date ? new Date(invoice.due_date).toLocaleDateString('ar-SA') : '-'}
+                    </TableCell>
+                    <TableCell className="font-semibold">{invoice.total_amount.toLocaleString()} ر.س</TableCell>
+                    <TableCell className="text-green-600">{invoice.paid_amount.toLocaleString()} ر.س</TableCell>
+                    <TableCell className={remaining > 0 ? "text-destructive font-semibold" : ""}>
+                      {remaining.toLocaleString()} ر.س
+                    </TableCell>
+                    <TableCell>{getStatusBadge(invoice.status, invoice.paid_amount, invoice.total_amount)}</TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem className="gap-2">
+                            <Eye className="h-4 w-4" />
+                            عرض التفاصيل
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="gap-2">
+                            <Edit className="h-4 w-4" />
+                            تعديل
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="gap-2">
+                            <Download className="h-4 w-4" />
+                            تحميل PDF
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="gap-2 text-destructive"
+                            onClick={() => handleDelete(invoice.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            حذف
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
