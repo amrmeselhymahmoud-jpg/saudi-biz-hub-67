@@ -148,7 +148,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar
-      className={`${collapsed ? "w-16" : "w-72"} h-full bg-white border-l shadow-lg transition-all duration-300`}
+      className={`${collapsed ? "w-16" : "w-72"} h-full bg-white border-r shadow-lg transition-all duration-300`}
       collapsible="icon"
     >
       <SidebarContent className="overflow-y-auto">
