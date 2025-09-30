@@ -33,12 +33,12 @@ const Layout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background" dir={isRTL ? "rtl" : "ltr"}>
+    <div className="min-h-screen bg-gray-50" dir={isRTL ? "rtl" : "ltr"}>
       <QoyodHeader />
-      <SidebarProvider>
-        <div className="flex w-full">
+      <SidebarProvider defaultOpen={true}>
+        <div className="flex w-full h-[calc(100vh-60px)]">
           <AppSidebar />
-          <main className="flex-1 overflow-auto">
+          <main className="flex-1 overflow-y-auto">
             <Outlet />
           </main>
         </div>

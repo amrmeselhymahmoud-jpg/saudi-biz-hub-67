@@ -17,74 +17,74 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="p-6 space-y-6">
-      <div>
+    <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
+      <div className="mb-6">
         <h1 className="text-3xl font-bold text-foreground">لوحة التحكم</h1>
-        <p className="text-muted-foreground mt-2">نظرة عامة على أداء عملك</p>
+        <p className="text-muted-foreground mt-1">نظرة عامة على أداء عملك</p>
       </div>
       
       {/* Main Stats */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="p-6">
+        <Card className="p-6 bg-white hover:shadow-lg transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm text-muted-foreground">إجمالي المبيعات</div>
-              <div className="text-2xl font-bold mt-2">30,100 ر.س</div>
+              <div className="text-sm text-muted-foreground mb-2">إجمالي المبيعات</div>
+              <div className="text-2xl font-bold text-foreground">30,100 ر.س</div>
               <div className="flex items-center gap-1 mt-2 text-sm text-green-600">
                 <TrendingUp className="h-4 w-4" />
                 <span>+12.5%</span>
               </div>
             </div>
-            <div className="h-12 w-12 bg-primary/10 rounded-full flex items-center justify-center">
-              <DollarSign className="h-6 w-6 text-primary" />
+            <div className="h-14 w-14 bg-blue-50 rounded-lg flex items-center justify-center">
+              <DollarSign className="h-7 w-7 text-blue-600" />
             </div>
           </div>
         </Card>
         
-        <Card className="p-6">
+        <Card className="p-6 bg-white hover:shadow-lg transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm text-muted-foreground">المشتريات</div>
-              <div className="text-2xl font-bold mt-2">18,300 ر.س</div>
+              <div className="text-sm text-muted-foreground mb-2">المشتريات</div>
+              <div className="text-2xl font-bold text-foreground">18,300 ر.س</div>
               <div className="flex items-center gap-1 mt-2 text-sm text-red-600">
                 <TrendingDown className="h-4 w-4" />
                 <span>-3.2%</span>
               </div>
             </div>
-            <div className="h-12 w-12 bg-blue-500/10 rounded-full flex items-center justify-center">
-              <ShoppingCart className="h-6 w-6 text-blue-600" />
+            <div className="h-14 w-14 bg-blue-50 rounded-lg flex items-center justify-center">
+              <ShoppingCart className="h-7 w-7 text-blue-600" />
             </div>
           </div>
         </Card>
-        
-        <Card className="p-6">
+
+        <Card className="p-6 bg-white hover:shadow-lg transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm text-muted-foreground">العملاء</div>
-              <div className="text-2xl font-bold mt-2">127</div>
+              <div className="text-sm text-muted-foreground mb-2">العملاء</div>
+              <div className="text-2xl font-bold text-foreground">127</div>
               <div className="flex items-center gap-1 mt-2 text-sm text-green-600">
                 <TrendingUp className="h-4 w-4" />
                 <span>+8 جديد</span>
               </div>
             </div>
-            <div className="h-12 w-12 bg-purple-500/10 rounded-full flex items-center justify-center">
-              <Users className="h-6 w-6 text-purple-600" />
+            <div className="h-14 w-14 bg-purple-50 rounded-lg flex items-center justify-center">
+              <Users className="h-7 w-7 text-purple-600" />
             </div>
           </div>
         </Card>
-        
-        <Card className="p-6">
+
+        <Card className="p-6 bg-white hover:shadow-lg transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm text-muted-foreground">المنتجات</div>
-              <div className="text-2xl font-bold mt-2">45</div>
+              <div className="text-sm text-muted-foreground mb-2">المنتجات</div>
+              <div className="text-2xl font-bold text-foreground">45</div>
               <div className="flex items-center gap-1 mt-2 text-sm text-muted-foreground">
                 <Package className="h-4 w-4" />
                 <span>3 فئات</span>
               </div>
             </div>
-            <div className="h-12 w-12 bg-orange-500/10 rounded-full flex items-center justify-center">
-              <Package className="h-6 w-6 text-orange-600" />
+            <div className="h-14 w-14 bg-orange-50 rounded-lg flex items-center justify-center">
+              <Package className="h-7 w-7 text-orange-600" />
             </div>
           </div>
         </Card>
@@ -93,7 +93,7 @@ const Dashboard = () => {
       {/* Recent Activity and Alerts */}
       <div className="grid gap-4 md:grid-cols-2">
         {/* Recent Invoices */}
-        <Card className="p-6">
+        <Card className="p-6 bg-white">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <FileText className="h-5 w-5" />
@@ -126,7 +126,7 @@ const Dashboard = () => {
         </Card>
 
         {/* Low Stock Alerts */}
-        <Card className="p-6">
+        <Card className="p-6 bg-white">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-destructive" />
@@ -160,7 +160,7 @@ const Dashboard = () => {
       </div>
 
       {/* Quick Actions */}
-      <Card className="p-6">
+      <Card className="p-6 bg-white">
         <h2 className="text-lg font-semibold mb-4">الإجراءات السريعة</h2>
         <div className="grid gap-3 md:grid-cols-4">
           <Button variant="outline" className="h-auto py-4" asChild>
