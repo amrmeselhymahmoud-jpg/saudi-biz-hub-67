@@ -1,4 +1,4 @@
-import { Building2, Plus, Search, MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import { Building2, Plus, Search, MoreHorizontal, Edit, Trash2, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,44 +18,105 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { AddSupplierDialog } from "@/components/suppliers/AddSupplierDialog";
+import { EditSupplierDialog } from "@/components/suppliers/EditSupplierDialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+
+interface Supplier {
+  id: string;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  balance?: number;
+  credit_limit?: number;
+  is_active?: boolean;
+}
 
 const Suppliers = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [supplierToDelete, setSupplierToDelete] = useState<string | null>(null);
+  
+  const { session } = useAuth();
+  const queryClient = useQueryClient();
 
-  // Sample data - will be replaced with Supabase query
-  const suppliers = [
-    {
-      id: "1",
-      name: "شركة التوريدات المتحدة",
-      email: "info@united-supply.com",
-      phone: "+966 50 123 4567",
-      balance: 15000,
-      creditLimit: 50000,
-      isActive: true,
+  const { data: suppliers = [], isLoading } = useQuery({
+    queryKey: ["suppliers"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("suppliers")
+        .select("*")
+        .eq("user_id", session?.user?.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data as Supplier[];
     },
-    {
-      id: "2",
-      name: "مؤسسة الجودة للتجارة",
-      email: "sales@quality-trade.com",
-      phone: "+966 55 234 5678",
-      balance: 8500,
-      creditLimit: 30000,
-      isActive: true,
+    enabled: !!session?.user?.id,
+  });
+
+  const deleteSupplierMutation = useMutation({
+    mutationFn: async (supplierId: string) => {
+      const { error } = await supabase
+        .from("suppliers")
+        .delete()
+        .eq("id", supplierId);
+
+      if (error) throw error;
     },
-    {
-      id: "3",
-      name: "شركة الأفق للمواد",
-      email: "contact@horizon-materials.com",
-      phone: "+966 56 345 6789",
-      balance: 22000,
-      creditLimit: 60000,
-      isActive: false,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["suppliers"] });
+      toast({
+        title: "تم حذف المورد بنجاح",
+        description: "تم حذف المورد من القائمة",
+      });
+      setDeleteDialogOpen(false);
+      setSupplierToDelete(null);
     },
-  ];
+    onError: (error: Error) => {
+      toast({
+        title: "خطأ في حذف المورد",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleEdit = (supplier: Supplier) => {
+    setSelectedSupplier(supplier);
+    setEditDialogOpen(true);
+  };
+
+  const handleDelete = (supplierId: string) => {
+    setSupplierToDelete(supplierId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (supplierToDelete) {
+      deleteSupplierMutation.mutate(supplierToDelete);
+    }
+  };
 
   const filteredSuppliers = suppliers.filter((supplier) =>
     supplier.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    supplier.email.toLowerCase().includes(searchQuery.toLowerCase())
+    (supplier.email && supplier.email.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   return (
@@ -66,7 +127,7 @@ const Suppliers = () => {
           <Building2 className="h-8 w-8 text-primary" />
           <h1 className="text-3xl font-bold text-foreground">الموردين</h1>
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2" onClick={() => setAddDialogOpen(true)}>
           <Plus className="h-4 w-4" />
           إضافة مورد جديد
         </Button>
@@ -81,13 +142,13 @@ const Suppliers = () => {
         <Card className="p-6">
           <div className="text-sm text-muted-foreground">الموردين النشطين</div>
           <div className="text-2xl font-bold mt-2">
-            {suppliers.filter((s) => s.isActive).length}
+            {suppliers.filter((s) => s.is_active).length}
           </div>
         </Card>
         <Card className="p-6">
           <div className="text-sm text-muted-foreground">إجمالي المستحقات</div>
           <div className="text-2xl font-bold mt-2">
-            {suppliers.reduce((sum, s) => sum + s.balance, 0).toLocaleString()} ر.س
+            {suppliers.reduce((sum, s) => sum + (s.balance || 0), 0).toLocaleString()} ر.س
           </div>
         </Card>
       </div>
@@ -118,7 +179,13 @@ const Suppliers = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredSuppliers.length === 0 ? (
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                </TableCell>
+              </TableRow>
+            ) : filteredSuppliers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   لا توجد نتائج
@@ -128,13 +195,13 @@ const Suppliers = () => {
               filteredSuppliers.map((supplier) => (
                 <TableRow key={supplier.id}>
                   <TableCell className="font-medium">{supplier.name}</TableCell>
-                  <TableCell>{supplier.email}</TableCell>
-                  <TableCell>{supplier.phone}</TableCell>
-                  <TableCell>{supplier.balance.toLocaleString()} ر.س</TableCell>
-                  <TableCell>{supplier.creditLimit.toLocaleString()} ر.س</TableCell>
+                  <TableCell>{supplier.email || "-"}</TableCell>
+                  <TableCell>{supplier.phone || "-"}</TableCell>
+                  <TableCell>{(supplier.balance || 0).toLocaleString()} ر.س</TableCell>
+                  <TableCell>{(supplier.credit_limit || 0).toLocaleString()} ر.س</TableCell>
                   <TableCell>
-                    <Badge variant={supplier.isActive ? "default" : "secondary"}>
-                      {supplier.isActive ? "نشط" : "غير نشط"}
+                    <Badge variant={supplier.is_active ? "default" : "secondary"}>
+                      {supplier.is_active ? "نشط" : "غير نشط"}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -144,12 +211,15 @@ const Suppliers = () => {
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem className="gap-2">
+                      <DropdownMenuContent align="end" className="bg-card">
+                        <DropdownMenuItem className="gap-2" onClick={() => handleEdit(supplier)}>
                           <Edit className="h-4 w-4" />
                           تعديل
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="gap-2 text-destructive">
+                        <DropdownMenuItem 
+                          className="gap-2 text-destructive" 
+                          onClick={() => handleDelete(supplier.id)}
+                        >
                           <Trash2 className="h-4 w-4" />
                           حذف
                         </DropdownMenuItem>
@@ -162,6 +232,34 @@ const Suppliers = () => {
           </TableBody>
         </Table>
       </Card>
+
+      <AddSupplierDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
+      
+      <EditSupplierDialog 
+        open={editDialogOpen} 
+        onOpenChange={setEditDialogOpen}
+        supplier={selectedSupplier}
+      />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
+            <AlertDialogDescription>
+              هذا الإجراء لا يمكن التراجع عنه. سيتم حذف المورد نهائياً من النظام.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              حذف
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
