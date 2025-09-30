@@ -1,7 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,15 +20,16 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { useEffect } from "react";
+import { Switch } from "@/components/ui/switch";
 
 const formSchema = z.object({
-  name: z.string().min(2, "الاسم يجب أن يكون حرفين على الأقل"),
-  email: z.string().email("البريد الإلكتروني غير صالح").optional().or(z.literal("")),
+  name: z.string().min(1, "الاسم مطلوب"),
+  email: z.string().email("البريد الإلكتروني غير صحيح").optional().or(z.literal("")),
   phone: z.string().optional(),
   address: z.string().optional(),
   tax_number: z.string().optional(),
@@ -43,12 +43,12 @@ type FormValues = z.infer<typeof formSchema>;
 interface Supplier {
   id: string;
   name: string;
-  email?: string | null;
-  phone?: string | null;
-  address?: string | null;
-  tax_number?: string | null;
+  email?: string;
+  phone?: string;
+  address?: string;
+  tax_number?: string;
   credit_limit?: number;
-  notes?: string | null;
+  notes?: string;
   is_active?: boolean;
 }
 
@@ -59,8 +59,9 @@ interface EditSupplierDialogProps {
 }
 
 export function EditSupplierDialog({ open, onOpenChange, supplier }: EditSupplierDialogProps) {
+  const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -92,9 +93,7 @@ export function EditSupplierDialog({ open, onOpenChange, supplier }: EditSupplie
 
   const updateSupplierMutation = useMutation({
     mutationFn: async (values: FormValues) => {
-      if (!supplier) return;
-
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("suppliers")
         .update({
           name: values.name,
@@ -106,41 +105,42 @@ export function EditSupplierDialog({ open, onOpenChange, supplier }: EditSupplie
           notes: values.notes || null,
           is_active: values.is_active,
         })
-        .eq("id", supplier.id);
+        .eq("id", supplier?.id)
+        .select();
 
       if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["suppliers"] });
       toast({
-        title: "تم تحديث المورد بنجاح",
-        description: "تم حفظ التغييرات على معلومات المورد",
+        title: "تم بنجاح",
+        description: "تم تحديث بيانات المورد بنجاح",
       });
       onOpenChange(false);
     },
     onError: (error: Error) => {
       toast({
-        title: "خطأ في تحديث المورد",
+        title: "خطأ",
         description: error.message,
         variant: "destructive",
       });
     },
   });
 
-  const onSubmit = (values: FormValues) => {
+  function onSubmit(values: FormValues) {
     updateSupplierMutation.mutate(values);
-  };
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>تعديل معلومات المورد</DialogTitle>
+          <DialogTitle>تعديل بيانات المورد</DialogTitle>
           <DialogDescription>
-            قم بتعديل معلومات المورد
+            قم بتحديث معلومات المورد
           </DialogDescription>
         </DialogHeader>
-
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -148,9 +148,9 @@ export function EditSupplierDialog({ open, onOpenChange, supplier }: EditSupplie
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>اسم المورد *</FormLabel>
+                  <FormLabel>الاسم *</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input placeholder="اسم المورد" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -165,7 +165,7 @@ export function EditSupplierDialog({ open, onOpenChange, supplier }: EditSupplie
                   <FormItem>
                     <FormLabel>البريد الإلكتروني</FormLabel>
                     <FormControl>
-                      <Input {...field} type="email" />
+                      <Input type="email" placeholder="email@example.com" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -179,7 +179,7 @@ export function EditSupplierDialog({ open, onOpenChange, supplier }: EditSupplie
                   <FormItem>
                     <FormLabel>رقم الهاتف</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input placeholder="+966 5X XXX XXXX" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -194,7 +194,7 @@ export function EditSupplierDialog({ open, onOpenChange, supplier }: EditSupplie
                 <FormItem>
                   <FormLabel>العنوان</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input placeholder="العنوان الكامل" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -209,7 +209,7 @@ export function EditSupplierDialog({ open, onOpenChange, supplier }: EditSupplie
                   <FormItem>
                     <FormLabel>الرقم الضريبي</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input placeholder="الرقم الضريبي" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -223,7 +223,7 @@ export function EditSupplierDialog({ open, onOpenChange, supplier }: EditSupplie
                   <FormItem>
                     <FormLabel>حد الائتمان</FormLabel>
                     <FormControl>
-                      <Input {...field} type="number" step="0.01" />
+                      <Input type="number" placeholder="0" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -233,25 +233,11 @@ export function EditSupplierDialog({ open, onOpenChange, supplier }: EditSupplie
 
             <FormField
               control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>ملاحظات</FormLabel>
-                  <FormControl>
-                    <Textarea {...field} rows={3} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
               name="is_active"
               render={({ field }) => (
                 <FormItem className="flex items-center justify-between rounded-lg border p-4">
                   <div className="space-y-0.5">
-                    <FormLabel className="text-base">الحالة</FormLabel>
+                    <FormLabel className="text-base">حالة المورد</FormLabel>
                     <div className="text-sm text-muted-foreground">
                       {field.value ? "نشط" : "غير نشط"}
                     </div>
@@ -266,6 +252,20 @@ export function EditSupplierDialog({ open, onOpenChange, supplier }: EditSupplie
               )}
             />
 
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>ملاحظات</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="ملاحظات إضافية..." {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <DialogFooter>
               <Button
                 type="button"
@@ -276,7 +276,7 @@ export function EditSupplierDialog({ open, onOpenChange, supplier }: EditSupplie
               </Button>
               <Button type="submit" disabled={updateSupplierMutation.isPending}>
                 {updateSupplierMutation.isPending && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="ml-2 h-4 w-4 animate-spin" />
                 )}
                 حفظ التغييرات
               </Button>

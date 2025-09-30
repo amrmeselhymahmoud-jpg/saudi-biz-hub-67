@@ -20,21 +20,15 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const formSchema = z.object({
-  name: z.string().min(2, "الاسم يجب أن يكون حرفين على الأقل"),
-  email: z.string().email("البريد الإلكتروني غير صالح").optional().or(z.literal("")),
+  name: z.string().min(1, "الاسم مطلوب"),
+  email: z.string().email("البريد الإلكتروني غير صحيح").optional().or(z.literal("")),
   phone: z.string().optional(),
   address: z.string().optional(),
   tax_number: z.string().optional(),
@@ -50,8 +44,10 @@ interface AddSupplierDialogProps {
 }
 
 export function AddSupplierDialog({ open, onOpenChange }: AddSupplierDialogProps) {
+  const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+  const { session } = useAuth();
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -67,55 +63,58 @@ export function AddSupplierDialog({ open, onOpenChange }: AddSupplierDialogProps
 
   const addSupplierMutation = useMutation({
     mutationFn: async (values: FormValues) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("User not authenticated");
-
-      const { error } = await supabase.from("suppliers").insert({
-        user_id: user.id,
-        name: values.name,
-        email: values.email || null,
-        phone: values.phone || null,
-        address: values.address || null,
-        tax_number: values.tax_number || null,
-        credit_limit: values.credit_limit ? parseFloat(values.credit_limit) : 0,
-        notes: values.notes || null,
-        is_active: true,
-      });
+      const { data, error } = await supabase
+        .from("suppliers")
+        .insert([
+          {
+            user_id: session?.user?.id,
+            name: values.name,
+            email: values.email || null,
+            phone: values.phone || null,
+            address: values.address || null,
+            tax_number: values.tax_number || null,
+            credit_limit: values.credit_limit ? parseFloat(values.credit_limit) : 0,
+            notes: values.notes || null,
+            is_active: true,
+            balance: 0,
+          },
+        ])
+        .select();
 
       if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["suppliers"] });
       toast({
-        title: "تم إضافة المورد بنجاح",
-        description: "تم إضافة المورد الجديد إلى القائمة",
+        title: "تم بنجاح",
+        description: "تم إضافة المورد بنجاح",
       });
       form.reset();
       onOpenChange(false);
     },
     onError: (error: Error) => {
       toast({
-        title: "خطأ في إضافة المورد",
+        title: "خطأ",
         description: error.message,
         variant: "destructive",
       });
     },
   });
 
-  const onSubmit = (values: FormValues) => {
+  function onSubmit(values: FormValues) {
     addSupplierMutation.mutate(values);
-  };
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>إضافة مورد جديد</DialogTitle>
           <DialogDescription>
-            قم بإدخال معلومات المورد الجديد
+            أدخل معلومات المورد الجديد
           </DialogDescription>
         </DialogHeader>
-
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -123,9 +122,9 @@ export function AddSupplierDialog({ open, onOpenChange }: AddSupplierDialogProps
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>اسم المورد *</FormLabel>
+                  <FormLabel>الاسم *</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input placeholder="اسم المورد" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -140,7 +139,7 @@ export function AddSupplierDialog({ open, onOpenChange }: AddSupplierDialogProps
                   <FormItem>
                     <FormLabel>البريد الإلكتروني</FormLabel>
                     <FormControl>
-                      <Input {...field} type="email" />
+                      <Input type="email" placeholder="email@example.com" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -154,7 +153,7 @@ export function AddSupplierDialog({ open, onOpenChange }: AddSupplierDialogProps
                   <FormItem>
                     <FormLabel>رقم الهاتف</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input placeholder="+966 5X XXX XXXX" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -169,7 +168,7 @@ export function AddSupplierDialog({ open, onOpenChange }: AddSupplierDialogProps
                 <FormItem>
                   <FormLabel>العنوان</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input placeholder="العنوان الكامل" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -184,7 +183,7 @@ export function AddSupplierDialog({ open, onOpenChange }: AddSupplierDialogProps
                   <FormItem>
                     <FormLabel>الرقم الضريبي</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input placeholder="الرقم الضريبي" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -198,7 +197,7 @@ export function AddSupplierDialog({ open, onOpenChange }: AddSupplierDialogProps
                   <FormItem>
                     <FormLabel>حد الائتمان</FormLabel>
                     <FormControl>
-                      <Input {...field} type="number" step="0.01" />
+                      <Input type="number" placeholder="0" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -213,7 +212,7 @@ export function AddSupplierDialog({ open, onOpenChange }: AddSupplierDialogProps
                 <FormItem>
                   <FormLabel>ملاحظات</FormLabel>
                   <FormControl>
-                    <Textarea {...field} rows={3} />
+                    <Textarea placeholder="ملاحظات إضافية..." {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -230,9 +229,9 @@ export function AddSupplierDialog({ open, onOpenChange }: AddSupplierDialogProps
               </Button>
               <Button type="submit" disabled={addSupplierMutation.isPending}>
                 {addSupplierMutation.isPending && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="ml-2 h-4 w-4 animate-spin" />
                 )}
-                إضافة المورد
+                إضافة
               </Button>
             </DialogFooter>
           </form>

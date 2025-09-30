@@ -18,6 +18,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { AddSupplierDialog } from "@/components/suppliers/AddSupplierDialog";
+import { EditSupplierDialog } from "@/components/suppliers/EditSupplierDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,18 +30,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { AddSupplierDialog } from "@/components/suppliers/AddSupplierDialog";
-import { EditSupplierDialog } from "@/components/suppliers/EditSupplierDialog";
-import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface Supplier {
   id: string;
   name: string;
-  email?: string | null;
-  phone?: string | null;
+  email?: string;
+  phone?: string;
   balance?: number;
   credit_limit?: number;
   is_active?: boolean;
@@ -54,6 +54,7 @@ const Suppliers = () => {
   const [supplierToDelete, setSupplierToDelete] = useState<string | null>(null);
   
   const { session } = useAuth();
+  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: suppliers = [], isLoading } = useQuery({
@@ -83,15 +84,15 @@ const Suppliers = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["suppliers"] });
       toast({
-        title: "تم حذف المورد بنجاح",
-        description: "تم حذف المورد من القائمة",
+        title: "تم بنجاح",
+        description: "تم حذف المورد بنجاح",
       });
       setDeleteDialogOpen(false);
       setSupplierToDelete(null);
     },
     onError: (error: Error) => {
       toast({
-        title: "خطأ في حذف المورد",
+        title: "خطأ",
         description: error.message,
         variant: "destructive",
       });
@@ -211,13 +212,13 @@ const Suppliers = () => {
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="bg-card">
+                      <DropdownMenuContent align="end">
                         <DropdownMenuItem className="gap-2" onClick={() => handleEdit(supplier)}>
                           <Edit className="h-4 w-4" />
                           تعديل
                         </DropdownMenuItem>
                         <DropdownMenuItem 
-                          className="gap-2 text-destructive" 
+                          className="gap-2 text-destructive"
                           onClick={() => handleDelete(supplier.id)}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -235,8 +236,8 @@ const Suppliers = () => {
 
       <AddSupplierDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
       
-      <EditSupplierDialog 
-        open={editDialogOpen} 
+      <EditSupplierDialog
+        open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
         supplier={selectedSupplier}
       />
@@ -246,7 +247,7 @@ const Suppliers = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
             <AlertDialogDescription>
-              هذا الإجراء لا يمكن التراجع عنه. سيتم حذف المورد نهائياً من النظام.
+              سيتم حذف المورد نهائياً ولن يمكن التراجع عن هذا الإجراء.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -255,6 +256,9 @@ const Suppliers = () => {
               onClick={confirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
+              {deleteSupplierMutation.isPending && (
+                <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+              )}
               حذف
             </AlertDialogAction>
           </AlertDialogFooter>
