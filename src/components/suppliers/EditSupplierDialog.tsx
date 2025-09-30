@@ -23,7 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Loader as Loader2 } from "lucide-react";
 import { useEffect } from "react";
 import { Switch } from "@/components/ui/switch";
 

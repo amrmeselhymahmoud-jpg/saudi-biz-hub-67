@@ -1,4 +1,4 @@
-import { Receipt, Plus, Search, MoreHorizontal, Eye, Edit, Trash2, Download } from "lucide-react";
+import { Receipt, Plus, Search, MoveHorizontal as MoreHorizontal, Eye, CreditCard as Edit, Trash2, Download } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

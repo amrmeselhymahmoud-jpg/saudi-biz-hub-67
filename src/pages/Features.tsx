@@ -2,7 +2,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, ArrowLeft, BarChart3, Shield, Smartphone, Cloud, Users, Zap, CreditCard, FileText, Settings, Headphones } from "lucide-react";
+import { ArrowRight, ArrowLeft, ChartBar as BarChart3, Shield, Smartphone, Cloud, Users, Zap, CreditCard, FileText, Settings, Headphones } from "lucide-react";
 import QoyodHeader from "@/components/QoyodHeader";
 
 const FeaturesPage = () => {

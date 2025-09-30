@@ -1,42 +1,5 @@
 import { useState } from "react"
-import { 
-  Home, 
-  FileText, 
-  Users, 
-  Package, 
-  BarChart3, 
-  Settings, 
-  Plus,
-  ChevronRight,
-  ChevronDown,
-  DollarSign,
-  ShoppingCart,
-  Calculator,
-  HelpCircle,
-  Building2,
-  Briefcase,
-  FileBox,
-  Wallet,
-  MapPin,
-  Factory,
-  Recycle,
-  TrendingUp,
-  FolderTree,
-  ClipboardList,
-  Repeat,
-  Layers,
-  Link2,
-  Coins,
-  BookOpen,
-  CreditCard,
-  UserCog,
-  HandCoins,
-  Receipt,
-  FileEdit,
-  Paperclip,
-  Info,
-  LifeBuoy
-} from "lucide-react"
+import { Chrome as Home, FileText, Users, Package, ChartBar as BarChart3, Settings, Plus, ChevronRight, ChevronDown, DollarSign, ShoppingCart, Calculator, CircleHelp as HelpCircle, Building2, Briefcase, FileBox, Wallet, MapPin, Factory, Recycle, TrendingUp, FolderTree, ClipboardList, Repeat, Layers, Link2, Coins, BookOpen, CreditCard, UserCog, HandCoins, Receipt, File as FileEdit, Paperclip, Info, LifeBuoy } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
 
 import {

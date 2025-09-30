@@ -1,7 +1,7 @@
 import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Home, ArrowRight } from "lucide-react";
+import { Chrome as Home, ArrowRight } from "lucide-react";
 
 const NotFound = () => {
   const location = useLocation();

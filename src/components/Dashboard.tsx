@@ -1,15 +1,5 @@
 import { Card } from "@/components/ui/card";
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  ShoppingCart, 
-  Users, 
-  Package, 
-  FileText,
-  AlertCircle,
-  DollarSign,
-  Building2
-} from "lucide-react";
+import { TrendingUp, TrendingDown, ShoppingCart, Users, Package, FileText, CircleAlert as AlertCircle, DollarSign, Building2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
