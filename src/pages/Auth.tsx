@@ -60,7 +60,7 @@ const Auth = () => {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        navigate("/");
+        navigate("/dashboard");
       }
     };
     checkUser();
@@ -90,7 +90,7 @@ const Auth = () => {
         description: "مرحباً بك في قيود"
       });
 
-      navigate("/");
+      navigate("/dashboard");
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast({
@@ -145,7 +145,7 @@ const Auth = () => {
           title: "تم إنشاء الحساب بنجاح",
           description: "مرحباً بك في قيود"
         });
-        navigate("/");
+        navigate("/dashboard");
       } else {
         toast({
           title: "تم إنشاء الحساب بنجاح",
