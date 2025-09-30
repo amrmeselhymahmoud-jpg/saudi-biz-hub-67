@@ -30,39 +30,42 @@ const QoyodHeader = () => {
     return user?.email?.[0]?.toUpperCase() || 'U';
   };
   return (
-    <header className="bg-gradient-to-r from-blue-600 to-purple-600 border-b border-blue-700 sticky top-0 z-40 shadow-md">
-      <div className="px-4 py-2">
-        <div className="flex items-center justify-between">
+    <header className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 border-b border-blue-800/30 sticky top-0 z-40 shadow-lg backdrop-blur-sm">
+      <div className="px-6 py-2.5">
+        <div className="flex items-center justify-between max-w-full">
           {/* الشعار */}
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-md">
-              <span className="text-blue-600 font-bold text-lg">ق</span>
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center shadow-lg hover:shadow-xl transition-shadow">
+              <span className="text-blue-600 font-bold text-xl">ق</span>
             </div>
-            <h1 className="text-xl font-bold text-white">قيود</h1>
+            <div className="flex flex-col">
+              <h1 className="text-lg font-bold text-white leading-tight">قيود</h1>
+              <span className="text-[10px] text-blue-100/80 leading-none">نظام محاسبي</span>
+            </div>
           </div>
 
           {/* الإجراءات الجانبية */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             {/* زر الإشعارات */}
-            <Button variant="ghost" size="icon" className="relative hover:bg-white/20 text-white">
+            <Button variant="ghost" size="sm" className="relative hover:bg-white/10 text-white h-8 w-8 p-0 rounded-lg transition-all">
               <Bell className="h-4 w-4" />
-              <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full border-2 border-white"></span>
+              <span className="absolute top-0.5 right-0.5 h-2 w-2 bg-red-500 rounded-full border border-white shadow-sm"></span>
             </Button>
 
             {/* قائمة المستخدم */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center gap-2 hover:bg-white/20">
-                  <Avatar className="h-7 w-7 border-2 border-white">
-                    <AvatarFallback className="bg-white text-blue-600 font-semibold text-sm">
+                <Button variant="ghost" className="flex items-center gap-2 hover:bg-white/10 h-9 px-2 rounded-lg transition-all">
+                  <Avatar className="h-7 w-7 border-2 border-white/50 shadow-md">
+                    <AvatarFallback className="bg-white text-blue-600 font-semibold text-xs">
                       {getUserInitials()}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="text-right hidden md:block">
-                    <div className="text-sm font-medium text-white">
-                      {user?.user_metadata?.display_name || user?.email}
+                  <div className="text-right hidden lg:block">
+                    <div className="text-xs font-semibold text-white leading-tight">
+                      {user?.user_metadata?.display_name || user?.email?.split('@')[0]}
                     </div>
-                    <div className="text-xs text-blue-100">
+                    <div className="text-[10px] text-blue-100/70 leading-tight">
                       {user?.user_metadata?.company_name || 'مستخدم'}
                     </div>
                   </div>
