@@ -1,4 +1,4 @@
-import { Receipt, Plus, Search, MoreHorizontal, Eye, Edit, Trash2, Download, Loader2, DollarSign, Send, XCircle, FileText } from "lucide-react";
+import { Receipt, Plus, Search, MoveHorizontal as MoreHorizontal, Eye, CreditCard as Edit, Trash2, Download, Loader as Loader2, DollarSign, Send, Circle as XCircle, FileText } from "lucide-react";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
