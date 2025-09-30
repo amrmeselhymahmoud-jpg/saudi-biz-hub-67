@@ -1,5 +1,3 @@
-import React from 'react';
-
 const ParticleSystem = () => {
   const particles = [...Array(20)].map((_, i) => ({
     id: i,

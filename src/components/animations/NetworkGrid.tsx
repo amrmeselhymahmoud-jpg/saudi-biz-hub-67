@@ -1,6 +1,4 @@
-import React from 'react';
-
-const NetworkGrid = () => {
+const NetworkAnimation = () => {
   const gridNodes = [
     { x: 10, y: 15, size: 'large', pulse: true },
     { x: 25, y: 30, size: 'medium', pulse: false },
@@ -184,4 +182,4 @@ const NetworkGrid = () => {
   );
 };
 
-export default NetworkGrid;
+export default NetworkAnimation;

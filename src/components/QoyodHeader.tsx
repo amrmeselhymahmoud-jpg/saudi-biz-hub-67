@@ -16,10 +16,7 @@ const QoyodHeader = () => {
   };
 
   const handleLoginClick = () => {
-    toast({
-      title: t('header.login'),
-      description: "أنت بالفعل في صفحة تسجيل الدخول",
-    });
+    navigate("/auth");
   };
 
   const handleLanguageToggle = () => {

@@ -7,7 +7,8 @@ import {
   Package, 
   FileText,
   AlertCircle,
-  DollarSign
+  DollarSign,
+  Building2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -199,7 +200,7 @@ const Dashboard = () => {
           <Button variant="outline" className="h-auto py-4" asChild>
             <Link to="/suppliers">
               <div className="flex flex-col items-center gap-2">
-                <ShoppingCart className="h-6 w-6" />
+                <Building2 className="h-6 w-6" />
                 <span>إضافة مورد</span>
               </div>
             </Link>

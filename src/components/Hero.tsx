@@ -1,7 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import heroImage from "@/assets/hero-business.jpg";
-
 const Hero = () => {
   return (
     <section className="relative py-20 bg-gradient-hero overflow-hidden">
@@ -23,11 +21,11 @@ const Hero = () => {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-              <Button size="lg" className="bg-white text-primary hover:bg-white/90 shadow-medium">
+              <Button size="lg" className="bg-white text-primary hover:bg-white/90" onClick={() => window.location.href = '/free-trial'}>
                 ابدأ التجربة المجانية
                 <span className="mr-2">←</span>
               </Button>
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
+              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10" onClick={() => window.location.href = '/features'}>
                 شاهد العرض التوضيحي
               </Button>
             </div>
@@ -51,7 +49,7 @@ const Hero = () => {
           <div className="relative">
             <div className="relative rounded-2xl overflow-hidden shadow-strong">
               <img 
-                src={heroImage} 
+                src="https://images.pexels.com/photos/3184360/pexels-photo-3184360.jpeg?auto=compress&cs=tinysrgb&w=800"
                 alt="منصة إدارة الأعمال السعودية"
                 className="w-full h-auto object-cover"
               />

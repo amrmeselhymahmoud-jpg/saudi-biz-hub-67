@@ -1,4 +1,4 @@
-import { FileText, Plus, Search, MoreHorizontal, Eye, Edit, Trash2, Download } from "lucide-react";
+import { Receipt, Plus, Search, MoreHorizontal, Eye, Edit, Trash2, Download } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -91,7 +91,7 @@ const SalesInvoices = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <FileText className="h-8 w-8 text-primary" />
+          <Receipt className="h-8 w-8 text-primary" />
           <h1 className="text-3xl font-bold text-foreground">فواتير المبيعات</h1>
         </div>
         <Button className="gap-2">

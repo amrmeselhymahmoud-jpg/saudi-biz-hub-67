@@ -5,12 +5,18 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import Layout from "@/components/Layout";
 import Dashboard from "@/components/Dashboard";
+import Header from "@/components/Header";
+import Hero from "@/components/Hero";
+import FeaturesSection from "@/components/Features";
+import Stats from "@/components/Stats";
+import Footer from "@/components/Footer";
 import FreeTrial from "./pages/FreeTrial";
-import About from "./pages/About";
-import Features from "./pages/Features";
-import Pricing from "./pages/Pricing";
+import AboutPage from "./pages/About";
+import FeaturesPage from "./pages/Features";
+import PricingPage from "./pages/Pricing";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -80,10 +86,24 @@ import ProfileEdit from "./pages/ProfileEdit";
 import Attachments from "./pages/Attachments";
 
 // Footer
-import AboutPage from "./pages/AboutPage";
-import HelpCenter from "./pages/HelpCenter";
+import AboutPageFooter from "./pages/AboutPage";
+import HelpCenterFooter from "./pages/HelpCenter";
 
 const queryClient = new QueryClient();
+
+const HomePage = () => {
+  const { isRTL } = useLanguage();
+  
+  return (
+    <div className="min-h-screen bg-background" dir={isRTL ? "rtl" : "ltr"}>
+      <Header />
+      <Hero />
+      <FeaturesSection />
+      <Stats />
+      <Footer />
+    </div>
+  );
+};
 
 const App = () => {
   return (
@@ -96,15 +116,16 @@ const App = () => {
               <Sonner />
               <Routes>
                 {/* Public Routes */}
+                <Route path="/" element={<HomePage />} />
                 <Route path="/free-trial" element={<FreeTrial />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/features" element={<Features />} />
-                <Route path="/pricing" element={<Pricing />} />
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="/features" element={<FeaturesPage />} />
+                <Route path="/pricing" element={<PricingPage />} />
                 <Route path="/auth" element={<Auth />} />
 
                 {/* Protected Routes with Layout */}
                 <Route element={<Layout />}>
-                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
                   
                   {/* Sales */}
                   <Route path="/customers" element={<Customers />} />
@@ -172,8 +193,8 @@ const App = () => {
                   <Route path="/attachments" element={<Attachments />} />
                   
                   {/* Footer */}
-                  <Route path="/about-page" element={<AboutPage />} />
-                  <Route path="/help-center" element={<HelpCenter />} />
+                  <Route path="/about-page" element={<AboutPageFooter />} />
+                  <Route path="/help-center" element={<HelpCenterFooter />} />
                 </Route>
 
                 {/* Catch-all Route */}

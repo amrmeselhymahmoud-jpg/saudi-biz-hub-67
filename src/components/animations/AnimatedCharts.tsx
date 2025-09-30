@@ -1,6 +1,4 @@
-import React from 'react';
-
-const AnimatedCharts = () => {
+const BusinessCharts = () => {
   return (
     <div className="absolute inset-0 pointer-events-none">
       {/* Bar Chart Animation */}

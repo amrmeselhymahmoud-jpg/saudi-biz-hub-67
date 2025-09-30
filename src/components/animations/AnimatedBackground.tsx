@@ -1,4 +1,3 @@
-import React from 'react';
 import AnimatedCharts from './AnimatedCharts';
 import NetworkAnimation from './NetworkAnimation';
 import ParticleSystem from './ParticleSystem';

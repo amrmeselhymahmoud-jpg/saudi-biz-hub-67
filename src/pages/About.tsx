@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowRight, ArrowLeft, Users, Target, Award } from "lucide-react";
 import QoyodHeader from "@/components/QoyodHeader";
 
-const About = () => {
+const AboutPage = () => {
   const { t, isRTL } = useLanguage();
   const navigate = useNavigate();
 
@@ -133,4 +133,4 @@ const About = () => {
   );
 };
 
-export default About;
+export default AboutPage;

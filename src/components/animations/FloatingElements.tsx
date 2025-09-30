@@ -28,7 +28,7 @@ const FloatingElements = () => {
   }));
 
   return (
-    <div className="absolute inset-0 pointer-events-none">
+    <div className="hidden lg:block flex-1 relative overflow-hidden">
       {/* Floating geometric shapes */}
       {floatingShapes.map((shape, index) => (
         <div
@@ -164,6 +164,8 @@ const FloatingElements = () => {
           />
         ))}
       </div>
+
+      {/* Content overlay with enhanced styling */}
 
       <style>{`
         @keyframes float-circle {

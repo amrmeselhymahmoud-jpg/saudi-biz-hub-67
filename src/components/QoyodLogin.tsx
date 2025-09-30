@@ -1,12 +1,12 @@
-import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import Dashboard from "@/components/Dashboard";
 
 const QoyodLogin = () => {
-  const { user, session, loading } = useAuth();
+  const { session, loading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -36,7 +36,7 @@ const QoyodLogin = () => {
         <main className="flex-1 overflow-hidden">
           <Dashboard />
         </main>
-        <div className="w-80 border-r bg-card">
+        <div className="w-80 border-l bg-card">
           <AppSidebar />
         </div>
       </div>

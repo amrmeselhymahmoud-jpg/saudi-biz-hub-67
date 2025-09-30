@@ -1,4 +1,3 @@
-import React from 'react';
 import NetworkGrid from './NetworkGrid';
 import FloatingElements from './FloatingElements';
 import IconGrid from './IconGrid';

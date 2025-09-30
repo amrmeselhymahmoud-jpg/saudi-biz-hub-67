@@ -51,7 +51,7 @@ import {
 } from "@/components/ui/sidebar"
 
 const mainMenuItems = [
-  { title: "لوحة المتابعة", url: "/", icon: Home },
+  { title: "لوحة المتابعة", url: "/dashboard", icon: Home },
   { 
     title: "المبيعات", 
     icon: DollarSign,
@@ -164,7 +164,7 @@ export function AppSidebar() {
   const currentPath = location.pathname
 
   const isActive = (path: string) => {
-    if (path === "/") return currentPath === "/"
+    if (path === "/dashboard") return currentPath === "/dashboard"
     return currentPath.startsWith(path)
   }
 

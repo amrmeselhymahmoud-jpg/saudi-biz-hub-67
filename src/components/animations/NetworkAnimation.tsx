@@ -1,5 +1,3 @@
-import React from 'react';
-
 const NetworkAnimation = () => {
   const networkNodes = [
     { x: 20, y: 20, delay: 0 },

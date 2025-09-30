@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowRight, ArrowLeft, Check, Star } from "lucide-react";
 import QoyodHeader from "@/components/QoyodHeader";
 
-const Pricing = () => {
+const PricingPage = () => {
   const { t, isRTL } = useLanguage();
   const navigate = useNavigate();
 
@@ -132,7 +132,8 @@ const Pricing = () => {
                 </ul>
                 
                 <Button 
-                  className={`w-full ${plan.popular ? 'bg-gradient-primary hover:opacity-90' : 'variant-outline border-primary text-primary hover:bg-primary hover:text-primary-foreground'}`}
+                  className={`w-full ${plan.popular ? 'bg-primary hover:bg-primary/90' : ''}`}
+                  variant={plan.popular ? 'default' : 'outline'}
                   onClick={() => navigate("/free-trial")}
                 >
                   {plan.buttonText}
@@ -192,4 +193,4 @@ const Pricing = () => {
   );
 };
 
-export default Pricing;
+export default PricingPage;

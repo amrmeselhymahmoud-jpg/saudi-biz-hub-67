@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-const Features = () => {
+const FeaturesSection = () => {
   const features = [
     {
       icon: "💰",
@@ -84,4 +84,4 @@ const Features = () => {
   );
 };
 
-export default Features;
+export default FeaturesSection;

@@ -50,22 +50,18 @@
     --qoyod-muted: 215 16% 47%;
 
     /* التدرجات المتطورة */
-    --gradient-qoyod: linear-gradient(135deg, hsl(var(--qoyod-blue)), hsl(var(--qoyod-navy)));
-    --gradient-light: linear-gradient(135deg, hsl(var(--qoyod-light-blue)), hsl(0 0% 100%));
-    --gradient-business: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 25%, #06b6d4 50%, #f59e0b 75%, #ef4444 100%);
-    --gradient-glow: radial-gradient(circle at center, hsl(var(--qoyod-blue) / 0.3) 0%, transparent 70%);
-    --gradient-mesh: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(var(--qoyod-blue)), hsl(var(--qoyod-navy)));
+    --gradient-hero: linear-gradient(135deg, hsl(var(--qoyod-navy)), hsl(var(--qoyod-blue)));
+    --gradient-card: linear-gradient(135deg, hsl(var(--card)), hsl(var(--muted)));
 
     /* الظلال المتقدمة */
-    --shadow-qoyod: 0 4px 20px hsl(var(--qoyod-blue) / 0.1);
-    --shadow-card: 0 2px 8px hsl(220 13% 91% / 0.6);
-    --shadow-glow: 0 0 60px hsl(var(--qoyod-blue) / 0.4);
-    --shadow-inner-glow: inset 0 0 30px hsl(var(--qoyod-blue) / 0.2);
+    --shadow-soft: 0 2px 8px hsl(220 13% 91% / 0.3);
+    --shadow-medium: 0 4px 20px hsl(var(--qoyod-blue) / 0.1);
+    --shadow-strong: 0 8px 40px hsl(var(--qoyod-blue) / 0.2);
 
     /* الحركات المتقدمة */
-    --transition-qoyod: all 0.2s ease-in-out;
     --transition-smooth: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-bounce: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    --transition-qoyod: all 0.2s ease-in-out;
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -141,14 +137,38 @@
   }
   
   .bg-gradient-qoyod {
-    background-image: var(--gradient-qoyod);
+    background-image: var(--gradient-primary);
   }
   
-  .shadow-card {
-    box-shadow: var(--shadow-card);
+  .bg-gradient-primary {
+    background-image: var(--gradient-primary);
+  }
+  
+  .bg-gradient-hero {
+    background-image: var(--gradient-hero);
+  }
+  
+  .bg-gradient-card {
+    background-image: var(--gradient-card);
+  }
+  
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+  
+  .shadow-medium {
+    box-shadow: var(--shadow-medium);
+  }
+  
+  .shadow-strong {
+    box-shadow: var(--shadow-strong);
   }
   
   .transition-qoyod {
     transition: var(--transition-qoyod);
+  }
+  
+  .transition-smooth {
+    transition: var(--transition-smooth);
   }
 }

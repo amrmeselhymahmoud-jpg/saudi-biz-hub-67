@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowRight, ArrowLeft, BarChart3, Shield, Smartphone, Cloud, Users, Zap, CreditCard, FileText, Settings, Headphones } from "lucide-react";
 import QoyodHeader from "@/components/QoyodHeader";
 
-const Features = () => {
+const FeaturesPage = () => {
   const { t, isRTL } = useLanguage();
   const navigate = useNavigate();
 
@@ -176,4 +176,4 @@ const Features = () => {
   );
 };
 
-export default Features;
+export default FeaturesPage;
