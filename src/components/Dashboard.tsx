@@ -17,7 +17,8 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="p-8 space-y-8 min-h-screen" dir="rtl">
+    <div className="p-0 m-0" dir="rtl">
+      <div className="p-8 space-y-8 min-h-screen">
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-gray-900">لوحة التحكم</h1>
         <p className="text-gray-600 mt-2 text-lg">نظرة عامة شاملة على أداء عملك</p>
@@ -210,6 +211,7 @@ const Dashboard = () => {
           </Button>
         </div>
       </Card>
+      </div>
     </div>
   );
 };
