@@ -31,7 +31,7 @@ const QoyodHeader = () => {
   };
   return (
     <header className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 border-b border-blue-800/30 sticky top-0 z-30 shadow-lg backdrop-blur-sm">
-      <div className="px-6 py-3 mr-72">
+      <div className="px-6 py-3">
         <div className="flex items-center justify-between max-w-full">
           {/* الشعار */}
           <div className="flex items-center gap-3">
@@ -45,7 +45,7 @@ const QoyodHeader = () => {
           </div>
 
           {/* الإجراءات الجانبية */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {/* زر الإشعارات */}
             <Button variant="ghost" size="sm" className="relative hover:bg-white/10 text-white h-9 w-9 p-0 rounded-lg transition-all">
               <Bell className="h-5 w-5" />
