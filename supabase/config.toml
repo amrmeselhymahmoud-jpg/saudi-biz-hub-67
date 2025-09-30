@@ -1,4 +1,8 @@
 project_id = "inpaclmiokjwgjkdslhz"
 
+[auth]
+enable_signup = true
+enable_confirmations = false
+
 [functions.send-trial-confirmation]
 verify_jwt = false

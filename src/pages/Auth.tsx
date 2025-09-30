@@ -120,7 +120,7 @@ const Auth = () => {
       
       const redirectUrl = `${window.location.origin}/`;
       
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email: validatedData.email,
         password: validatedData.password,
         options: {
@@ -140,10 +140,18 @@ const Auth = () => {
         throw error;
       }
 
-      toast({
-        title: "تم إنشاء الحساب بنجاح",
-        description: "يرجى فحص بريدك الإلكتروني لتأكيد الحساب"
-      });
+      if (data.session) {
+        toast({
+          title: "تم إنشاء الحساب بنجاح",
+          description: "مرحباً بك في قيود"
+        });
+        navigate("/");
+      } else {
+        toast({
+          title: "تم إنشاء الحساب بنجاح",
+          description: "يرجى فحص بريدك الإلكتروني لتأكيد الحساب"
+        });
+      }
 
       // Reset form
       setSignupData({
