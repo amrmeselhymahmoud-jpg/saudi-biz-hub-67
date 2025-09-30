@@ -132,9 +132,9 @@ export function AppSidebar() {
   }
 
   const getNavCls = (path: string) =>
-    isActive(path) 
-      ? "bg-accent text-accent-foreground font-medium" 
-      : "hover:bg-muted/50"
+    isActive(path)
+      ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold shadow-md"
+      : "hover:bg-gray-100 text-gray-700"
   
   const toggleGroup = (title: string) => {
     setExpandedGroups(prev => 
@@ -148,20 +148,20 @@ export function AppSidebar() {
 
   return (
     <Sidebar
-      className={`${collapsed ? "w-16" : "w-80"} h-full bg-card transition-all duration-300`}
+      className={`${collapsed ? "w-16" : "w-72"} h-full bg-white border-l shadow-lg transition-all duration-300`}
       collapsible="icon"
     >
       <SidebarContent className="overflow-y-auto">
         {/* Header */}
         {!collapsed && (
-          <div className="p-6 border-b">
-            <div className="flex items-center space-x-3 rtl:space-x-reverse">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-lg">ق</span>
+          <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                <span className="text-white font-bold text-2xl">ق</span>
               </div>
               <div>
-                <h2 className="text-lg font-bold text-foreground">قيود</h2>
-                <p className="text-xs text-muted-foreground">نظام المحاسبة</p>
+                <h2 className="text-xl font-bold text-gray-900">قيود</h2>
+                <p className="text-xs text-gray-600">نظام المحاسبة السحابي</p>
               </div>
             </div>
           </div>
@@ -170,7 +170,7 @@ export function AppSidebar() {
         {/* Main Menu */}
         <SidebarGroup className="px-3 py-4">
           {!collapsed && (
-            <SidebarGroupLabel className="text-xs font-medium text-muted-foreground px-3 mb-2">
+            <SidebarGroupLabel className="text-xs font-bold text-gray-500 px-3 mb-3 uppercase tracking-wider">
               القائمة الرئيسية
             </SidebarGroupLabel>
           )}
@@ -181,43 +181,49 @@ export function AppSidebar() {
                   {'subItems' in item ? (
                     <>
                       <SidebarMenuItem>
-                        <SidebarMenuButton 
+                        <SidebarMenuButton
                           onClick={() => toggleGroup(item.title)}
-                          className="h-10 w-full"
+                          className="h-11 w-full hover:bg-gray-100 rounded-lg transition-all"
                         >
-                          <div className="flex items-center justify-between w-full space-x-3 rtl:space-x-reverse px-3 py-2">
-                            <div className="flex items-center space-x-3 rtl:space-x-reverse">
-                              <item.icon className="h-5 w-5 flex-shrink-0" />
-                              {!collapsed && <span className="text-sm">{item.title}</span>}
+                          <div className="flex items-center justify-between w-full gap-3 px-3 py-2">
+                            <div className="flex items-center gap-3">
+                              <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${
+                                isGroupExpanded(item.title)
+                                  ? 'bg-gradient-to-br from-blue-500 to-purple-500 text-white shadow-md'
+                                  : 'bg-gray-100 text-gray-600'
+                              }`}>
+                                <item.icon className="h-5 w-5 flex-shrink-0" />
+                              </div>
+                              {!collapsed && <span className="text-sm font-medium text-gray-800">{item.title}</span>}
                             </div>
                             {!collapsed && (
-                              isGroupExpanded(item.title) 
-                                ? <ChevronDown className="h-4 w-4" />
-                                : <ChevronRight className="h-4 w-4" />
+                              isGroupExpanded(item.title)
+                                ? <ChevronDown className="h-4 w-4 text-blue-600" />
+                                : <ChevronRight className="h-4 w-4 text-gray-400" />
                             )}
                           </div>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                       {!collapsed && isGroupExpanded(item.title) && (
-                        <div className="mr-6 mt-1 space-y-1">
+                        <div className="mr-9 mt-2 space-y-1 border-r-2 border-gray-200 pr-3">
                           {item.subItems.map((subItem) => (
                             <SidebarMenuItem key={subItem.title}>
-                              <SidebarMenuButton asChild className="h-9">
-                                <NavLink 
+                              <SidebarMenuButton asChild className="h-10">
+                                <NavLink
                                   to={subItem.url}
-                                  className={`${getNavCls(subItem.url)} flex items-center justify-between space-x-3 rtl:space-x-reverse px-3 py-2 rounded-lg transition-colors`}
+                                  className={`${getNavCls(subItem.url)} flex items-center justify-between gap-3 px-3 py-2 rounded-lg transition-all duration-200`}
                                 >
-                                  <div className="flex items-center space-x-3 rtl:space-x-reverse">
-                                    <subItem.icon className="h-4 w-4 flex-shrink-0" />
+                                  <div className="flex items-center gap-3">
+                                    <subItem.icon className={`h-4 w-4 flex-shrink-0 ${isActive(subItem.url) ? 'text-white' : 'text-gray-500'}`} />
                                     <span className="text-sm">{subItem.title}</span>
                                   </div>
                                   {subItem.badge && (
-                                    <span className={`text-xs px-2 py-0.5 rounded ${
-                                      subItem.badge === 'جديد' 
-                                        ? 'bg-green-500/10 text-green-500' 
+                                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                                      subItem.badge === 'جديد'
+                                        ? 'bg-green-100 text-green-600'
                                         : subItem.badge === 'قريبا'
-                                        ? 'bg-blue-500/10 text-blue-500'
-                                        : 'bg-primary/10 text-primary'
+                                        ? 'bg-blue-100 text-blue-600'
+                                        : 'bg-purple-100 text-purple-600'
                                     }`}>
                                       {subItem.badge}
                                     </span>
@@ -231,14 +237,20 @@ export function AppSidebar() {
                     </>
                   ) : (
                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild className="h-10">
-                        <NavLink 
+                      <SidebarMenuButton asChild className="h-11">
+                        <NavLink
                           to={item.url}
                           end={item.url === "/"}
-                          className={`${getNavCls(item.url)} flex items-center space-x-3 rtl:space-x-reverse px-3 py-2 rounded-lg transition-colors`}
+                          className={`${getNavCls(item.url)} flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200`}
                         >
-                          <item.icon className="h-5 w-5 flex-shrink-0" />
-                          {!collapsed && <span className="text-sm">{item.title}</span>}
+                          <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${
+                            isActive(item.url)
+                              ? 'bg-white/20'
+                              : 'bg-gray-100'
+                          }`}>
+                            <item.icon className={`h-5 w-5 flex-shrink-0 ${isActive(item.url) ? 'text-white' : 'text-gray-600'}`} />
+                          </div>
+                          {!collapsed && <span className="text-sm font-medium">{item.title}</span>}
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -250,44 +262,50 @@ export function AppSidebar() {
         </SidebarGroup>
 
         {/* Settings Group */}
-        <SidebarGroup className="px-3 py-4">
+        <SidebarGroup className="px-3 py-4 border-t border-gray-200 mt-2">
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1">
               {settingsItems.map((item) => (
                 <div key={item.title}>
                   <SidebarMenuItem>
-                    <SidebarMenuButton 
+                    <SidebarMenuButton
                       onClick={() => toggleGroup(item.title)}
-                      className="h-10 w-full"
+                      className="h-11 w-full hover:bg-gray-100 rounded-lg transition-all"
                     >
-                      <div className="flex items-center justify-between w-full space-x-3 rtl:space-x-reverse px-3 py-2">
-                        <div className="flex items-center space-x-3 rtl:space-x-reverse">
-                          <item.icon className="h-5 w-5 flex-shrink-0" />
-                          {!collapsed && <span className="text-sm">{item.title}</span>}
+                      <div className="flex items-center justify-between w-full gap-3 px-3 py-2">
+                        <div className="flex items-center gap-3">
+                          <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${
+                            isGroupExpanded(item.title)
+                              ? 'bg-gradient-to-br from-orange-500 to-red-500 text-white shadow-md'
+                              : 'bg-gray-100 text-gray-600'
+                          }`}>
+                            <item.icon className="h-5 w-5 flex-shrink-0" />
+                          </div>
+                          {!collapsed && <span className="text-sm font-medium text-gray-800">{item.title}</span>}
                         </div>
                         {!collapsed && (
-                          isGroupExpanded(item.title) 
-                            ? <ChevronDown className="h-4 w-4" />
-                            : <ChevronRight className="h-4 w-4" />
+                          isGroupExpanded(item.title)
+                            ? <ChevronDown className="h-4 w-4 text-orange-600" />
+                            : <ChevronRight className="h-4 w-4 text-gray-400" />
                         )}
                       </div>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   {!collapsed && isGroupExpanded(item.title) && item.subItems && (
-                    <div className="mr-6 mt-1 space-y-1">
+                    <div className="mr-9 mt-2 space-y-1 border-r-2 border-orange-200 pr-3">
                       {item.subItems.map((subItem) => (
                         <SidebarMenuItem key={subItem.title}>
-                          <SidebarMenuButton asChild className="h-9">
-                            <NavLink 
+                          <SidebarMenuButton asChild className="h-10">
+                            <NavLink
                               to={subItem.url}
-                              className={`${getNavCls(subItem.url)} flex items-center justify-between space-x-3 rtl:space-x-reverse px-3 py-2 rounded-lg transition-colors`}
+                              className={`${getNavCls(subItem.url)} flex items-center justify-between gap-3 px-3 py-2 rounded-lg transition-all duration-200`}
                             >
-                              <div className="flex items-center space-x-3 rtl:space-x-reverse">
-                                <subItem.icon className="h-4 w-4 flex-shrink-0" />
+                              <div className="flex items-center gap-3">
+                                <subItem.icon className={`h-4 w-4 flex-shrink-0 ${isActive(subItem.url) ? 'text-white' : 'text-gray-500'}`} />
                                 <span className="text-sm">{subItem.title}</span>
                               </div>
                               {subItem.badge && (
-                                <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                                <span className="text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded-full font-medium">
                                   {subItem.badge}
                                 </span>
                               )}
@@ -304,18 +322,24 @@ export function AppSidebar() {
         </SidebarGroup>
 
         {/* Footer Items */}
-        <SidebarGroup className="px-3 py-4 mt-auto">
+        <SidebarGroup className="px-3 py-4 mt-auto border-t border-gray-200 bg-gray-50">
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1">
               {footerItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild className="h-10">
-                    <NavLink 
+                  <SidebarMenuButton asChild className="h-11">
+                    <NavLink
                       to={item.url}
-                      className={`${getNavCls(item.url)} flex items-center space-x-3 rtl:space-x-reverse px-3 py-2 rounded-lg transition-colors`}
+                      className={`${getNavCls(item.url)} flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200`}
                     >
-                      <item.icon className="h-5 w-5 flex-shrink-0" />
-                      {!collapsed && <span className="text-sm">{item.title}</span>}
+                      <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${
+                        isActive(item.url)
+                          ? 'bg-white/20'
+                          : 'bg-white'
+                      }`}>
+                        <item.icon className={`h-5 w-5 flex-shrink-0 ${isActive(item.url) ? 'text-white' : 'text-gray-600'}`} />
+                      </div>
+                      {!collapsed && <span className="text-sm font-medium">{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

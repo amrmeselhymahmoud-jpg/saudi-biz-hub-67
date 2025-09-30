@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, Outlet } from "react-router-dom";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/AppSidebar";
 import QoyodHeader from "@/components/QoyodHeader";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -33,9 +35,14 @@ const Layout = () => {
   return (
     <div className="min-h-screen bg-gray-50" dir={isRTL ? "rtl" : "ltr"}>
       <QoyodHeader />
-      <main className="w-full">
-        <Outlet />
-      </main>
+      <SidebarProvider defaultOpen={true}>
+        <div className="flex w-full h-[calc(100vh-60px)]">
+          <AppSidebar />
+          <main className="flex-1 overflow-y-auto bg-gradient-to-br from-gray-50 to-gray-100">
+            <Outlet />
+          </main>
+        </div>
+      </SidebarProvider>
     </div>
   );
 };
