@@ -1,4 +1,4 @@
-import { Receipt, Plus, Search, MoveHorizontal as MoreHorizontal, Eye, CreditCard as Edit, Trash2, Download, Loader as Loader2 } from "lucide-react";
+import { Receipt, Plus, Search, MoreHorizontal, Eye, Edit, Trash2, Download, Loader2, DollarSign, Send, XCircle, FileText } from "lucide-react";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +18,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -30,8 +31,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
 
 interface SalesInvoice {
   id: string;
@@ -49,6 +60,8 @@ interface SalesInvoice {
   created_at: string;
   customers?: {
     name: string;
+    email: string | null;
+    phone: string | null;
   };
 }
 
@@ -56,6 +69,10 @@ const SalesInvoices = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [invoiceToDelete, setInvoiceToDelete] = useState<string | null>(null);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<SalesInvoice | null>(null);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState("");
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -74,7 +91,9 @@ const SalesInvoices = () => {
         .select(`
           *,
           customers (
-            name
+            name,
+            email,
+            phone
           )
         `)
         .eq("user_id", user.id)
@@ -112,6 +131,64 @@ const SalesInvoices = () => {
     },
   });
 
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const { error } = await supabase
+        .from("sales_invoices")
+        .update({ status })
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sales-invoices"] });
+      toast({
+        title: "تم بنجاح",
+        description: "تم تحديث حالة الفاتورة بنجاح",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "خطأ",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const addPaymentMutation = useMutation({
+    mutationFn: async ({ id, amount }: { id: string; amount: number }) => {
+      const invoice = invoices.find(inv => inv.id === id);
+      if (!invoice) throw new Error("الفاتورة غير موجودة");
+
+      const newPaidAmount = invoice.paid_amount + amount;
+
+      const { error } = await supabase
+        .from("sales_invoices")
+        .update({ paid_amount: newPaidAmount })
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sales-invoices"] });
+      toast({
+        title: "تم بنجاح",
+        description: "تم تسجيل الدفعة بنجاح",
+      });
+      setPaymentDialogOpen(false);
+      setPaymentAmount("");
+      setSelectedInvoice(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "خطأ",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const filteredInvoices = invoices.filter((invoice) =>
     invoice.invoice_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
     invoice.customers?.name?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -122,10 +199,55 @@ const SalesInvoices = () => {
     setDeleteDialogOpen(true);
   };
 
+  const handleView = (invoice: SalesInvoice) => {
+    setSelectedInvoice(invoice);
+    setViewDialogOpen(true);
+  };
+
+  const handlePayment = (invoice: SalesInvoice) => {
+    setSelectedInvoice(invoice);
+    const remaining = invoice.total_amount - invoice.paid_amount;
+    setPaymentAmount(remaining.toString());
+    setPaymentDialogOpen(true);
+  };
+
   const confirmDelete = () => {
     if (invoiceToDelete) {
       deleteInvoiceMutation.mutate(invoiceToDelete);
     }
+  };
+
+  const confirmPayment = () => {
+    if (selectedInvoice && paymentAmount) {
+      const amount = parseFloat(paymentAmount);
+      if (isNaN(amount) || amount <= 0) {
+        toast({
+          title: "خطأ",
+          description: "يرجى إدخال مبلغ صحيح",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const remaining = selectedInvoice.total_amount - selectedInvoice.paid_amount;
+      if (amount > remaining) {
+        toast({
+          title: "خطأ",
+          description: "المبلغ المدخل أكبر من المبلغ المتبقي",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      addPaymentMutation.mutate({ id: selectedInvoice.id, amount });
+    }
+  };
+
+  const handleDownloadPDF = (invoice: SalesInvoice) => {
+    toast({
+      title: "قيد التطوير",
+      description: "ميزة تحميل PDF قيد التطوير حالياً",
+    });
   };
 
   const getStatusBadge = (status: string, paidAmount: number, totalAmount: number) => {
@@ -286,7 +408,7 @@ const SalesInvoices = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem className="gap-2">
+                          <DropdownMenuItem className="gap-2" onClick={() => handleView(invoice)}>
                             <Eye className="h-4 w-4" />
                             عرض التفاصيل
                           </DropdownMenuItem>
@@ -294,10 +416,36 @@ const SalesInvoices = () => {
                             <Edit className="h-4 w-4" />
                             تعديل
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2">
+                          <DropdownMenuItem className="gap-2" onClick={() => handleDownloadPDF(invoice)}>
                             <Download className="h-4 w-4" />
                             تحميل PDF
                           </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          {remaining > 0 && (
+                            <DropdownMenuItem className="gap-2" onClick={() => handlePayment(invoice)}>
+                              <DollarSign className="h-4 w-4" />
+                              تسجيل دفعة
+                            </DropdownMenuItem>
+                          )}
+                          {invoice.status === 'draft' && (
+                            <DropdownMenuItem
+                              className="gap-2"
+                              onClick={() => updateStatusMutation.mutate({ id: invoice.id, status: 'sent' })}
+                            >
+                              <Send className="h-4 w-4" />
+                              إرسال للعميل
+                            </DropdownMenuItem>
+                          )}
+                          {invoice.status !== 'cancelled' && (
+                            <DropdownMenuItem
+                              className="gap-2 text-orange-600"
+                              onClick={() => updateStatusMutation.mutate({ id: invoice.id, status: 'cancelled' })}
+                            >
+                              <XCircle className="h-4 w-4" />
+                              إلغاء الفاتورة
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator />
                           <DropdownMenuItem
                             className="gap-2 text-destructive"
                             onClick={() => handleDelete(invoice.id)}
@@ -315,6 +463,142 @@ const SalesInvoices = () => {
           </TableBody>
         </Table>
       </Card>
+
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              تفاصيل الفاتورة
+            </DialogTitle>
+            <DialogDescription>
+              معلومات تفصيلية عن الفاتورة رقم {selectedInvoice?.invoice_number}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedInvoice && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground">العميل</Label>
+                  <p className="font-medium">{selectedInvoice.customers?.name || "-"}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">البريد الإلكتروني</Label>
+                  <p className="font-medium">{selectedInvoice.customers?.email || "-"}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">رقم الهاتف</Label>
+                  <p className="font-medium">{selectedInvoice.customers?.phone || "-"}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">تاريخ الفاتورة</Label>
+                  <p className="font-medium">{new Date(selectedInvoice.invoice_date).toLocaleDateString('ar-SA')}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">تاريخ الاستحقاق</Label>
+                  <p className="font-medium">
+                    {selectedInvoice.due_date ? new Date(selectedInvoice.due_date).toLocaleDateString('ar-SA') : '-'}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">الحالة</Label>
+                  <div className="mt-1">
+                    {getStatusBadge(selectedInvoice.status, selectedInvoice.paid_amount, selectedInvoice.total_amount)}
+                  </div>
+                </div>
+              </div>
+              <Separator />
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">المجموع الفرعي:</span>
+                  <span className="font-medium">{selectedInvoice.subtotal.toLocaleString()} ر.س</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">الضريبة:</span>
+                  <span className="font-medium">{selectedInvoice.tax_amount.toLocaleString()} ر.س</span>
+                </div>
+                {selectedInvoice.discount_amount > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">الخصم:</span>
+                    <span className="font-medium text-green-600">-{selectedInvoice.discount_amount.toLocaleString()} ر.س</span>
+                  </div>
+                )}
+                <Separator />
+                <div className="flex justify-between text-lg">
+                  <span className="font-semibold">المجموع الإجمالي:</span>
+                  <span className="font-bold">{selectedInvoice.total_amount.toLocaleString()} ر.س</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">المبلغ المدفوع:</span>
+                  <span className="font-medium text-green-600">{selectedInvoice.paid_amount.toLocaleString()} ر.س</span>
+                </div>
+                <div className="flex justify-between text-lg">
+                  <span className="font-semibold">المبلغ المتبقي:</span>
+                  <span className="font-bold text-destructive">
+                    {(selectedInvoice.total_amount - selectedInvoice.paid_amount).toLocaleString()} ر.س
+                  </span>
+                </div>
+              </div>
+              {selectedInvoice.notes && (
+                <>
+                  <Separator />
+                  <div>
+                    <Label className="text-muted-foreground">ملاحظات</Label>
+                    <p className="mt-1 text-sm">{selectedInvoice.notes}</p>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5" />
+              تسجيل دفعة
+            </DialogTitle>
+            <DialogDescription>
+              تسجيل دفعة جديدة للفاتورة رقم {selectedInvoice?.invoice_number}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedInvoice && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>المبلغ المتبقي</Label>
+                <p className="text-2xl font-bold text-destructive">
+                  {(selectedInvoice.total_amount - selectedInvoice.paid_amount).toLocaleString()} ر.س
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="payment-amount">مبلغ الدفعة</Label>
+                <Input
+                  id="payment-amount"
+                  type="number"
+                  placeholder="أدخل المبلغ"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPaymentDialogOpen(false)}>
+              إلغاء
+            </Button>
+            <Button onClick={confirmPayment} disabled={addPaymentMutation.isPending}>
+              {addPaymentMutation.isPending && (
+                <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+              )}
+              تسجيل الدفعة
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
