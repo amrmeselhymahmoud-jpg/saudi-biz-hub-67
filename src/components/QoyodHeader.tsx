@@ -30,36 +30,39 @@ const QoyodHeader = () => {
     return user?.email?.[0]?.toUpperCase() || 'U';
   };
   return (
-    <header className="bg-white border-b border-qoyod-border sticky top-0 z-50">
-      <div className="px-6 py-3">
+    <header className="bg-gradient-to-r from-blue-600 to-purple-600 border-b border-blue-700 sticky top-0 z-40 shadow-md">
+      <div className="px-4 py-2">
         <div className="flex items-center justify-between">
           {/* الشعار */}
-          <div className="flex items-center">
-            <h1 className="text-2xl font-bold text-qoyod-navy">QOYOD</h1>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-md">
+              <span className="text-blue-600 font-bold text-lg">ق</span>
+            </div>
+            <h1 className="text-xl font-bold text-white">قيود</h1>
           </div>
 
           {/* الإجراءات الجانبية */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {/* زر الإشعارات */}
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
+            <Button variant="ghost" size="icon" className="relative hover:bg-white/20 text-white">
+              <Bell className="h-4 w-4" />
+              <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full border-2 border-white"></span>
             </Button>
 
             {/* قائمة المستخدم */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center gap-2">
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-primary text-white">
+                <Button variant="ghost" className="flex items-center gap-2 hover:bg-white/20">
+                  <Avatar className="h-7 w-7 border-2 border-white">
+                    <AvatarFallback className="bg-white text-blue-600 font-semibold text-sm">
                       {getUserInitials()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="text-right hidden md:block">
-                    <div className="text-sm font-medium">
+                    <div className="text-sm font-medium text-white">
                       {user?.user_metadata?.display_name || user?.email}
                     </div>
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-xs text-blue-100">
                       {user?.user_metadata?.company_name || 'مستخدم'}
                     </div>
                   </div>
