@@ -1,4 +1,4 @@
-import { useEffect, lazy, Suspense } from "react";
+import { useEffect, lazy, Suspense, Component, ErrorInfo, ReactNode } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,6 +14,63 @@ import Hero from "@/components/Hero";
 import FeaturesSection from "@/components/Features";
 import Stats from "@/components/Stats";
 import Footer from "@/components/Footer";
+
+interface ErrorBoundaryProps {
+  children: ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('Error caught by boundary:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-background flex items-center justify-center p-4" dir="rtl">
+          <div className="max-w-md w-full bg-card p-6 rounded-lg shadow-lg text-center">
+            <h1 className="text-2xl font-bold text-destructive mb-4">حدث خطأ</h1>
+            <p className="text-muted-foreground mb-4">
+              عذراً، حدث خطأ غير متوقع. يرجى إعادة تحميل الصفحة.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90"
+            >
+              إعادة التحميل
+            </button>
+            {this.state.error && (
+              <details className="mt-4 text-left">
+                <summary className="cursor-pointer text-sm text-muted-foreground">
+                  تفاصيل الخطأ
+                </summary>
+                <pre className="mt-2 text-xs bg-muted p-2 rounded overflow-auto">
+                  {this.state.error.toString()}
+                </pre>
+              </details>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 const FreeTrial = lazy(() => import("./pages/FreeTrial"));
 const AboutPage = lazy(() => import("./pages/About"));
 const FeaturesPage = lazy(() => import("./pages/Features"));
@@ -126,15 +183,16 @@ const HomePage = () => {
 
 const App = () => {
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <LanguageProvider>
-          <AuthProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <Suspense fallback={<LoadingFallback />}>
-              <Routes>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <LanguageProvider>
+            <AuthProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                <Suspense fallback={<LoadingFallback />}>
+                <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<HomePage />} />
                 <Route path="/free-trial" element={<FreeTrial />} />
@@ -219,13 +277,14 @@ const App = () => {
 
                 {/* Catch-all Route */}
                 <Route path="*" element={<NotFound />} />
-              </Routes>
-              </Suspense>
-            </TooltipProvider>
-          </AuthProvider>
-        </LanguageProvider>
-      </BrowserRouter>
-    </QueryClientProvider>
+                </Routes>
+                </Suspense>
+              </TooltipProvider>
+            </AuthProvider>
+          </LanguageProvider>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 };
 
