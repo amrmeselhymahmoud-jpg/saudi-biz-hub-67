@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,81 +14,80 @@ import Hero from "@/components/Hero";
 import FeaturesSection from "@/components/Features";
 import Stats from "@/components/Stats";
 import Footer from "@/components/Footer";
-import FreeTrial from "./pages/FreeTrial";
-import AboutPage from "./pages/About";
-import FeaturesPage from "./pages/Features";
-import PricingPage from "./pages/Pricing";
-import Auth from "./pages/Auth";
-import NotFound from "./pages/NotFound";
+const FreeTrial = lazy(() => import("./pages/FreeTrial"));
+const AboutPage = lazy(() => import("./pages/About"));
+const FeaturesPage = lazy(() => import("./pages/Features"));
+const PricingPage = lazy(() => import("./pages/Pricing"));
+const Auth = lazy(() => import("./pages/Auth"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
-// Sales
-import Customers from "./pages/Customers";
-import Quotes from "./pages/Quotes";
-import SalesInvoices from "./pages/SalesInvoices";
-import CustomerBonds from "./pages/CustomerBonds";
+const Customers = lazy(() => import("./pages/Customers"));
+const Quotes = lazy(() => import("./pages/Quotes"));
+const SalesInvoices = lazy(() => import("./pages/SalesInvoices"));
+const CustomerBonds = lazy(() => import("./pages/CustomerBonds"));
 
-// Purchases
-import Suppliers from "./pages/Suppliers";
-import PurchaseOrders from "./pages/PurchaseOrders";
-import PurchaseInvoices from "./pages/PurchaseInvoices";
-import SimpleInvoices from "./pages/SimpleInvoices";
-import SupplierBonds from "./pages/SupplierBonds";
+const Suppliers = lazy(() => import("./pages/Suppliers"));
+const PurchaseOrders = lazy(() => import("./pages/PurchaseOrders"));
+const PurchaseInvoices = lazy(() => import("./pages/PurchaseInvoices"));
+const SimpleInvoices = lazy(() => import("./pages/SimpleInvoices"));
+const SupplierBonds = lazy(() => import("./pages/SupplierBonds"));
 
-// Products & Costs
-import ProductsCosts from "./pages/ProductsCosts";
-import Locations from "./pages/Locations";
-import ManufacturingOrders from "./pages/ManufacturingOrders";
+const ProductsCosts = lazy(() => import("./pages/ProductsCosts"));
+const Locations = lazy(() => import("./pages/Locations"));
+const ManufacturingOrders = lazy(() => import("./pages/ManufacturingOrders"));
 
-// Fixed Assets
-import FixedAssets from "./pages/FixedAssets";
-import Depreciation from "./pages/Depreciation";
-import Recoveries from "./pages/Recoveries";
-import Additions from "./pages/Additions";
+const FixedAssets = lazy(() => import("./pages/FixedAssets"));
+const Depreciation = lazy(() => import("./pages/Depreciation"));
+const Recoveries = lazy(() => import("./pages/Recoveries"));
+const Additions = lazy(() => import("./pages/Additions"));
 
-// Payroll
-import Payroll from "./pages/Payroll";
+const Payroll = lazy(() => import("./pages/Payroll"));
 
-// Accounting
-import DeferredInvoices from "./pages/DeferredInvoices";
-import AnnualEntries from "./pages/AnnualEntries";
-import ManualEntries from "./pages/ManualEntries";
-import ChartOfAccounts from "./pages/ChartOfAccounts";
-import Budgets from "./pages/Budgets";
-import CommercialDocuments from "./pages/CommercialDocuments";
-import RecurringTransactions from "./pages/RecurringTransactions";
+const DeferredInvoices = lazy(() => import("./pages/DeferredInvoices"));
+const AnnualEntries = lazy(() => import("./pages/AnnualEntries"));
+const ManualEntries = lazy(() => import("./pages/ManualEntries"));
+const ChartOfAccounts = lazy(() => import("./pages/ChartOfAccounts"));
+const Budgets = lazy(() => import("./pages/Budgets"));
+const CommercialDocuments = lazy(() => import("./pages/CommercialDocuments"));
+const RecurringTransactions = lazy(() => import("./pages/RecurringTransactions"));
 
-// Projects & Tasks
-import Projects from "./pages/Projects";
-import Tasks from "./pages/Tasks";
-import ProjectReports from "./pages/ProjectReports";
+const Projects = lazy(() => import("./pages/Projects"));
+const Tasks = lazy(() => import("./pages/Tasks"));
+const ProjectReports = lazy(() => import("./pages/ProjectReports"));
 
-// Professional Services
-import BasicService from "./pages/BasicService";
-import TrainingService from "./pages/TrainingService";
-import InvoiceDesignService from "./pages/InvoiceDesignService";
-import OpeningBalanceService from "./pages/OpeningBalanceService";
-import AccountTransferService from "./pages/AccountTransferService";
-import ConsultingServices from "./pages/ConsultingServices";
-import QoyodAcademy from "./pages/QoyodAcademy";
+const BasicService = lazy(() => import("./pages/BasicService"));
+const TrainingService = lazy(() => import("./pages/TrainingService"));
+const InvoiceDesignService = lazy(() => import("./pages/InvoiceDesignService"));
+const OpeningBalanceService = lazy(() => import("./pages/OpeningBalanceService"));
+const AccountTransferService = lazy(() => import("./pages/AccountTransferService"));
+const ConsultingServices = lazy(() => import("./pages/ConsultingServices"));
+const QoyodAcademy = lazy(() => import("./pages/QoyodAcademy"));
 
-// Settings
-import GeneralSettings from "./pages/GeneralSettings";
-import FinancialContexts from "./pages/FinancialContexts";
-import NumberSettings from "./pages/NumberSettings";
-import SubscriptionSettings from "./pages/SubscriptionSettings";
-import ElectronicLinking from "./pages/ElectronicLinking";
-import ForeignCurrencies from "./pages/ForeignCurrencies";
-import Taxes from "./pages/Taxes";
-import PayrollSettings from "./pages/PayrollSettings";
-import Users from "./pages/Users";
-import PaymentTerms from "./pages/PaymentTerms";
-import AdditionalFields from "./pages/AdditionalFields";
-import ProfileEdit from "./pages/ProfileEdit";
-import Attachments from "./pages/Attachments";
+const GeneralSettings = lazy(() => import("./pages/GeneralSettings"));
+const FinancialContexts = lazy(() => import("./pages/FinancialContexts"));
+const NumberSettings = lazy(() => import("./pages/NumberSettings"));
+const SubscriptionSettings = lazy(() => import("./pages/SubscriptionSettings"));
+const ElectronicLinking = lazy(() => import("./pages/ElectronicLinking"));
+const ForeignCurrencies = lazy(() => import("./pages/ForeignCurrencies"));
+const Taxes = lazy(() => import("./pages/Taxes"));
+const PayrollSettings = lazy(() => import("./pages/PayrollSettings"));
+const Users = lazy(() => import("./pages/Users"));
+const PaymentTerms = lazy(() => import("./pages/PaymentTerms"));
+const AdditionalFields = lazy(() => import("./pages/AdditionalFields"));
+const ProfileEdit = lazy(() => import("./pages/ProfileEdit"));
+const Attachments = lazy(() => import("./pages/Attachments"));
 
-// Footer
-import AboutPageFooter from "./pages/AboutPage";
-import HelpCenterFooter from "./pages/HelpCenter";
+const AboutPageFooter = lazy(() => import("./pages/AboutPage"));
+const HelpCenterFooter = lazy(() => import("./pages/HelpCenter"));
+
+const LoadingFallback = () => (
+  <div className="min-h-screen bg-background flex items-center justify-center">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+      <p className="text-muted-foreground">جاري التحميل...</p>
+    </div>
+  </div>
+);
 
 const queryClient = new QueryClient();
 
@@ -134,6 +133,7 @@ const App = () => {
             <TooltipProvider>
               <Toaster />
               <Sonner />
+              <Suspense fallback={<LoadingFallback />}>
               <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<HomePage />} />
@@ -220,6 +220,7 @@ const App = () => {
                 {/* Catch-all Route */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
+              </Suspense>
             </TooltipProvider>
           </AuthProvider>
         </LanguageProvider>
