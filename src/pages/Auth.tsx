@@ -134,8 +134,13 @@ const Auth = () => {
       });
 
       if (error) {
-        if (error.message.includes("User already registered")) {
-          throw new Error("هذا البريد الإلكتروني مسجل مسبقاً");
+        if (error.message.includes("User already registered") || error.message.includes("already been registered")) {
+          toast({
+            title: "الحساب موجود مسبقاً",
+            description: "هذا البريد الإلكتروني مسجل مسبقاً. يرجى تسجيل الدخول بدلاً من ذلك.",
+            variant: "destructive"
+          });
+          return;
         }
         throw error;
       }
