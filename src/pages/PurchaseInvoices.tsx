@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Receipt, Plus, Eye, Edit, Trash2, DollarSign } from "lucide-react";
+import { Receipt, Plus, Eye, CreditCard as Edit, Trash2, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
