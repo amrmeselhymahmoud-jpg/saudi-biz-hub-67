@@ -1,18 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import {
-  Wallet,
-  Plus,
-  Settings,
-  TrendingUp,
-  TrendingDown,
-  CheckCircle2,
-  XCircle,
-  Edit,
-  Trash2,
-  Shield
-} from "lucide-react";
+import { Wallet, Plus, Settings, TrendingUp, TrendingDown, CircleCheck as CheckCircle2, Circle as XCircle, CreditCard as Edit, Trash2, Shield } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
