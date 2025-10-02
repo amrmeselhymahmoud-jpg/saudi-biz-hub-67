@@ -1,16 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  FileBox,
-  Plus,
-  Download,
-  Eye,
-  Calendar,
-  AlertCircle,
-  CheckCircle,
-  Clock
-} from "lucide-react";
+import { FileBox, Plus, Download, Eye, Calendar, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
