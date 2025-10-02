@@ -1,21 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import {
-  Paperclip,
-  Plus,
-  FileText,
-  Image as ImageIcon,
-  File,
-  Download,
-  Trash2,
-  Eye,
-  Upload,
-  CheckCircle2,
-  XCircle,
-  Search,
-  Filter
-} from "lucide-react";
+import { Paperclip, Plus, FileText, Image as ImageIcon, File, Download, Trash2, Eye, Upload, CircleCheck as CheckCircle2, Circle as XCircle, Search, Filter } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
