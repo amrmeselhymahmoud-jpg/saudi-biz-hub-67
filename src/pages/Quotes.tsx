@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyTableMessage } from "@/components/EmptyTableMessage";
 
 interface Quote {
   id: string;
@@ -59,7 +60,7 @@ const Quotes = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: quotes = [], isLoading } = useQuery({
+  const { data: quotes = [], isLoading, error: queryError } = useQuery({
     queryKey: ["quotes"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -82,7 +83,12 @@ const Quotes = () => {
       if (error) throw error;
       return data as Quote[];
     },
+    retry: false,
   });
+
+  if (queryError) {
+    return <EmptyTableMessage title="عروض الأسعار" description="هذه الميزة قيد التطوير. سيتم إضافة جدول عروض الأسعار قريباً." />;
+  }
 
   const deleteQuoteMutation = useMutation({
     mutationFn: async (quoteId: string) => {

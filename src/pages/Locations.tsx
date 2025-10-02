@@ -24,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { EmptyTableMessage } from "@/components/EmptyTableMessage";
 
 interface Location {
   id: string;
@@ -41,6 +42,7 @@ interface Location {
 const Locations = () => {
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
@@ -71,12 +73,10 @@ const Locations = () => {
 
       if (error) throw error;
       setLocations(data || []);
+      setHasError(false);
     } catch (error: any) {
-      toast({
-        title: "خطأ",
-        description: "فشل في تحميل المواقع",
-        variant: "destructive",
-      });
+      console.error('Error loading locations:', error);
+      setHasError(true);
     } finally {
       setLoading(false);
     }
@@ -228,6 +228,19 @@ const Locations = () => {
     setIsEditing(false);
     setSelectedLocation(null);
   };
+
+  if (hasError) {
+    return <EmptyTableMessage title="المواقع والفروع" description="هذه الميزة قيد التطوير. سيتم إضافة جدول المواقع قريباً." />;
+  }
+
+  if (loading) {
+    return (
+      <div className="p-6 space-y-4">
+        <div className="h-8 w-64 bg-muted animate-pulse rounded" />
+        <div className="h-64 w-full bg-muted animate-pulse rounded" />
+      </div>
+    );
+  }
 
   const filteredLocations = locations.filter((location) => {
     const searchLower = searchTerm.toLowerCase();

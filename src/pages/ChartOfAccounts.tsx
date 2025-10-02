@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { EmptyTableMessage } from "@/components/EmptyTableMessage";
 
 interface Account {
   id: string;
@@ -24,6 +25,7 @@ interface Account {
 const ChartOfAccounts = () => {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -68,12 +70,10 @@ const ChartOfAccounts = () => {
 
       if (error) throw error;
       setAccounts(data || []);
+      setHasError(false);
     } catch (error: any) {
-      toast({
-        title: "خطأ",
-        description: "فشل في تحميل شجرة الحسابات",
-        variant: "destructive",
-      });
+      console.error('Error loading accounts:', error);
+      setHasError(true);
     } finally {
       setLoading(false);
     }
@@ -191,6 +191,10 @@ const ChartOfAccounts = () => {
     const matchesType = typeFilter === "all" || account.account_type === typeFilter;
     return matchesSearch && matchesType && account.is_active;
   });
+
+  if (hasError) {
+    return <EmptyTableMessage title="دليل الحسابات" description="هذه الميزة قيد التطوير. سيتم إضافة جدول شجرة الحسابات قريباً." />;
+  }
 
   const totalAssets = accounts.filter(a => a.account_type === "asset").reduce((sum, a) => sum + a.balance, 0);
   const totalLiabilities = accounts.filter(a => a.account_type === "liability").reduce((sum, a) => sum + a.balance, 0);

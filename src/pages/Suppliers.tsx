@@ -34,6 +34,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { EmptyTableMessage } from "@/components/EmptyTableMessage";
 
 interface Supplier {
   id: string;
@@ -57,7 +58,7 @@ const Suppliers = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: suppliers = [], isLoading } = useQuery({
+  const { data: suppliers = [], isLoading, error: queryError } = useQuery({
     queryKey: ["suppliers"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -70,6 +71,7 @@ const Suppliers = () => {
       return data as Supplier[];
     },
     enabled: !!session?.user?.id,
+    retry: false,
   });
 
   const deleteSupplierMutation = useMutation({
@@ -114,6 +116,10 @@ const Suppliers = () => {
       deleteSupplierMutation.mutate(supplierToDelete);
     }
   };
+
+  if (queryError) {
+    return <EmptyTableMessage title="الموردين" description="هذه الميزة قيد التطوير. سيتم إضافة جدول الموردين قريباً." />;
+  }
 
   const filteredSuppliers = suppliers.filter((supplier) =>
     supplier.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
