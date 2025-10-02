@@ -1,18 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import {
-  HandCoins,
-  Plus,
-  Calendar,
-  Percent,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  Trash2,
-  Star,
-  Receipt
-} from "lucide-react";
+import { HandCoins, Plus, Calendar, Percent, Clock, CircleCheck as CheckCircle2, Circle as XCircle, Trash2, Star, Receipt } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
