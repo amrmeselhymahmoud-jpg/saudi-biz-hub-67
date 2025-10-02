@@ -60,7 +60,7 @@ const mainMenuItems = [
     title: "المحاسبة", 
     icon: Calculator,
     subItems: [
-      { title: "فواتب التأجيل", url: "/deferred-invoices", icon: FileText },
+      { title: "فواتير الأجل", url: "/deferred-invoices", icon: FileText },
       { title: "قيود سنوية", url: "/annual-entries", icon: FileEdit },
       { title: "قيود محاسبية يدوية", url: "/manual-entries", icon: FileEdit },
       { title: "شجرة الحسابات", url: "/chart-of-accounts", icon: FolderTree },
