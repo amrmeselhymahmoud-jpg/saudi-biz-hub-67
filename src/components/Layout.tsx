@@ -13,7 +13,7 @@ const Layout = () => {
 
   useEffect(() => {
     if (!loading && !session) {
-      navigate("/");
+      navigate("/auth", { replace: true });
     }
   }, [session, loading, navigate]);
 

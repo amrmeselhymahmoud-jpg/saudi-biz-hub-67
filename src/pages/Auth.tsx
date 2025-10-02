@@ -72,8 +72,8 @@ const Auth = () => {
 
     try {
       const validatedData = loginSchema.parse(loginData);
-      
-      const { error } = await supabase.auth.signInWithPassword({
+
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: validatedData.email,
         password: validatedData.password
       });
@@ -85,12 +85,18 @@ const Auth = () => {
         throw error;
       }
 
+      if (!data.session) {
+        throw new Error("فشل في إنشاء الجلسة. يرجى المحاولة مرة أخرى");
+      }
+
       toast({
         title: "تم تسجيل الدخول بنجاح",
         description: "مرحباً بك في قيود"
       });
 
-      navigate("/dashboard");
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      navigate("/dashboard", { replace: true });
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast({
@@ -102,7 +108,7 @@ const Auth = () => {
         console.error("Login error:", error);
         toast({
           title: "خطأ في تسجيل الدخول",
-          description: error.message || "حدث خطأ أثناء تسجيل الدخول",
+          description: error instanceof Error ? error.message : "حدث خطأ أثناء تسجيل الدخول",
           variant: "destructive"
         });
       }
@@ -150,7 +156,9 @@ const Auth = () => {
           title: "تم إنشاء الحساب بنجاح",
           description: "مرحباً بك في قيود"
         });
-        navigate("/dashboard");
+
+        await new Promise(resolve => setTimeout(resolve, 500));
+        navigate("/dashboard", { replace: true });
       } else {
         toast({
           title: "تم إنشاء الحساب بنجاح",
@@ -178,7 +186,7 @@ const Auth = () => {
         console.error("Signup error:", error);
         toast({
           title: "خطأ في إنشاء الحساب",
-          description: error.message || "حدث خطأ أثناء إنشاء الحساب",
+          description: error instanceof Error ? error.message : "حدث خطأ أثناء إنشاء الحساب",
           variant: "destructive"
         });
       }
