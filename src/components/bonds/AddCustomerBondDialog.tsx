@@ -114,8 +114,9 @@ export function AddCustomerBondDialog({
       toast.success('تم إضافة السند بنجاح');
       form.reset();
       onSuccess();
-    } catch (error: any) {
-      toast.error(error.message || 'حدث خطأ أثناء إضافة السند');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'حدث خطأ أثناء إضافة السند';
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

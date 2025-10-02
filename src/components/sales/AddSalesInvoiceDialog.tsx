@@ -213,7 +213,7 @@ export function AddSalesInvoiceDialog({ open, onOpenChange }: AddSalesInvoiceDia
     setSelectedProductId("");
   };
 
-  const updateItem = (index: number, field: keyof InvoiceItem, value: any) => {
+  const updateItem = (index: number, field: keyof InvoiceItem, value: string | number) => {
     const newItems = [...items];
     newItems[index] = { ...newItems[index], [field]: value };
 

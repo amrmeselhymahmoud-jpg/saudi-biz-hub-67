@@ -97,7 +97,7 @@ export function AddManualEntryDialog({ open, onOpenChange, onSuccess }: AddManua
     }
   };
 
-  const updateLine = (index: number, field: keyof EntryLine, value: any) => {
+  const updateLine = (index: number, field: keyof EntryLine, value: string | number) => {
     const newLines = [...lines];
     newLines[index] = { ...newLines[index], [field]: value };
 
