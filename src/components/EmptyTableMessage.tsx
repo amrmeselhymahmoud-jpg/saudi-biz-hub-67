@@ -1,4 +1,4 @@
-import { AlertCircle, Database } from "lucide-react";
+import { CircleAlert as AlertCircle, Database } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 

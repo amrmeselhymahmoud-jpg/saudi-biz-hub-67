@@ -1,4 +1,4 @@
-import { Building2, Plus, Search, MoreHorizontal, Edit, Trash2, Loader2 } from "lucide-react";
+import { Building2, Plus, Search, MoveHorizontal as MoreHorizontal, CreditCard as Edit, Trash2, Loader as Loader2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
