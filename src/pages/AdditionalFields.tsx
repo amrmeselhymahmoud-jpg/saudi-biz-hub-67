@@ -1,21 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import {
-  FileEdit,
-  Plus,
-  Type,
-  Hash,
-  Calendar as CalendarIcon,
-  ToggleLeft,
-  List,
-  FileText,
-  CheckCircle2,
-  XCircle,
-  Trash2,
-  Settings,
-  Star
-} from "lucide-react";
+import { File as FileEdit, Plus, Type, Hash, Calendar as CalendarIcon, ToggleLeft, List, FileText, CircleCheck as CheckCircle2, Circle as XCircle, Trash2, Settings, Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
