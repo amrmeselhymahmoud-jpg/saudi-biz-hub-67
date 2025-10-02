@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FileBox, Plus, Search, Filter, Download, Eye, Edit, Trash2 } from "lucide-react";
+import { FileBox, Plus, Search, Filter, Download, Eye, CreditCard as Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
