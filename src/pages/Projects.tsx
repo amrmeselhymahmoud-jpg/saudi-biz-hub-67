@@ -1,16 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Briefcase,
-  Plus,
-  Download,
-  Eye,
-  CheckCircle,
-  Clock,
-  DollarSign,
-  TrendingUp
-} from "lucide-react";
+import { Briefcase, Plus, Download, Eye, CircleCheck as CheckCircle, Clock, DollarSign, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
