@@ -1,24 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import {
-  Link2,
-  Plus,
-  Settings,
-  RefreshCw,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  AlertCircle,
-  Zap,
-  Building2,
-  CreditCard,
-  Truck,
-  Users2,
-  FileText,
-  Shield,
-  Activity
-} from "lucide-react";
+import { Link2, Plus, Settings, RefreshCw, CircleCheck as CheckCircle2, Circle as XCircle, Clock, CircleAlert as AlertCircle, Zap, Building2, CreditCard, Truck, Users as Users2, FileText, Shield, Activity } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
