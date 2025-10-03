@@ -37,7 +37,7 @@ const Layout = () => {
       <QoyodHeader />
       <SidebarProvider defaultOpen={true}>
         <div className="flex w-full h-[calc(100vh-58px)]">
-          <main className="flex-1 overflow-y-auto bg-gradient-to-br from-gray-50 to-gray-100">
+          <main className="flex-1 overflow-y-auto bg-gray-50">
             <Outlet />
           </main>
           <AppSidebar />

@@ -295,69 +295,87 @@ const FixedAssets = () => {
   const totalDepreciation = assets.reduce((sum, a) => sum + a.accumulated_depreciation, 0);
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Building2 className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold text-foreground">الأصول الثابتة</h1>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/20 to-cyan-50/30">
+      <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-4">
+          <div className="h-14 w-14 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center shadow-lg">
+            <Building2 className="h-7 w-7 text-white" />
+          </div>
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900">الأصول الثابتة</h1>
+            <p className="text-gray-600 mt-1">إدارة وتتبع الأصول والإهلاك</p>
+          </div>
         </div>
-        <Button onClick={() => { resetForm(); setDialogOpen(true); }}>
-          <Plus className="ml-2 h-4 w-4" />
+        <Button onClick={() => { resetForm(); setDialogOpen(true); }} size="lg" className="h-12 px-6 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 shadow-lg hover:shadow-xl transition-all">
+          <Plus className="ml-2 h-5 w-5" />
           أصل ثابت جديد
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card className="bg-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">إجمالي الأصول</p>
-                <p className="text-3xl font-bold">{totalAssets}</p>
+                <p className="text-sm font-medium text-gray-500">إجمالي الأصول</p>
+                <p className="text-4xl font-bold text-gray-900 mt-2">{totalAssets}</p>
+                <p className="text-xs text-gray-500 mt-1">أصل</p>
               </div>
-              <Building2 className="h-12 w-12 text-primary opacity-20" />
+              <div className="h-16 w-16 bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl flex items-center justify-center">
+                <Building2 className="h-8 w-8 text-blue-600" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">أصول نشطة</p>
-                <p className="text-3xl font-bold text-green-600">{activeAssets}</p>
+                <p className="text-sm font-medium text-gray-500">أصول نشطة</p>
+                <p className="text-4xl font-bold text-green-600 mt-2">{activeAssets}</p>
+                <p className="text-xs text-gray-500 mt-1">أصل نشط</p>
               </div>
-              <Building2 className="h-12 w-12 text-green-600 opacity-20" />
+              <div className="h-16 w-16 bg-gradient-to-br from-green-100 to-green-200 rounded-2xl flex items-center justify-center">
+                <Building2 className="h-8 w-8 text-green-600" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">القيمة الحالية</p>
-                <p className="text-2xl font-bold text-blue-600">{totalValue.toFixed(2)} ر.س</p>
+                <p className="text-sm font-medium text-gray-500">القيمة الحالية</p>
+                <p className="text-3xl font-bold text-cyan-600 mt-2">{totalValue.toFixed(2)}</p>
+                <p className="text-xs text-gray-500 mt-1">ريال سعودي</p>
               </div>
-              <TrendingDown className="h-12 w-12 text-blue-600 opacity-20" />
+              <div className="h-16 w-16 bg-gradient-to-br from-cyan-100 to-cyan-200 rounded-2xl flex items-center justify-center">
+                <TrendingDown className="h-8 w-8 text-cyan-600" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">الإهلاك المتراكم</p>
-                <p className="text-2xl font-bold text-red-600">{totalDepreciation.toFixed(2)} ر.س</p>
+                <p className="text-sm font-medium text-gray-500">الإهلاك المتراكم</p>
+                <p className="text-3xl font-bold text-red-600 mt-2">{totalDepreciation.toFixed(2)}</p>
+                <p className="text-xs text-gray-500 mt-1">ريال سعودي</p>
               </div>
-              <TrendingDown className="h-12 w-12 text-red-600 opacity-20" />
+              <div className="h-16 w-16 bg-gradient-to-br from-red-100 to-red-200 rounded-2xl flex items-center justify-center">
+                <TrendingDown className="h-8 w-8 text-red-600" />
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <Card>
+      <Card className="border-0 shadow-lg bg-white">
         <CardHeader>
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
@@ -688,6 +706,7 @@ const FixedAssets = () => {
           )}
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 };

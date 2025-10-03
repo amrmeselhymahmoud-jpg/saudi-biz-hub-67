@@ -42,17 +42,26 @@
     --radius: 0.5rem;
 
     /* ألوان خاصة لقيود */
-    --qoyod-blue: 209 100% 50%;
+    --qoyod-blue: 199 89% 48%;
+    --qoyod-cyan: 188 94% 43%;
+    --qoyod-teal: 174 72% 56%;
     --qoyod-navy: 221 83% 15%;
-    --qoyod-light-blue: 212 100% 97%;
+    --qoyod-light-blue: 199 100% 97%;
+    --qoyod-green: 142 71% 45%;
+    --qoyod-orange: 24 95% 53%;
+    --qoyod-red: 0 84% 60%;
     --qoyod-border: 220 13% 91%;
     --qoyod-text: 210 20% 14%;
     --qoyod-muted: 215 16% 47%;
 
     /* التدرجات المتطورة */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--qoyod-blue)), hsl(var(--qoyod-navy)));
-    --gradient-hero: linear-gradient(135deg, hsl(var(--qoyod-navy)), hsl(var(--qoyod-blue)));
+    --gradient-primary: linear-gradient(135deg, hsl(var(--qoyod-cyan)), hsl(var(--qoyod-blue)));
+    --gradient-secondary: linear-gradient(135deg, hsl(var(--qoyod-teal)), hsl(var(--qoyod-cyan)));
+    --gradient-hero: linear-gradient(135deg, hsl(var(--qoyod-blue)), hsl(var(--qoyod-cyan)));
     --gradient-card: linear-gradient(135deg, hsl(var(--card)), hsl(var(--muted)));
+    --gradient-success: linear-gradient(135deg, hsl(var(--qoyod-green)) 0%, hsl(var(--qoyod-teal)) 100%);
+    --gradient-warning: linear-gradient(135deg, hsl(var(--qoyod-orange)) 0%, #fb923c 100%);
+    --gradient-danger: linear-gradient(135deg, hsl(var(--qoyod-red)) 0%, #dc2626 100%);
 
     /* الظلال المتقدمة */
     --shadow-soft: 0 2px 8px hsl(220 13% 91% / 0.3);
@@ -150,6 +159,50 @@
   
   .bg-gradient-card {
     background-image: var(--gradient-card);
+  }
+
+  .bg-gradient-secondary {
+    background-image: var(--gradient-secondary);
+  }
+
+  .bg-gradient-success {
+    background-image: var(--gradient-success);
+  }
+
+  .bg-gradient-warning {
+    background-image: var(--gradient-warning);
+  }
+
+  .bg-gradient-danger {
+    background-image: var(--gradient-danger);
+  }
+
+  .text-qoyod-cyan {
+    color: hsl(var(--qoyod-cyan));
+  }
+
+  .text-qoyod-teal {
+    color: hsl(var(--qoyod-teal));
+  }
+
+  .text-qoyod-green {
+    color: hsl(var(--qoyod-green));
+  }
+
+  .text-qoyod-orange {
+    color: hsl(var(--qoyod-orange));
+  }
+
+  .text-qoyod-red {
+    color: hsl(var(--qoyod-red));
+  }
+
+  .bg-qoyod-cyan {
+    background-color: hsl(var(--qoyod-cyan));
+  }
+
+  .bg-qoyod-teal {
+    background-color: hsl(var(--qoyod-teal));
   }
   
   .shadow-soft {

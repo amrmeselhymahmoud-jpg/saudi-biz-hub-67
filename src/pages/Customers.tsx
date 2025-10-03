@@ -1,4 +1,4 @@
-import { Users, Plus, Search, MoreHorizontal, Edit, Trash2, Eye, Loader2 } from "lucide-react";
+import { Users, Plus, Search, MoreHorizontal, Edit, Trash2, Eye, Loader2, DollarSign } from "lucide-react";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -134,45 +134,73 @@ const Customers = () => {
   const totalBalance = customers.reduce((sum, c) => sum + c.balance, 0);
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Users className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold text-foreground">العملاء</h1>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-teal-50/20 to-green-50/30">
+      <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-4">
+          <div className="h-14 w-14 bg-gradient-to-br from-teal-500 to-green-500 rounded-2xl flex items-center justify-center shadow-lg">
+            <Users className="h-7 w-7 text-white" />
+          </div>
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900">العملاء</h1>
+            <p className="text-gray-600 mt-1">إدارة بيانات العملاء ومتابعة أرصدتهم</p>
+          </div>
         </div>
-        <Button className="gap-2" onClick={() => setAddDialogOpen(true)}>
-          <Plus className="h-4 w-4" />
+        <Button size="lg" className="h-12 px-6 bg-gradient-to-r from-teal-600 to-green-600 hover:from-teal-700 hover:to-green-700 shadow-lg hover:shadow-xl transition-all gap-2" onClick={() => setAddDialogOpen(true)}>
+          <Plus className="h-5 w-5" />
           إضافة عميل جديد
         </Button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="p-6">
-          <div className="text-sm text-muted-foreground">إجمالي العملاء</div>
-          <div className="text-2xl font-bold mt-2">
-            {isLoading ? <Skeleton className="h-8 w-16" /> : customers.length}
+      <div className="grid gap-6 md:grid-cols-3">
+        <Card className="bg-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm font-medium text-gray-500">إجمالي العملاء</div>
+              <div className="text-4xl font-bold text-gray-900 mt-2">
+                {isLoading ? <Skeleton className="h-10 w-16" /> : customers.length}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">عميل</p>
+            </div>
+            <div className="h-16 w-16 bg-gradient-to-br from-teal-100 to-teal-200 rounded-2xl flex items-center justify-center">
+              <Users className="h-8 w-8 text-teal-600" />
+            </div>
           </div>
         </Card>
-        <Card className="p-6">
-          <div className="text-sm text-muted-foreground">العملاء النشطين</div>
-          <div className="text-2xl font-bold mt-2">
-            {isLoading ? (
-              <Skeleton className="h-8 w-16" />
-            ) : (
-              customers.filter((c) => c.is_active).length
-            )}
+        <Card className="bg-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm font-medium text-gray-500">العملاء النشطين</div>
+              <div className="text-4xl font-bold text-green-600 mt-2">
+                {isLoading ? (
+                  <Skeleton className="h-10 w-16" />
+                ) : (
+                  customers.filter((c) => c.is_active).length
+                )}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">عميل نشط</p>
+            </div>
+            <div className="h-16 w-16 bg-gradient-to-br from-green-100 to-green-200 rounded-2xl flex items-center justify-center">
+              <Users className="h-8 w-8 text-green-600" />
+            </div>
           </div>
         </Card>
-        <Card className="p-6">
-          <div className="text-sm text-muted-foreground">إجمالي المديونيات</div>
-          <div className="text-2xl font-bold mt-2">
-            {isLoading ? (
-              <Skeleton className="h-8 w-24" />
-            ) : (
-              `${totalBalance.toLocaleString()} ر.س`
-            )}
+        <Card className="bg-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm font-medium text-gray-500">إجمالي المديونيات</div>
+              <div className="text-3xl font-bold text-orange-600 mt-2">
+                {isLoading ? (
+                  <Skeleton className="h-10 w-24" />
+                ) : (
+                  `${totalBalance.toLocaleString()}`
+                )}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">ريال سعودي</p>
+            </div>
+            <div className="h-16 w-16 bg-gradient-to-br from-orange-100 to-orange-200 rounded-2xl flex items-center justify-center">
+              <DollarSign className="h-8 w-8 text-orange-600" />
+            </div>
           </div>
         </Card>
       </div>
@@ -188,8 +216,7 @@ const Customers = () => {
         />
       </div>
 
-      {/* Table */}
-      <Card>
+      <Card className="border-0 shadow-lg bg-white">
         <Table>
           <TableHeader>
             <TableRow>
@@ -298,6 +325,7 @@ const Customers = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
     </div>
   );
 };

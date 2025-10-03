@@ -58,7 +58,7 @@ const Dashboard = () => {
           </div>
         </Card>
 
-        <Card className="p-6 bg-white hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-r-4 border-r-purple-500">
+        <Card className="p-6 bg-white hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-r-4 border-r-teal-500">
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <div className="text-sm font-medium text-gray-500 mb-2">العملاء</div>
@@ -68,7 +68,7 @@ const Dashboard = () => {
                 <span>+8 عميل جديد</span>
               </div>
             </div>
-            <div className="h-16 w-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+            <div className="h-16 w-16 bg-gradient-to-br from-teal-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg">
               <Users className="h-8 w-8 text-white" />
             </div>
           </div>
@@ -179,11 +179,11 @@ const Dashboard = () => {
               </div>
             </Link>
           </Button>
-          <Button variant="outline" className="h-auto py-6 border-2 hover:border-purple-500 hover:bg-purple-50 transition-all" asChild>
+          <Button variant="outline" className="h-auto py-6 border-2 hover:border-teal-500 hover:bg-teal-50 transition-all" asChild>
             <Link to="/customers">
               <div className="flex flex-col items-center gap-3">
-                <div className="h-12 w-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <Users className="h-6 w-6 text-purple-600" />
+                <div className="h-12 w-12 bg-teal-100 rounded-lg flex items-center justify-center">
+                  <Users className="h-6 w-6 text-teal-600" />
                 </div>
                 <span className="font-semibold">إضافة عميل</span>
               </div>

@@ -201,40 +201,70 @@ const ChartOfAccounts = () => {
   const totalEquity = accounts.filter(a => a.account_type === "equity").reduce((sum, a) => sum + a.balance, 0);
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <BookOpen className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold">شجرة الحسابات</h1>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/20 to-indigo-50/30">
+      <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-4">
+          <div className="h-14 w-14 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+            <BookOpen className="h-7 w-7 text-white" />
+          </div>
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900">شجرة الحسابات</h1>
+            <p className="text-gray-600 mt-1">إدارة دليل الحسابات المحاسبية</p>
+          </div>
         </div>
-        <Button onClick={() => { resetForm(); setDialogOpen(true); }}>
-          <Plus className="ml-2 h-4 w-4" />
+        <Button onClick={() => { resetForm(); setDialogOpen(true); }} size="lg" className="h-12 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all">
+          <Plus className="ml-2 h-5 w-5" />
           حساب جديد
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="bg-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg">
           <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">الأصول</p>
-            <p className="text-2xl font-bold text-blue-600">{totalAssets.toFixed(2)} ر.س</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500">الأصول</p>
+                <p className="text-3xl font-bold text-blue-600 mt-2">{totalAssets.toFixed(2)}</p>
+                <p className="text-xs text-gray-500 mt-1">ريال سعودي</p>
+              </div>
+              <div className="h-16 w-16 bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl flex items-center justify-center">
+                <BookOpen className="h-8 w-8 text-blue-600" />
+              </div>
+            </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg">
           <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">الالتزامات</p>
-            <p className="text-2xl font-bold text-red-600">{totalLiabilities.toFixed(2)} ر.س</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500">الالتزامات</p>
+                <p className="text-3xl font-bold text-red-600 mt-2">{totalLiabilities.toFixed(2)}</p>
+                <p className="text-xs text-gray-500 mt-1">ريال سعودي</p>
+              </div>
+              <div className="h-16 w-16 bg-gradient-to-br from-red-100 to-red-200 rounded-2xl flex items-center justify-center">
+                <BookOpen className="h-8 w-8 text-red-600" />
+              </div>
+            </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg">
           <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">حقوق الملكية</p>
-            <p className="text-2xl font-bold text-green-600">{totalEquity.toFixed(2)} ر.س</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500">حقوق الملكية</p>
+                <p className="text-3xl font-bold text-green-600 mt-2">{totalEquity.toFixed(2)}</p>
+                <p className="text-xs text-gray-500 mt-1">ريال سعودي</p>
+              </div>
+              <div className="h-16 w-16 bg-gradient-to-br from-green-100 to-green-200 rounded-2xl flex items-center justify-center">
+                <BookOpen className="h-8 w-8 text-green-600" />
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      <Card>
+      <Card className="border-0 shadow-lg bg-white">
         <CardHeader>
           <div className="flex gap-4">
             <Input
@@ -373,6 +403,7 @@ const ChartOfAccounts = () => {
           </form>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 };
