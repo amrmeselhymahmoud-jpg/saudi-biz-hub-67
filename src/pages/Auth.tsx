@@ -237,6 +237,19 @@ const Auth = () => {
                 <TabsContent value="login">
                   <form onSubmit={handleLogin} className="space-y-4">
                     <div className="space-y-2">
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <p className="text-sm text-blue-800 text-center">
+                          ليس لديك حساب؟ انتقل إلى تبويب "حساب جديد" لإنشاء حساب
+                        </p>
+                      </div>
+                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                        <p className="text-xs text-amber-800 text-center font-medium">
+                          للتجربة السريعة: استخدم أي بريد إلكتروني وكلمة مرور بعد إنشاء حساب جديد
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
                       <Label htmlFor="email" className="text-qoyod-text">
                         البريد الإلكتروني
                       </Label>
@@ -249,6 +262,7 @@ const Auth = () => {
                           onChange={(e) => setLoginData({...loginData, email: e.target.value})}
                           className="border-qoyod-border focus:border-primary pr-12"
                           dir="ltr"
+                          required
                         />
                         <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-qoyod-muted h-4 w-4" />
                       </div>
@@ -266,14 +280,15 @@ const Auth = () => {
                           value={loginData.password}
                           onChange={(e) => setLoginData({...loginData, password: e.target.value})}
                           className="border-qoyod-border focus:border-primary pr-12"
+                          required
                         />
                         <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-qoyod-muted h-4 w-4" />
                       </div>
                     </div>
 
-                    <Button 
+                    <Button
                       type="submit"
-                      className="w-full bg-primary hover:bg-primary-dark text-white"
+                      className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white shadow-md"
                       disabled={isLoading}
                     >
                       {isLoading ? "جاري تسجيل الدخول..." : "تسجيل الدخول"}
@@ -387,13 +402,19 @@ const Auth = () => {
                       </div>
                     </div>
 
-                    <Button 
+                    <Button
                       type="submit"
-                      className="w-full bg-primary hover:bg-primary-dark text-white"
+                      className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-md"
                       disabled={isLoading}
                     >
                       {isLoading ? "جاري إنشاء الحساب..." : "إنشاء حساب جديد"}
                     </Button>
+
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-3">
+                      <p className="text-xs text-green-800 text-center">
+                        بعد إنشاء الحساب، يمكنك تسجيل الدخول مباشرة بنفس البريد الإلكتروني وكلمة المرور
+                      </p>
+                    </div>
                   </form>
                 </TabsContent>
               </Tabs>
