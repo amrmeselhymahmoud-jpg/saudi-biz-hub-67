@@ -118,7 +118,7 @@ const Suppliers = () => {
   };
 
   if (queryError) {
-    return <EmptyTableMessage title="الموردين" description="هذه الميزة قيد التطوير. سيتم إضافة جدول الموردين قريباً." />;
+    console.error('Error loading suppliers:', queryError);
   }
 
   const filteredSuppliers = suppliers.filter((supplier) =>
