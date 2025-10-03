@@ -26,6 +26,22 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Sending trial confirmation email to:", email);
 
+    // Check if API key is configured
+    if (!resendApiKey) {
+      console.warn("RESEND_API_KEY is not configured. Email will not be sent.");
+      return new Response(JSON.stringify({
+        success: true,
+        message: "تم تسجيل الطلب بنجاح (البريد الإلكتروني غير مفعل)",
+        warning: "Email service is not configured"
+      }), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
+      });
+    }
+
     const emailResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
