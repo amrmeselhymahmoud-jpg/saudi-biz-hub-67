@@ -1,4 +1,4 @@
-import { FileText, Plus, Search, MoveHorizontal as MoreHorizontal, CreditCard as Edit, Trash2, Eye, Send, CircleCheck as CheckCircle, Circle as XCircle, Clock, Loader as Loader2 } from "lucide-react";
+import { FileText, Plus, Search, MoveHorizontal as MoreHorizontal, CreditCard as Edit, Trash2, Eye, Send, CircleCheck as CheckCircle, Circle as XCircle, Clock, Loader as Loader2, Download, Upload } from "lucide-react";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,6 +33,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyTableMessage } from "@/components/EmptyTableMessage";
+import { exportToCSV } from "@/utils/exportImport";
 
 interface Quote {
   id: string;
@@ -87,7 +88,7 @@ const Quotes = () => {
   });
 
   if (queryError) {
-    return <EmptyTableMessage title="عروض الأسعار" description="هذه الميزة قيد التطوير. سيتم إضافة جدول عروض الأسعار قريباً." />;
+    console.error('Error loading quotes:', queryError);
   }
 
   const deleteQuoteMutation = useMutation({
@@ -183,69 +184,113 @@ const Quotes = () => {
     .filter((q) => q.status === "accepted")
     .reduce((sum, q) => sum + q.total_amount, 0);
 
+  const handleExport = () => {
+    const exportData = quotes.map(quote => ({
+      'رقم العرض': quote.quote_number,
+      'العميل': quote.customers?.name || '-',
+      'تاريخ العرض': new Date(quote.quote_date).toLocaleDateString('ar-SA'),
+      'تاريخ الانتهاء': quote.expiry_date ? new Date(quote.expiry_date).toLocaleDateString('ar-SA') : '-',
+      'المبلغ الإجمالي': quote.total_amount,
+      'الحالة': quote.status
+    }));
+    exportToCSV(exportData, 'quotes');
+    toast({
+      title: "تم التصدير بنجاح",
+      description: "تم تصدير عروض الأسعار إلى ملف CSV",
+    });
+  };
+
+  const handleImport = () => {
+    toast({
+      title: "قريباً",
+      description: "ميزة الاستيراد ستكون متاحة قريباً",
+    });
+  };
+
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <FileText className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold text-foreground">عروض الأسعار</h1>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/20 to-cyan-50/30">
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl shadow-lg">
+              <FileText className="h-8 w-8 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">عروض الأسعار</h1>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handleExport}
+              className="gap-2 hover:bg-green-50 hover:text-green-600 hover:border-green-300 transition-all"
+            >
+              <Download className="h-4 w-4" />
+              تصدير
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleImport}
+              className="gap-2 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-all"
+            >
+              <Upload className="h-4 w-4" />
+              استيراد
+            </Button>
+            <Button className="gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 shadow-md">
+              <Plus className="h-4 w-4" />
+              إنشاء عرض سعر جديد
+            </Button>
+          </div>
         </div>
-        <Button className="gap-2">
-          <Plus className="h-4 w-4" />
-          إنشاء عرض سعر جديد
-        </Button>
-      </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card className="p-6">
-          <div className="text-sm text-muted-foreground">إجمالي العروض</div>
-          <div className="text-2xl font-bold mt-2">
-            {isLoading ? <Skeleton className="h-8 w-16" /> : quotes.length}
-          </div>
-        </Card>
-        <Card className="p-6">
-          <div className="text-sm text-muted-foreground">عروض مقبولة</div>
-          <div className="text-2xl font-bold mt-2">
-            {isLoading ? (
-              <Skeleton className="h-8 w-16" />
-            ) : (
-              quotes.filter((q) => q.status === "accepted").length
-            )}
-          </div>
-        </Card>
-        <Card className="p-6">
-          <div className="text-sm text-muted-foreground">قيمة العروض الكلية</div>
-          <div className="text-2xl font-bold mt-2">
-            {isLoading ? (
-              <Skeleton className="h-8 w-24" />
-            ) : (
-              `${totalValue.toLocaleString()} ر.س`
-            )}
-          </div>
-        </Card>
-        <Card className="p-6">
-          <div className="text-sm text-muted-foreground">قيمة العروض المقبولة</div>
-          <div className="text-2xl font-bold mt-2">
-            {isLoading ? (
-              <Skeleton className="h-8 w-24" />
-            ) : (
-              `${acceptedValue.toLocaleString()} ر.س`
-            )}
-          </div>
-        </Card>
-      </div>
+        <div className="grid gap-4 md:grid-cols-4">
+          <Card className="p-6 bg-white/80 backdrop-blur-sm border-gray-200/50 shadow-sm hover:shadow-md transition-all">
+            <div className="text-sm text-gray-600 font-medium">إجمالي العروض</div>
+            <div className="text-2xl font-bold mt-2 bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">
+              {isLoading ? <Skeleton className="h-8 w-16" /> : quotes.length}
+            </div>
+          </Card>
+          <Card className="p-6 bg-white/80 backdrop-blur-sm border-gray-200/50 shadow-sm hover:shadow-md transition-all">
+            <div className="text-sm text-gray-600 font-medium">عروض مقبولة</div>
+            <div className="text-2xl font-bold mt-2 bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+              {isLoading ? (
+                <Skeleton className="h-8 w-16" />
+              ) : (
+                quotes.filter((q) => q.status === "accepted").length
+              )}
+            </div>
+          </Card>
+          <Card className="p-6 bg-white/80 backdrop-blur-sm border-gray-200/50 shadow-sm hover:shadow-md transition-all">
+            <div className="text-sm text-gray-600 font-medium">قيمة العروض الكلية</div>
+            <div className="text-2xl font-bold mt-2 bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
+              {isLoading ? (
+                <Skeleton className="h-8 w-24" />
+              ) : (
+                `${totalValue.toLocaleString()} ر.س`
+              )}
+            </div>
+          </Card>
+          <Card className="p-6 bg-white/80 backdrop-blur-sm border-gray-200/50 shadow-sm hover:shadow-md transition-all">
+            <div className="text-sm text-gray-600 font-medium">قيمة العروض المقبولة</div>
+            <div className="text-2xl font-bold mt-2 bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text text-transparent">
+              {isLoading ? (
+                <Skeleton className="h-8 w-24" />
+              ) : (
+                `${acceptedValue.toLocaleString()} ر.س`
+              )}
+            </div>
+          </Card>
+        </div>
 
-      <div className="relative max-w-md">
-        <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="بحث عن عرض سعر..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pr-10"
-        />
-      </div>
+        <div className="relative max-w-md">
+          <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="بحث عن عرض سعر..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pr-10 bg-white/80 backdrop-blur-sm"
+          />
+        </div>
 
-      <Card>
+        <Card className="bg-white/80 backdrop-blur-sm border-gray-200/50 shadow-md">
         <Table>
           <TableHeader>
             <TableRow>
@@ -349,9 +394,9 @@ const Quotes = () => {
             )}
           </TableBody>
         </Table>
-      </Card>
+        </Card>
 
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
@@ -372,7 +417,8 @@ const Quotes = () => {
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
-      </AlertDialog>
+        </AlertDialog>
+      </div>
     </div>
   );
 };
