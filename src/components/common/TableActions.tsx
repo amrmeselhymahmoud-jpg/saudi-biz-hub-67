@@ -1,4 +1,4 @@
-import { Download, Upload, Edit, Trash2 } from "lucide-react";
+import { Download, Upload, CreditCard as Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
