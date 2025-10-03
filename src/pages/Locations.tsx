@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MapPin, Plus, CreditCard as Edit, Trash2, Building2 } from "lucide-react";
+import { MapPin, Plus, CreditCard as Edit, Trash2, Building2, Download, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -229,6 +229,37 @@ const Locations = () => {
     setSelectedLocation(null);
   };
 
+  const handleExport = () => {
+    const exportData = locations.map(l => ({
+      name: l.name,
+      code: l.code,
+      city: l.city || '',
+      address: l.address || '',
+      phone: l.phone || '',
+      manager_name: l.manager_name || '',
+      is_active: l.is_active ? 'نشط' : 'غير نشط'
+    }));
+
+    const csv = [
+      Object.keys(exportData[0]).join(','),
+      ...exportData.map(row => Object.values(row).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `locations_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+  };
+
+  const handleImport = () => {
+    toast({
+      title: "قريباً",
+      description: "سيتم إضافة وظيفة الاستيراد قريباً",
+    });
+  };
+
   if (hasError) {
     return <EmptyTableMessage title="المواقع والفروع" description="هذه الميزة قيد التطوير. سيتم إضافة جدول المواقع قريباً." />;
   }
@@ -256,57 +287,82 @@ const Locations = () => {
   const inactiveLocations = locations.filter(loc => !loc.is_active).length;
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <MapPin className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold text-foreground">المواقع</h1>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-cyan-50/20 to-blue-50/30">
+      <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-4">
+          <div className="h-14 w-14 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-2xl flex items-center justify-center shadow-lg">
+            <MapPin className="h-7 w-7 text-white" />
+          </div>
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900">المواقع</h1>
+            <p className="text-gray-600 mt-1">إدارة المواقع والفروع والمستودعات</p>
+          </div>
         </div>
-        <Button onClick={() => { resetForm(); setDialogOpen(true); }}>
-          <Plus className="ml-2 h-4 w-4" />
-          موقع جديد
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleImport} className="gap-2 hover:bg-green-50 hover:text-green-600 hover:border-green-300 transition-all">
+            <Upload className="h-4 w-4" />
+            استيراد
+          </Button>
+          <Button variant="outline" onClick={handleExport} className="gap-2 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-all">
+            <Download className="h-4 w-4" />
+            تصدير
+          </Button>
+          <Button onClick={() => { resetForm(); setDialogOpen(true); }} size="lg" className="h-12 px-6 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all">
+            <Plus className="ml-2 h-5 w-5" />
+            موقع جديد
+          </Button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="bg-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">إجمالي المواقع</p>
-                <p className="text-3xl font-bold">{locations.length}</p>
+                <p className="text-sm font-medium text-gray-500">إجمالي المواقع</p>
+                <p className="text-4xl font-bold text-gray-900 mt-2">{locations.length}</p>
+                <p className="text-xs text-gray-500 mt-1">موقع</p>
               </div>
-              <Building2 className="h-12 w-12 text-primary opacity-20" />
+              <div className="h-16 w-16 bg-gradient-to-br from-cyan-100 to-cyan-200 rounded-2xl flex items-center justify-center">
+                <Building2 className="h-8 w-8 text-cyan-600" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">مواقع نشطة</p>
-                <p className="text-3xl font-bold text-green-600">{activeLocations}</p>
+                <p className="text-sm font-medium text-gray-500">مواقع نشطة</p>
+                <p className="text-4xl font-bold text-green-600 mt-2">{activeLocations}</p>
+                <p className="text-xs text-gray-500 mt-1">موقع نشط</p>
               </div>
-              <MapPin className="h-12 w-12 text-green-600 opacity-20" />
+              <div className="h-16 w-16 bg-gradient-to-br from-green-100 to-green-200 rounded-2xl flex items-center justify-center">
+                <MapPin className="h-8 w-8 text-green-600" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">مواقع غير نشطة</p>
-                <p className="text-3xl font-bold text-gray-600">{inactiveLocations}</p>
+                <p className="text-sm font-medium text-gray-500">مواقع غير نشطة</p>
+                <p className="text-4xl font-bold text-gray-600 mt-2">{inactiveLocations}</p>
+                <p className="text-xs text-gray-500 mt-1">موقع غير نشط</p>
               </div>
-              <MapPin className="h-12 w-12 text-gray-600 opacity-20" />
+              <div className="h-16 w-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center">
+                <MapPin className="h-8 w-8 text-gray-600" />
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <Card>
+      <Card className="border-0 shadow-lg bg-white">
         <CardHeader>
           <Input
             placeholder="بحث بالاسم أو الكود أو المدينة أو المدير..."
@@ -364,13 +420,15 @@ const Locations = () => {
                             size="sm"
                             variant="outline"
                             onClick={() => handleEdit(location)}
+                            className="hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-all"
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button
                             size="sm"
-                            variant="destructive"
+                            variant="outline"
                             onClick={() => handleDelete(location.id)}
+                            className="hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-all"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -491,6 +549,7 @@ const Locations = () => {
           </form>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 };

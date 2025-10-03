@@ -1,4 +1,4 @@
-import { Users, Plus, Search, MoveHorizontal as MoreHorizontal, CreditCard as Edit, Trash2, Eye, Loader as Loader2, DollarSign } from "lucide-react";
+import { Users, Plus, Search, MoveHorizontal as MoreHorizontal, CreditCard as Edit, Trash2, Eye, Loader as Loader2, DollarSign, Download, Upload } from "lucide-react";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -133,6 +133,37 @@ const Customers = () => {
 
   const totalBalance = customers.reduce((sum, c) => sum + c.balance, 0);
 
+  const handleExport = () => {
+    const exportData = customers.map(c => ({
+      name: c.name,
+      email: c.email || '',
+      phone: c.phone || '',
+      customer_type: c.customer_type === 'individual' ? 'فرد' : 'شركة',
+      balance: c.balance,
+      credit_limit: c.credit_limit,
+      is_active: c.is_active ? 'نشط' : 'غير نشط'
+    }));
+
+    const csv = [
+      Object.keys(exportData[0]).join(','),
+      ...exportData.map(row => Object.values(row).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `customers_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+  };
+
+  const handleImport = () => {
+    toast({
+      title: "قريباً",
+      description: "سيتم إضافة وظيفة الاستيراد قريباً",
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-teal-50/20 to-green-50/30">
       <div className="p-6 space-y-6">
@@ -146,10 +177,20 @@ const Customers = () => {
             <p className="text-gray-600 mt-1">إدارة بيانات العملاء ومتابعة أرصدتهم</p>
           </div>
         </div>
-        <Button size="lg" className="h-12 px-6 bg-gradient-to-r from-teal-600 to-green-600 hover:from-teal-700 hover:to-green-700 shadow-lg hover:shadow-xl transition-all gap-2" onClick={() => setAddDialogOpen(true)}>
-          <Plus className="h-5 w-5" />
-          إضافة عميل جديد
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleImport} className="gap-2 hover:bg-green-50 hover:text-green-600 hover:border-green-300 transition-all">
+            <Upload className="h-4 w-4" />
+            استيراد
+          </Button>
+          <Button variant="outline" onClick={handleExport} className="gap-2 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-all">
+            <Download className="h-4 w-4" />
+            تصدير
+          </Button>
+          <Button size="lg" className="h-12 px-6 bg-gradient-to-r from-teal-600 to-green-600 hover:from-teal-700 hover:to-green-700 shadow-lg hover:shadow-xl transition-all gap-2" onClick={() => setAddDialogOpen(true)}>
+            <Plus className="h-5 w-5" />
+            إضافة عميل جديد
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">

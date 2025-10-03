@@ -1,4 +1,4 @@
-import { Building2, Plus, Search, MoveHorizontal as MoreHorizontal, CreditCard as Edit, Trash2, Loader as Loader2 } from "lucide-react";
+import { Building2, Plus, Search, MoveHorizontal as MoreHorizontal, CreditCard as Edit, Trash2, Loader as Loader2, DollarSign, Download, Upload } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -126,36 +126,104 @@ const Suppliers = () => {
     (supplier.email && supplier.email.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
+  const handleExport = () => {
+    const exportData = suppliers.map(s => ({
+      name: s.name,
+      email: s.email || '',
+      phone: s.phone || '',
+      balance: s.balance || 0,
+      credit_limit: s.credit_limit || 0,
+      is_active: s.is_active ? 'نشط' : 'غير نشط'
+    }));
+
+    const csv = [
+      Object.keys(exportData[0]).join(','),
+      ...exportData.map(row => Object.values(row).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `suppliers_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+  };
+
+  const handleImport = () => {
+    toast({
+      title: "قريباً",
+      description: "سيتم إضافة وظيفة الاستيراد قريباً",
+    });
+  };
+
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Building2 className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold text-foreground">الموردين</h1>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-orange-50/20 to-red-50/30">
+      <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-4">
+          <div className="h-14 w-14 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl flex items-center justify-center shadow-lg">
+            <Building2 className="h-7 w-7 text-white" />
+          </div>
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900">الموردين</h1>
+            <p className="text-gray-600 mt-1">إدارة بيانات الموردين ومتابعة مستحقاتهم</p>
+          </div>
         </div>
-        <Button className="gap-2" onClick={() => setAddDialogOpen(true)}>
-          <Plus className="h-4 w-4" />
-          إضافة مورد جديد
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleImport} className="gap-2 hover:bg-green-50 hover:text-green-600 hover:border-green-300 transition-all">
+            <Upload className="h-4 w-4" />
+            استيراد
+          </Button>
+          <Button variant="outline" onClick={handleExport} className="gap-2 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-all">
+            <Download className="h-4 w-4" />
+            تصدير
+          </Button>
+          <Button size="lg" className="h-12 px-6 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 shadow-lg hover:shadow-xl transition-all gap-2" onClick={() => setAddDialogOpen(true)}>
+            <Plus className="h-5 w-5" />
+            إضافة مورد جديد
+          </Button>
+        </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="p-6">
-          <div className="text-sm text-muted-foreground">إجمالي الموردين</div>
-          <div className="text-2xl font-bold mt-2">{suppliers.length}</div>
-        </Card>
-        <Card className="p-6">
-          <div className="text-sm text-muted-foreground">الموردين النشطين</div>
-          <div className="text-2xl font-bold mt-2">
-            {suppliers.filter((s) => s.is_active).length}
+      <div className="grid gap-6 md:grid-cols-3">
+        <Card className="bg-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm font-medium text-gray-500">إجمالي الموردين</div>
+              <div className="text-4xl font-bold text-gray-900 mt-2">{suppliers.length}</div>
+              <p className="text-xs text-gray-500 mt-1">مورد</p>
+            </div>
+            <div className="h-16 w-16 bg-gradient-to-br from-orange-100 to-orange-200 rounded-2xl flex items-center justify-center">
+              <Building2 className="h-8 w-8 text-orange-600" />
+            </div>
           </div>
         </Card>
-        <Card className="p-6">
-          <div className="text-sm text-muted-foreground">إجمالي المستحقات</div>
-          <div className="text-2xl font-bold mt-2">
-            {suppliers.reduce((sum, s) => sum + (s.balance || 0), 0).toLocaleString()} ر.س
+        <Card className="bg-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm font-medium text-gray-500">الموردين النشطين</div>
+              <div className="text-4xl font-bold text-green-600 mt-2">
+                {suppliers.filter((s) => s.is_active).length}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">مورد نشط</p>
+            </div>
+            <div className="h-16 w-16 bg-gradient-to-br from-green-100 to-green-200 rounded-2xl flex items-center justify-center">
+              <Building2 className="h-8 w-8 text-green-600" />
+            </div>
+          </div>
+        </Card>
+        <Card className="bg-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm font-medium text-gray-500">إجمالي المستحقات</div>
+              <div className="text-3xl font-bold text-red-600 mt-2">
+                {suppliers.reduce((sum, s) => sum + (s.balance || 0), 0).toLocaleString()}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">ريال سعودي</p>
+            </div>
+            <div className="h-16 w-16 bg-gradient-to-br from-red-100 to-red-200 rounded-2xl flex items-center justify-center">
+              <DollarSign className="h-8 w-8 text-red-600" />
+            </div>
           </div>
         </Card>
       </div>
@@ -171,8 +239,7 @@ const Suppliers = () => {
         />
       </div>
 
-      {/* Table */}
-      <Card>
+      <Card className="border-0 shadow-lg bg-white">
         <Table>
           <TableHeader>
             <TableRow>
@@ -214,17 +281,17 @@ const Suppliers = () => {
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" className="hover:bg-gray-100">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem className="gap-2" onClick={() => handleEdit(supplier)}>
+                        <DropdownMenuItem className="gap-2 hover:bg-blue-50 hover:text-blue-600" onClick={() => handleEdit(supplier)}>
                           <Edit className="h-4 w-4" />
                           تعديل
                         </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          className="gap-2 text-destructive"
+                        <DropdownMenuItem
+                          className="gap-2 text-destructive hover:bg-red-50 hover:text-red-600"
                           onClick={() => handleDelete(supplier.id)}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -270,6 +337,7 @@ const Suppliers = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { BookOpen, Plus, CreditCard as Edit, Trash2 } from "lucide-react";
+import { BookOpen, Plus, CreditCard as Edit, Trash2, Download, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -200,6 +200,35 @@ const ChartOfAccounts = () => {
   const totalLiabilities = accounts.filter(a => a.account_type === "liability").reduce((sum, a) => sum + a.balance, 0);
   const totalEquity = accounts.filter(a => a.account_type === "equity").reduce((sum, a) => sum + a.balance, 0);
 
+  const handleExport = () => {
+    const exportData = accounts.map(a => ({
+      account_code: a.account_code,
+      account_name: a.account_name,
+      account_type: accountTypes[a.account_type],
+      balance: a.balance,
+      is_active: a.is_active ? 'نشط' : 'غير نشط'
+    }));
+
+    const csv = [
+      Object.keys(exportData[0]).join(','),
+      ...exportData.map(row => Object.values(row).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `chart_of_accounts_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+  };
+
+  const handleImport = () => {
+    toast({
+      title: "قريباً",
+      description: "سيتم إضافة وظيفة الاستيراد قريباً",
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/20 to-indigo-50/30">
       <div className="p-6 space-y-6">
@@ -213,10 +242,20 @@ const ChartOfAccounts = () => {
             <p className="text-gray-600 mt-1">إدارة دليل الحسابات المحاسبية</p>
           </div>
         </div>
-        <Button onClick={() => { resetForm(); setDialogOpen(true); }} size="lg" className="h-12 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all">
-          <Plus className="ml-2 h-5 w-5" />
-          حساب جديد
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleImport} className="gap-2 hover:bg-green-50 hover:text-green-600 hover:border-green-300 transition-all">
+            <Upload className="h-4 w-4" />
+            استيراد
+          </Button>
+          <Button variant="outline" onClick={handleExport} className="gap-2 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-all">
+            <Download className="h-4 w-4" />
+            تصدير
+          </Button>
+          <Button onClick={() => { resetForm(); setDialogOpen(true); }} size="lg" className="h-12 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all">
+            <Plus className="ml-2 h-5 w-5" />
+            حساب جديد
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
