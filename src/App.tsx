@@ -111,6 +111,7 @@ const RecurringTransactions = lazy(() => import("./pages/RecurringTransactions")
 const Projects = lazy(() => import("./pages/Projects"));
 const Tasks = lazy(() => import("./pages/Tasks"));
 const ProjectReports = lazy(() => import("./pages/ProjectReports"));
+const Reports = lazy(() => import("./pages/Reports"));
 
 const BasicService = lazy(() => import("./pages/BasicService"));
 const TrainingService = lazy(() => import("./pages/TrainingService"));
@@ -245,6 +246,9 @@ const App = () => {
                   <Route path="/projects" element={<Projects />} />
                   <Route path="/tasks" element={<Tasks />} />
                   <Route path="/project-reports" element={<ProjectReports />} />
+
+                  {/* Reports */}
+                  <Route path="/reports" element={<Reports />} />
                   
                   {/* Professional Services */}
                   <Route path="/basic-service" element={<BasicService />} />

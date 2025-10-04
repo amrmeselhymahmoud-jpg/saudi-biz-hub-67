@@ -1,20 +1,81 @@
 import { Card } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, ShoppingCart, Users, Package, FileText, CircleAlert as AlertCircle, DollarSign, Building2 } from "lucide-react";
+import { TrendingUp, TrendingDown, ShoppingCart, Users, Package, FileText, CircleAlert as AlertCircle, DollarSign, Building2, BarChart3 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Dashboard = () => {
-  const recentInvoices = [
-    { id: "INV-2025-004", customer: "مؤسسة الأفق", amount: 8900, status: "draft" },
-    { id: "INV-2025-003", customer: "فاطمة عبدالله", amount: 3200, status: "unpaid" },
-    { id: "INV-2025-002", customer: "شركة النور للتجارة", amount: 12500, status: "partially_paid" },
-  ];
+  const { data: customersCount = 0, isLoading: loadingCustomers } = useQuery({
+    queryKey: ["customers-count"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return 0;
+      const { count } = await supabase
+        .from("customers")
+        .select("*", { count: "exact", head: true })
+        .eq("created_by", user.id);
+      return count || 0;
+    },
+  });
 
-  const lowStockProducts = [
-    { name: "طابعة Canon", quantity: 8, minLevel: 10 },
-    { name: "ورق A4", quantity: 45, minLevel: 50 },
-  ];
+  const { data: suppliersCount = 0, isLoading: loadingSuppliers } = useQuery({
+    queryKey: ["suppliers-count"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return 0;
+      const { count } = await supabase
+        .from("suppliers")
+        .select("*", { count: "exact", head: true })
+        .eq("created_by", user.id);
+      return count || 0;
+    },
+  });
+
+  const { data: productsCount = 0, isLoading: loadingProducts } = useQuery({
+    queryKey: ["products-count"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return 0;
+      const { count } = await supabase
+        .from("products")
+        .select("*", { count: "exact", head: true })
+        .eq("created_by", user.id);
+      return count || 0;
+    },
+  });
+
+  const { data: recentInvoices = [], isLoading: loadingInvoices } = useQuery({
+    queryKey: ["recent-invoices"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+      const { data } = await supabase
+        .from("sales_invoices")
+        .select("id, invoice_number, customer_name, total_amount, status")
+        .eq("created_by", user.id)
+        .order("created_at", { ascending: false })
+        .limit(3);
+      return data || [];
+    },
+  });
+
+  const { data: lowStockProducts = [], isLoading: loadingStock } = useQuery({
+    queryKey: ["low-stock"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+      const { data } = await supabase
+        .from("products")
+        .select("product_name, stock_quantity")
+        .eq("created_by", user.id)
+        .lt("stock_quantity", 20)
+        .limit(3);
+      return data || [];
+    },
+  });
 
   return (
     <div className="w-full" dir="rtl">
@@ -26,46 +87,18 @@ const Dashboard = () => {
       
       {/* Main Stats */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="p-6 bg-white hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-r-4 border-r-blue-500">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <div className="text-sm font-medium text-gray-500 mb-2">إجمالي المبيعات</div>
-              <div className="text-3xl font-bold text-gray-900">30,100 ر.س</div>
-              <div className="flex items-center gap-1 mt-3 text-sm font-semibold text-green-600">
-                <TrendingUp className="h-4 w-4" />
-                <span>+12.5% من الشهر الماضي</span>
-              </div>
-            </div>
-            <div className="h-16 w-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
-              <DollarSign className="h-8 w-8 text-white" />
-            </div>
-          </div>
-        </Card>
-        
-        <Card className="p-6 bg-white hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-r-4 border-r-cyan-500">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <div className="text-sm font-medium text-gray-500 mb-2">المشتريات</div>
-              <div className="text-3xl font-bold text-gray-900">18,300 ر.س</div>
-              <div className="flex items-center gap-1 mt-3 text-sm font-semibold text-red-600">
-                <TrendingDown className="h-4 w-4" />
-                <span>-3.2% من الشهر الماضي</span>
-              </div>
-            </div>
-            <div className="h-16 w-16 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-2xl flex items-center justify-center shadow-lg">
-              <ShoppingCart className="h-8 w-8 text-white" />
-            </div>
-          </div>
-        </Card>
-
         <Card className="p-6 bg-white hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-r-4 border-r-teal-500">
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <div className="text-sm font-medium text-gray-500 mb-2">العملاء</div>
-              <div className="text-3xl font-bold text-gray-900">127</div>
-              <div className="flex items-center gap-1 mt-3 text-sm font-semibold text-green-600">
-                <TrendingUp className="h-4 w-4" />
-                <span>+8 عميل جديد</span>
+              {loadingCustomers ? (
+                <Skeleton className="h-10 w-20" />
+              ) : (
+                <div className="text-3xl font-bold text-gray-900">{customersCount}</div>
+              )}
+              <div className="flex items-center gap-1 mt-3 text-sm font-medium text-gray-500">
+                <Users className="h-4 w-4" />
+                <span>إجمالي العملاء</span>
               </div>
             </div>
             <div className="h-16 w-16 bg-gradient-to-br from-teal-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg">
@@ -74,19 +107,61 @@ const Dashboard = () => {
           </div>
         </Card>
 
+        <Card className="p-6 bg-white hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-r-4 border-r-green-500">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <div className="text-sm font-medium text-gray-500 mb-2">الموردين</div>
+              {loadingSuppliers ? (
+                <Skeleton className="h-10 w-20" />
+              ) : (
+                <div className="text-3xl font-bold text-gray-900">{suppliersCount}</div>
+              )}
+              <div className="flex items-center gap-1 mt-3 text-sm font-medium text-gray-500">
+                <Building2 className="h-4 w-4" />
+                <span>إجمالي الموردين</span>
+              </div>
+            </div>
+            <div className="h-16 w-16 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <Building2 className="h-8 w-8 text-white" />
+            </div>
+          </div>
+        </Card>
+
         <Card className="p-6 bg-white hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-r-4 border-r-orange-500">
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <div className="text-sm font-medium text-gray-500 mb-2">المنتجات</div>
-              <div className="text-3xl font-bold text-gray-900">45</div>
+              {loadingProducts ? (
+                <Skeleton className="h-10 w-20" />
+              ) : (
+                <div className="text-3xl font-bold text-gray-900">{productsCount}</div>
+              )}
               <div className="flex items-center gap-1 mt-3 text-sm font-medium text-gray-500">
                 <Package className="h-4 w-4" />
-                <span>في 3 فئات</span>
+                <span>في المخزون</span>
               </div>
             </div>
             <div className="h-16 w-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg">
               <Package className="h-8 w-8 text-white" />
             </div>
+          </div>
+        </Card>
+
+        <Card className="p-6 bg-white hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-r-4 border-r-blue-500">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <div className="text-sm font-medium text-gray-500 mb-2">التقارير</div>
+              <div className="text-lg font-bold text-gray-900 mt-2">عرض التقارير</div>
+              <div className="flex items-center gap-1 mt-3 text-sm font-medium text-gray-500">
+                <BarChart3 className="h-4 w-4" />
+                <span>تحليل شامل</span>
+              </div>
+            </div>
+            <Link to="/reports">
+              <div className="h-16 w-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg hover:shadow-2xl transition-shadow cursor-pointer">
+                <BarChart3 className="h-8 w-8 text-white" />
+              </div>
+            </Link>
           </div>
         </Card>
       </div>
@@ -107,24 +182,40 @@ const Dashboard = () => {
             </Button>
           </div>
           <div className="space-y-4">
-            {recentInvoices.map((invoice) => (
-              <div key={invoice.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                <div>
-                  <div className="font-bold text-gray-900">{invoice.id}</div>
-                  <div className="text-sm text-gray-500 mt-1">{invoice.customer}</div>
+            {loadingInvoices ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="p-4 bg-gray-50 rounded-lg">
+                  <Skeleton className="h-6 w-32 mb-2" />
+                  <Skeleton className="h-4 w-48" />
                 </div>
-                <div className="text-left">
-                  <div className="font-bold text-lg text-gray-900">{invoice.amount.toLocaleString()} ر.س</div>
-                  <Badge variant={
-                    invoice.status === "draft" ? "outline" :
-                    invoice.status === "unpaid" ? "destructive" : "secondary"
-                  } className="mt-2">
-                    {invoice.status === "draft" ? "مسودة" :
-                     invoice.status === "unpaid" ? "غير مدفوعة" : "مدفوعة جزئياً"}
-                  </Badge>
-                </div>
+              ))
+            ) : recentInvoices.length === 0 ? (
+              <div className="text-center py-8 text-gray-400">
+                <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                <p>لا توجد فواتير حالياً</p>
               </div>
-            ))}
+            ) : (
+              recentInvoices.map((invoice) => (
+                <div key={invoice.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                  <div>
+                    <div className="font-bold text-gray-900">{invoice.invoice_number}</div>
+                    <div className="text-sm text-gray-500 mt-1">{invoice.customer_name}</div>
+                  </div>
+                  <div className="text-left">
+                    <div className="font-bold text-lg text-gray-900">{invoice.total_amount?.toLocaleString()} ر.س</div>
+                    <Badge variant={
+                      invoice.status === "draft" ? "outline" :
+                      invoice.status === "unpaid" ? "destructive" :
+                      invoice.status === "paid" ? "default" : "secondary"
+                    } className="mt-2">
+                      {invoice.status === "draft" ? "مسودة" :
+                       invoice.status === "unpaid" ? "غير مدفوعة" :
+                       invoice.status === "paid" ? "مدفوعة" : "مدفوعة جزئياً"}
+                    </Badge>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </Card>
 
@@ -142,24 +233,32 @@ const Dashboard = () => {
             </Button>
           </div>
           <div className="space-y-4">
-            {lowStockProducts.map((product, index) => (
-              <div key={index} className="flex items-center justify-between p-4 bg-red-50 rounded-lg border-r-4 border-r-red-500">
-                <div>
-                  <div className="font-bold text-gray-900">{product.name}</div>
-                  <div className="text-sm text-gray-500 mt-1">
-                    الحد الأدنى: {product.minLevel}
-                  </div>
+            {loadingStock ? (
+              Array.from({ length: 2 }).map((_, i) => (
+                <div key={i} className="p-4 bg-red-50 rounded-lg">
+                  <Skeleton className="h-6 w-32 mb-2" />
+                  <Skeleton className="h-4 w-48" />
                 </div>
-                <Badge variant="destructive" className="text-base px-4 py-2">
-                  {product.quantity} متبقي
-                </Badge>
-              </div>
-            ))}
-            {lowStockProducts.length === 0 && (
+              ))
+            ) : lowStockProducts.length === 0 ? (
               <div className="text-center py-8 text-gray-400">
                 <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
                 <p>لا توجد تنبيهات حالياً</p>
               </div>
+            ) : (
+              lowStockProducts.map((product, index: number) => (
+                <div key={index} className="flex items-center justify-between p-4 bg-red-50 rounded-lg border-r-4 border-r-red-500">
+                  <div>
+                    <div className="font-bold text-gray-900">{product.product_name}</div>
+                    <div className="text-sm text-gray-500 mt-1">
+                      مخزون منخفض
+                    </div>
+                  </div>
+                  <Badge variant="destructive" className="text-base px-4 py-2">
+                    {product.stock_quantity} متبقي
+                  </Badge>
+                </div>
+              ))
             )}
           </div>
         </Card>

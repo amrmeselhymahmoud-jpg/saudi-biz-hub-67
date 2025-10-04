@@ -69,15 +69,16 @@ const mainMenuItems = [
       { title: "المعاملات المتكررة", url: "/recurring-transactions", icon: Repeat },
     ]
   },
-  { 
-    title: "المهام والمشاريع", 
+  {
+    title: "المهام والمشاريع",
     icon: Briefcase,
     subItems: [
       { title: "المشاريع", url: "/projects", icon: Briefcase },
       { title: "المهام", url: "/tasks", icon: ClipboardList },
-      { title: "التقارير", url: "/project-reports", icon: BarChart3 },
+      { title: "تقارير المشاريع", url: "/project-reports", icon: BarChart3 },
     ]
   },
+  { title: "التقارير", url: "/reports", icon: BarChart3 },
   { 
     title: "الخدمات الاحترافية", 
     icon: HelpCircle,
