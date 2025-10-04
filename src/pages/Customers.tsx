@@ -37,16 +37,18 @@ import { EditCustomerDialog } from "@/components/customers/EditCustomerDialog";
 
 interface Customer {
   id: string;
-  name: string;
+  customer_code: string;
+  customer_name: string;
   email: string | null;
   phone: string | null;
   address: string | null;
+  city: string | null;
   tax_number: string | null;
-  customer_type: string;
-  balance: number;
   credit_limit: number;
+  payment_terms: number;
   notes: string | null;
-  is_active: boolean;
+  status: string;
+  created_by: string;
   created_at: string;
 }
 
@@ -66,7 +68,7 @@ const Customers = () => {
     queryKey: ["customers"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (!user) {
         throw new Error("يجب تسجيل الدخول أولاً");
       }
@@ -74,7 +76,7 @@ const Customers = () => {
       const { data, error } = await supabase
         .from("customers")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("created_by", user.id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -111,8 +113,9 @@ const Customers = () => {
   });
 
   const filteredCustomers = customers.filter((customer) =>
-    customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    customer.email?.toLowerCase().includes(searchQuery.toLowerCase())
+    customer.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    customer.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    customer.customer_code?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleEdit = (customer: Customer) => {
@@ -131,17 +134,18 @@ const Customers = () => {
     }
   };
 
-  const totalBalance = customers.reduce((sum, c) => sum + c.balance, 0);
+  const totalCreditLimit = customers.reduce((sum, c) => sum + c.credit_limit, 0);
 
   const handleExport = () => {
     const exportData = customers.map(c => ({
-      name: c.name,
+      customer_code: c.customer_code,
+      customer_name: c.customer_name,
       email: c.email || '',
       phone: c.phone || '',
-      customer_type: c.customer_type === 'individual' ? 'فرد' : 'شركة',
-      balance: c.balance,
+      city: c.city || '',
       credit_limit: c.credit_limit,
-      is_active: c.is_active ? 'نشط' : 'غير نشط'
+      payment_terms: c.payment_terms,
+      status: c.status === 'active' ? 'نشط' : 'غير نشط'
     }));
 
     const csv = [
@@ -216,7 +220,7 @@ const Customers = () => {
                 {isLoading ? (
                   <Skeleton className="h-10 w-16" />
                 ) : (
-                  customers.filter((c) => c.is_active).length
+                  customers.filter((c) => c.status === 'active').length
                 )}
               </div>
               <p className="text-xs text-gray-500 mt-1">عميل نشط</p>
@@ -229,12 +233,12 @@ const Customers = () => {
         <Card className="bg-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg p-6">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm font-medium text-gray-500">إجمالي المديونيات</div>
+              <div className="text-sm font-medium text-gray-500">إجمالي حدود الائتمان</div>
               <div className="text-3xl font-bold text-orange-600 mt-2">
                 {isLoading ? (
                   <Skeleton className="h-10 w-24" />
                 ) : (
-                  `${totalBalance.toLocaleString()}`
+                  `${totalCreditLimit.toLocaleString()}`
                 )}
               </div>
               <p className="text-xs text-gray-500 mt-1">ريال سعودي</p>
@@ -261,11 +265,12 @@ const Customers = () => {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="text-right">كود العميل</TableHead>
               <TableHead className="text-right">اسم العميل</TableHead>
-              <TableHead className="text-right">النوع</TableHead>
               <TableHead className="text-right">البريد الإلكتروني</TableHead>
               <TableHead className="text-right">رقم الهاتف</TableHead>
-              <TableHead className="text-right">الرصيد المدين</TableHead>
+              <TableHead className="text-right">المدينة</TableHead>
+              <TableHead className="text-right">حد الائتمان</TableHead>
               <TableHead className="text-right">الحالة</TableHead>
               <TableHead className="text-right">الإجراءات</TableHead>
             </TableRow>
@@ -274,10 +279,11 @@ const Customers = () => {
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-40" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                   <TableCell><Skeleton className="h-8 w-8" /></TableCell>
@@ -285,25 +291,22 @@ const Customers = () => {
               ))
             ) : filteredCustomers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                   {searchQuery ? "لا توجد نتائج" : "لا يوجد عملاء. ابدأ بإضافة عميل جديد!"}
                 </TableCell>
               </TableRow>
             ) : (
               filteredCustomers.map((customer) => (
                 <TableRow key={customer.id}>
-                  <TableCell className="font-medium">{customer.name}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">
-                      {customer.customer_type === "individual" ? "فرد" : "شركة"}
-                    </Badge>
-                  </TableCell>
+                  <TableCell className="font-medium text-gray-600">{customer.customer_code}</TableCell>
+                  <TableCell className="font-medium">{customer.customer_name}</TableCell>
                   <TableCell>{customer.email || "-"}</TableCell>
                   <TableCell>{customer.phone || "-"}</TableCell>
-                  <TableCell>{customer.balance.toLocaleString()} ر.س</TableCell>
+                  <TableCell>{customer.city || "-"}</TableCell>
+                  <TableCell>{customer.credit_limit.toLocaleString()} ر.س</TableCell>
                   <TableCell>
-                    <Badge variant={customer.is_active ? "default" : "secondary"}>
-                      {customer.is_active ? "نشط" : "غير نشط"}
+                    <Badge variant={customer.status === 'active' ? "default" : "secondary"}>
+                      {customer.status === 'active' ? "نشط" : "غير نشط"}
                     </Badge>
                   </TableCell>
                   <TableCell>

@@ -33,13 +33,14 @@ import {
 import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
-  name: z.string().min(2, "يجب أن يكون الاسم حرفين على الأقل"),
+  customer_name: z.string().min(2, "يجب أن يكون الاسم حرفين على الأقل"),
   email: z.string().email("البريد الإلكتروني غير صحيح").optional().or(z.literal("")),
   phone: z.string().optional(),
   address: z.string().optional(),
+  city: z.string().optional(),
   tax_number: z.string().optional(),
-  customer_type: z.enum(["individual", "company"]),
   credit_limit: z.string().optional(),
+  payment_terms: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -58,13 +59,14 @@ export function AddCustomerDialog({ open, onOpenChange }: AddCustomerDialogProps
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: "",
+      customer_name: "",
       email: "",
       phone: "",
       address: "",
+      city: "",
       tax_number: "",
-      customer_type: "individual",
       credit_limit: "0",
+      payment_terms: "30",
       notes: "",
     },
   });
@@ -72,24 +74,28 @@ export function AddCustomerDialog({ open, onOpenChange }: AddCustomerDialogProps
   const addCustomerMutation = useMutation({
     mutationFn: async (values: FormValues) => {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (!user) {
         throw new Error("يجب تسجيل الدخول أولاً");
       }
+
+      const customerCode = `CUST-${Date.now()}`;
 
       const { data, error } = await supabase
         .from("customers")
         .insert([
           {
-            user_id: user.id,
-            name: values.name,
+            customer_code: customerCode,
+            customer_name: values.customer_name,
             email: values.email || null,
             phone: values.phone || null,
             address: values.address || null,
+            city: values.city || null,
             tax_number: values.tax_number || null,
-            customer_type: values.customer_type,
             credit_limit: parseFloat(values.credit_limit || "0"),
+            payment_terms: parseInt(values.payment_terms || "30"),
             notes: values.notes || null,
+            created_by: user.id,
           },
         ])
         .select()
@@ -134,35 +140,13 @@ export function AddCustomerDialog({ open, onOpenChange }: AddCustomerDialogProps
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
-              name="name"
+              name="customer_name"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>اسم العميل *</FormLabel>
                   <FormControl>
                     <Input placeholder="أدخل اسم العميل" {...field} />
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="customer_type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>نوع العميل</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="اختر نوع العميل" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="individual">فرد</SelectItem>
-                      <SelectItem value="company">شركة</SelectItem>
-                    </SelectContent>
-                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -202,19 +186,35 @@ export function AddCustomerDialog({ open, onOpenChange }: AddCustomerDialogProps
               />
             </div>
 
-            <FormField
-              control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>العنوان</FormLabel>
-                  <FormControl>
-                    <Input placeholder="أدخل العنوان" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>العنوان</FormLabel>
+                    <FormControl>
+                      <Input placeholder="أدخل العنوان" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="city"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>المدينة</FormLabel>
+                    <FormControl>
+                      <Input placeholder="أدخل المدينة" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="grid grid-cols-2 gap-4">
               <FormField
@@ -233,14 +233,14 @@ export function AddCustomerDialog({ open, onOpenChange }: AddCustomerDialogProps
 
               <FormField
                 control={form.control}
-                name="credit_limit"
+                name="payment_terms"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>حد الائتمان (ر.س)</FormLabel>
+                    <FormLabel>شروط السداد (بالأيام)</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
-                        placeholder="0"
+                        placeholder="30"
                         {...field}
                       />
                     </FormControl>
@@ -249,6 +249,24 @@ export function AddCustomerDialog({ open, onOpenChange }: AddCustomerDialogProps
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="credit_limit"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>حد الائتمان (ر.س)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="0"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}
