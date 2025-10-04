@@ -30,7 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
+import { Loader as Loader2 } from "lucide-react";
 
 const formSchema = z.object({
   customer_name: z.string().min(2, "يجب أن يكون الاسم حرفين على الأقل"),
