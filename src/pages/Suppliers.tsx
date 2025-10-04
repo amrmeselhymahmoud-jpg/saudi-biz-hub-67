@@ -38,12 +38,19 @@ import { EmptyTableMessage } from "@/components/EmptyTableMessage";
 
 interface Supplier {
   id: string;
-  name: string;
+  supplier_code: string;
+  supplier_name: string;
   email?: string;
   phone?: string;
-  balance?: number;
+  address?: string;
+  city?: string;
+  tax_number?: string;
   credit_limit?: number;
-  is_active?: boolean;
+  payment_terms?: number;
+  notes?: string;
+  status: string;
+  created_by: string;
+  created_at: string;
 }
 
 const Suppliers = () => {
@@ -64,7 +71,7 @@ const Suppliers = () => {
       const { data, error } = await supabase
         .from("suppliers")
         .select("*")
-        .eq("user_id", session?.user?.id)
+        .eq("created_by", session?.user?.id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -122,18 +129,21 @@ const Suppliers = () => {
   }
 
   const filteredSuppliers = suppliers.filter((supplier) =>
-    supplier.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (supplier.email && supplier.email.toLowerCase().includes(searchQuery.toLowerCase()))
+    supplier.supplier_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (supplier.email && supplier.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (supplier.supplier_code && supplier.supplier_code.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const handleExport = () => {
     const exportData = suppliers.map(s => ({
-      name: s.name,
+      supplier_code: s.supplier_code,
+      supplier_name: s.supplier_name,
       email: s.email || '',
       phone: s.phone || '',
-      balance: s.balance || 0,
+      city: s.city || '',
       credit_limit: s.credit_limit || 0,
-      is_active: s.is_active ? 'نشط' : 'غير نشط'
+      payment_terms: s.payment_terms || 0,
+      status: s.status === 'active' ? 'نشط' : 'غير نشط'
     }));
 
     const csv = [
@@ -203,7 +213,7 @@ const Suppliers = () => {
             <div>
               <div className="text-sm font-medium text-gray-500">الموردين النشطين</div>
               <div className="text-4xl font-bold text-green-600 mt-2">
-                {suppliers.filter((s) => s.is_active).length}
+                {suppliers.filter((s) => s.status === 'active').length}
               </div>
               <p className="text-xs text-gray-500 mt-1">مورد نشط</p>
             </div>
@@ -215,9 +225,9 @@ const Suppliers = () => {
         <Card className="bg-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg p-6">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm font-medium text-gray-500">إجمالي المستحقات</div>
+              <div className="text-sm font-medium text-gray-500">إجمالي حدود الائتمان</div>
               <div className="text-3xl font-bold text-red-600 mt-2">
-                {suppliers.reduce((sum, s) => sum + (s.balance || 0), 0).toLocaleString()}
+                {suppliers.reduce((sum, s) => sum + (s.credit_limit || 0), 0).toLocaleString()}
               </div>
               <p className="text-xs text-gray-500 mt-1">ريال سعودي</p>
             </div>
@@ -243,10 +253,11 @@ const Suppliers = () => {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="text-right">كود المورد</TableHead>
               <TableHead className="text-right">اسم المورد</TableHead>
               <TableHead className="text-right">البريد الإلكتروني</TableHead>
               <TableHead className="text-right">رقم الهاتف</TableHead>
-              <TableHead className="text-right">الرصيد المستحق</TableHead>
+              <TableHead className="text-right">المدينة</TableHead>
               <TableHead className="text-right">حد الائتمان</TableHead>
               <TableHead className="text-right">الحالة</TableHead>
               <TableHead className="text-right">الإجراءات</TableHead>
@@ -255,27 +266,28 @@ const Suppliers = () => {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8">
+                <TableCell colSpan={8} className="text-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin mx-auto" />
                 </TableCell>
               </TableRow>
             ) : filteredSuppliers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                   لا توجد نتائج
                 </TableCell>
               </TableRow>
             ) : (
               filteredSuppliers.map((supplier) => (
                 <TableRow key={supplier.id}>
-                  <TableCell className="font-medium">{supplier.name}</TableCell>
+                  <TableCell className="font-medium text-gray-600">{supplier.supplier_code}</TableCell>
+                  <TableCell className="font-medium">{supplier.supplier_name}</TableCell>
                   <TableCell>{supplier.email || "-"}</TableCell>
                   <TableCell>{supplier.phone || "-"}</TableCell>
-                  <TableCell>{(supplier.balance || 0).toLocaleString()} ر.س</TableCell>
+                  <TableCell>{supplier.city || "-"}</TableCell>
                   <TableCell>{(supplier.credit_limit || 0).toLocaleString()} ر.س</TableCell>
                   <TableCell>
-                    <Badge variant={supplier.is_active ? "default" : "secondary"}>
-                      {supplier.is_active ? "نشط" : "غير نشط"}
+                    <Badge variant={supplier.status === 'active' ? "default" : "secondary"}>
+                      {supplier.status === 'active' ? "نشط" : "غير نشط"}
                     </Badge>
                   </TableCell>
                   <TableCell>

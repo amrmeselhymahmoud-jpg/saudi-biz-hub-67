@@ -27,12 +27,14 @@ import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 const formSchema = z.object({
-  name: z.string().min(1, "الاسم مطلوب"),
+  supplier_name: z.string().min(2, "يجب أن يكون الاسم حرفين على الأقل"),
   email: z.string().email("البريد الإلكتروني غير صحيح").optional().or(z.literal("")),
   phone: z.string().optional(),
   address: z.string().optional(),
+  city: z.string().optional(),
   tax_number: z.string().optional(),
   credit_limit: z.string().optional(),
+  payment_terms: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -51,32 +53,37 @@ export function AddSupplierDialog({ open, onOpenChange }: AddSupplierDialogProps
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: "",
+      supplier_name: "",
       email: "",
       phone: "",
       address: "",
+      city: "",
       tax_number: "",
       credit_limit: "0",
+      payment_terms: "30",
       notes: "",
     },
   });
 
   const addSupplierMutation = useMutation({
     mutationFn: async (values: FormValues) => {
+      const supplierCode = `SUP-${Date.now()}`;
+
       const { data, error } = await supabase
         .from("suppliers")
         .insert([
           {
-            user_id: session?.user?.id,
-            name: values.name,
+            supplier_code: supplierCode,
+            supplier_name: values.supplier_name,
             email: values.email || null,
             phone: values.phone || null,
             address: values.address || null,
+            city: values.city || null,
             tax_number: values.tax_number || null,
-            credit_limit: values.credit_limit ? parseFloat(values.credit_limit) : 0,
+            credit_limit: parseFloat(values.credit_limit || "0"),
+            payment_terms: parseInt(values.payment_terms || "30"),
             notes: values.notes || null,
-            is_active: true,
-            balance: 0,
+            created_by: session?.user?.id,
           },
         ])
         .select();
@@ -119,12 +126,12 @@ export function AddSupplierDialog({ open, onOpenChange }: AddSupplierDialogProps
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
-              name="name"
+              name="supplier_name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>الاسم *</FormLabel>
+                  <FormLabel>اسم المورد *</FormLabel>
                   <FormControl>
-                    <Input placeholder="اسم المورد" {...field} />
+                    <Input placeholder="أدخل اسم المورد" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -161,19 +168,35 @@ export function AddSupplierDialog({ open, onOpenChange }: AddSupplierDialogProps
               />
             </div>
 
-            <FormField
-              control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>العنوان</FormLabel>
-                  <FormControl>
-                    <Input placeholder="العنوان الكامل" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="address"
+                render={({ field}) => (
+                  <FormItem>
+                    <FormLabel>العنوان</FormLabel>
+                    <FormControl>
+                      <Input placeholder="أدخل العنوان" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="city"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>المدينة</FormLabel>
+                    <FormControl>
+                      <Input placeholder="أدخل المدينة" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="grid grid-cols-2 gap-4">
               <FormField
@@ -183,7 +206,7 @@ export function AddSupplierDialog({ open, onOpenChange }: AddSupplierDialogProps
                   <FormItem>
                     <FormLabel>الرقم الضريبي</FormLabel>
                     <FormControl>
-                      <Input placeholder="الرقم الضريبي" {...field} />
+                      <Input placeholder="أدخل الرقم الضريبي" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -192,18 +215,32 @@ export function AddSupplierDialog({ open, onOpenChange }: AddSupplierDialogProps
 
               <FormField
                 control={form.control}
-                name="credit_limit"
+                name="payment_terms"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>حد الائتمان</FormLabel>
+                    <FormLabel>شروط السداد (بالأيام)</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="0" {...field} />
+                      <Input type="number" placeholder="30" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="credit_limit"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>حد الائتمان (ر.س)</FormLabel>
+                  <FormControl>
+                    <Input type="number" placeholder="0" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}
