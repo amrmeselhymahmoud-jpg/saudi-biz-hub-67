@@ -1,7 +1,8 @@
-import { Package, Plus, Search, MoveHorizontal as MoreHorizontal, Eye, CreditCard as Edit, Trash2, Loader as Loader2, CircleAlert as AlertCircle } from "lucide-react";
+import { Package, Plus, Search, MoveHorizontal as MoreHorizontal, Eye, CreditCard as Edit, Trash2, Loader as Loader2, CircleAlert as AlertCircle, TrendingUp, TrendingDown } from "lucide-react";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,7 +43,6 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -53,17 +53,21 @@ import {
 
 interface Product {
   id: string;
-  name: string;
-  sku: string | null;
+  product_code: string;
+  product_name: string;
   description: string | null;
   category: string | null;
   unit: string;
   cost_price: number;
   selling_price: number;
-  quantity: number;
-  min_stock_level: number;
   tax_rate: number;
-  is_active: boolean;
+  min_stock_level: number;
+  max_stock_level: number;
+  current_stock: number;
+  reorder_point: number;
+  notes: string | null;
+  status: string;
+  created_by: string;
   created_at: string;
 }
 
@@ -76,56 +80,62 @@ const ProductsCosts = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   const [formData, setFormData] = useState({
-    name: "",
-    sku: "",
+    product_name: "",
     description: "",
     category: "",
-    unit: "piece",
+    unit: "قطعة",
     cost_price: "",
     selling_price: "",
-    quantity: "",
-    min_stock_level: "",
     tax_rate: "15",
+    min_stock_level: "0",
+    max_stock_level: "1000",
+    current_stock: "0",
+    reorder_point: "10",
+    notes: "",
   });
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { session } = useAuth();
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products"],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("يجب تسجيل الدخول أولاً");
+      if (!session?.user?.id) throw new Error("يجب تسجيل الدخول أولاً");
 
       const { data, error } = await supabase
         .from("products")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("created_by", session.user.id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
       return data as Product[];
     },
+    enabled: !!session?.user?.id,
   });
 
   const addProductMutation = useMutation({
     mutationFn: async (productData: typeof formData) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("يجب تسجيل الدخول أولاً");
+      if (!session?.user?.id) throw new Error("يجب تسجيل الدخول أولاً");
+
+      const productCode = `PRD-${Date.now()}`;
 
       const { error } = await supabase.from("products").insert({
-        user_id: user.id,
-        name: productData.name,
-        sku: productData.sku || null,
+        product_code: productCode,
+        product_name: productData.product_name,
         description: productData.description || null,
         category: productData.category || null,
         unit: productData.unit,
         cost_price: parseFloat(productData.cost_price) || 0,
-        selling_price: parseFloat(productData.selling_price),
-        quantity: parseFloat(productData.quantity) || 0,
-        min_stock_level: parseFloat(productData.min_stock_level) || 0,
-        tax_rate: parseFloat(productData.tax_rate) || 0,
-        is_active: true,
+        selling_price: parseFloat(productData.selling_price) || 0,
+        tax_rate: parseFloat(productData.tax_rate) || 15,
+        min_stock_level: parseInt(productData.min_stock_level) || 0,
+        max_stock_level: parseInt(productData.max_stock_level) || 1000,
+        current_stock: parseInt(productData.current_stock) || 0,
+        reorder_point: parseInt(productData.reorder_point) || 10,
+        notes: productData.notes || null,
+        created_by: session.user.id,
       });
 
       if (error) throw error;
@@ -146,16 +156,18 @@ const ProductsCosts = () => {
       const { error } = await supabase
         .from("products")
         .update({
-          name: data.name,
-          sku: data.sku || null,
+          product_name: data.product_name,
           description: data.description || null,
           category: data.category || null,
           unit: data.unit,
           cost_price: parseFloat(data.cost_price) || 0,
-          selling_price: parseFloat(data.selling_price),
-          quantity: parseFloat(data.quantity) || 0,
-          min_stock_level: parseFloat(data.min_stock_level) || 0,
-          tax_rate: parseFloat(data.tax_rate) || 0,
+          selling_price: parseFloat(data.selling_price) || 0,
+          tax_rate: parseFloat(data.tax_rate) || 15,
+          min_stock_level: parseInt(data.min_stock_level) || 0,
+          max_stock_level: parseInt(data.max_stock_level) || 1000,
+          current_stock: parseInt(data.current_stock) || 0,
+          reorder_point: parseInt(data.reorder_point) || 10,
+          notes: data.notes || null,
         })
         .eq("id", id);
 
@@ -190,457 +202,439 @@ const ProductsCosts = () => {
   });
 
   const filteredProducts = products.filter((product) =>
-    product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    product.sku?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    product.product_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    product.product_code?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     product.category?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const resetForm = () => {
     setFormData({
-      name: "",
-      sku: "",
+      product_name: "",
       description: "",
       category: "",
-      unit: "piece",
+      unit: "قطعة",
       cost_price: "",
       selling_price: "",
-      quantity: "",
-      min_stock_level: "",
       tax_rate: "15",
+      min_stock_level: "0",
+      max_stock_level: "1000",
+      current_stock: "0",
+      reorder_point: "10",
+      notes: "",
     });
   };
 
   const handleEdit = (product: Product) => {
     setSelectedProduct(product);
     setFormData({
-      name: product.name,
-      sku: product.sku || "",
+      product_name: product.product_name,
       description: product.description || "",
       category: product.category || "",
       unit: product.unit,
       cost_price: product.cost_price.toString(),
       selling_price: product.selling_price.toString(),
-      quantity: product.quantity.toString(),
-      min_stock_level: product.min_stock_level.toString(),
       tax_rate: product.tax_rate.toString(),
+      min_stock_level: product.min_stock_level.toString(),
+      max_stock_level: product.max_stock_level.toString(),
+      current_stock: product.current_stock.toString(),
+      reorder_point: product.reorder_point.toString(),
+      notes: product.notes || "",
     });
     setEditDialogOpen(true);
   };
 
   const totalProducts = products.length;
-  const activeProducts = products.filter(p => p.is_active).length;
-  const lowStockProducts = products.filter(p => p.quantity <= p.min_stock_level).length;
-  const totalValue = products.reduce((sum, p) => sum + (p.quantity * p.cost_price), 0);
+  const activeProducts = products.filter(p => p.status === 'active').length;
+  const lowStockProducts = products.filter(p => p.current_stock <= p.reorder_point).length;
+  const totalValue = products.reduce((sum, p) => sum + (p.current_stock * p.cost_price), 0);
+
+  const ProductForm = ({ isEdit = false }: { isEdit?: boolean }) => (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="col-span-2">
+          <Label htmlFor="product_name">اسم المنتج *</Label>
+          <Input
+            id="product_name"
+            value={formData.product_name}
+            onChange={(e) => setFormData({ ...formData, product_name: e.target.value })}
+            placeholder="أدخل اسم المنتج"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="category">التصنيف</Label>
+          <Input
+            id="category"
+            value={formData.category}
+            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+            placeholder="أدخل التصنيف"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="unit">الوحدة *</Label>
+          <Select value={formData.unit} onValueChange={(value) => setFormData({ ...formData, unit: value })}>
+            <SelectTrigger>
+              <SelectValue placeholder="اختر الوحدة" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="قطعة">قطعة</SelectItem>
+              <SelectItem value="كيلو">كيلو</SelectItem>
+              <SelectItem value="لتر">لتر</SelectItem>
+              <SelectItem value="متر">متر</SelectItem>
+              <SelectItem value="علبة">علبة</SelectItem>
+              <SelectItem value="كرتون">كرتون</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label htmlFor="cost_price">سعر التكلفة (ر.س) *</Label>
+          <Input
+            id="cost_price"
+            type="number"
+            step="0.01"
+            value={formData.cost_price}
+            onChange={(e) => setFormData({ ...formData, cost_price: e.target.value })}
+            placeholder="0.00"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="selling_price">سعر البيع (ر.س) *</Label>
+          <Input
+            id="selling_price"
+            type="number"
+            step="0.01"
+            value={formData.selling_price}
+            onChange={(e) => setFormData({ ...formData, selling_price: e.target.value })}
+            placeholder="0.00"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="tax_rate">نسبة الضريبة (%)</Label>
+          <Input
+            id="tax_rate"
+            type="number"
+            step="0.01"
+            value={formData.tax_rate}
+            onChange={(e) => setFormData({ ...formData, tax_rate: e.target.value })}
+            placeholder="15"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="current_stock">المخزون الحالي</Label>
+          <Input
+            id="current_stock"
+            type="number"
+            value={formData.current_stock}
+            onChange={(e) => setFormData({ ...formData, current_stock: e.target.value })}
+            placeholder="0"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="reorder_point">نقطة إعادة الطلب</Label>
+          <Input
+            id="reorder_point"
+            type="number"
+            value={formData.reorder_point}
+            onChange={(e) => setFormData({ ...formData, reorder_point: e.target.value })}
+            placeholder="10"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="min_stock_level">الحد الأدنى للمخزون</Label>
+          <Input
+            id="min_stock_level"
+            type="number"
+            value={formData.min_stock_level}
+            onChange={(e) => setFormData({ ...formData, min_stock_level: e.target.value })}
+            placeholder="0"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="max_stock_level">الحد الأقصى للمخزون</Label>
+          <Input
+            id="max_stock_level"
+            type="number"
+            value={formData.max_stock_level}
+            onChange={(e) => setFormData({ ...formData, max_stock_level: e.target.value })}
+            placeholder="1000"
+          />
+        </div>
+
+        <div className="col-span-2">
+          <Label htmlFor="description">الوصف</Label>
+          <Textarea
+            id="description"
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            placeholder="أدخل وصف المنتج"
+            rows={3}
+          />
+        </div>
+
+        <div className="col-span-2">
+          <Label htmlFor="notes">ملاحظات</Label>
+          <Textarea
+            id="notes"
+            value={formData.notes}
+            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+            placeholder="ملاحظات إضافية"
+            rows={2}
+          />
+        </div>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Package className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold text-foreground">المنتجات والتكاليف</h1>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/20 to-purple-50/30">
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="h-14 w-14 bg-gradient-to-br from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center shadow-lg">
+              <Package className="h-7 w-7 text-white" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-bold text-gray-900">المنتجات والمخزون</h1>
+              <p className="text-gray-600 mt-1">إدارة المنتجات والأسعار ومراقبة المخزون</p>
+            </div>
+          </div>
+          <Button
+            size="lg"
+            className="h-12 px-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all gap-2"
+            onClick={() => setAddDialogOpen(true)}
+          >
+            <Plus className="h-5 w-5" />
+            إضافة منتج جديد
+          </Button>
         </div>
-        <Button className="gap-2" onClick={() => setAddDialogOpen(true)}>
-          <Plus className="h-4 w-4" />
-          منتج جديد
-        </Button>
-      </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card className="p-6">
-          <div className="text-sm text-muted-foreground">إجمالي المنتجات</div>
-          <div className="text-2xl font-bold mt-2">
-            {isLoading ? <Skeleton className="h-8 w-16" /> : totalProducts}
-          </div>
-        </Card>
-        <Card className="p-6">
-          <div className="text-sm text-muted-foreground">المنتجات النشطة</div>
-          <div className="text-2xl font-bold mt-2 text-green-600">
-            {isLoading ? <Skeleton className="h-8 w-16" /> : activeProducts}
-          </div>
-        </Card>
-        <Card className="p-6 border-destructive/50">
-          <div className="text-sm text-muted-foreground flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-destructive" />
-            مخزون منخفض
-          </div>
-          <div className="text-2xl font-bold mt-2 text-destructive">
-            {isLoading ? <Skeleton className="h-8 w-16" /> : lowStockProducts}
-          </div>
-        </Card>
-        <Card className="p-6">
-          <div className="text-sm text-muted-foreground">قيمة المخزون</div>
-          <div className="text-2xl font-bold mt-2">
-            {isLoading ? <Skeleton className="h-8 w-24" /> : `${totalValue.toLocaleString()} ر.س`}
-          </div>
-        </Card>
-      </div>
+        <div className="grid gap-6 md:grid-cols-4">
+          <Card className="bg-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-medium text-gray-500">إجمالي المنتجات</div>
+                <div className="text-4xl font-bold text-gray-900 mt-2">{totalProducts}</div>
+                <p className="text-xs text-gray-500 mt-1">منتج</p>
+              </div>
+              <div className="h-16 w-16 bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl flex items-center justify-center">
+                <Package className="h-8 w-8 text-blue-600" />
+              </div>
+            </div>
+          </Card>
 
-      <div className="relative max-w-md">
-        <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="بحث عن منتج..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pr-10"
-        />
-      </div>
+          <Card className="bg-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-medium text-gray-500">المنتجات النشطة</div>
+                <div className="text-4xl font-bold text-green-600 mt-2">{activeProducts}</div>
+                <p className="text-xs text-gray-500 mt-1">منتج نشط</p>
+              </div>
+              <div className="h-16 w-16 bg-gradient-to-br from-green-100 to-green-200 rounded-2xl flex items-center justify-center">
+                <TrendingUp className="h-8 w-8 text-green-600" />
+              </div>
+            </div>
+          </Card>
 
-      <Card>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-right">اسم المنتج</TableHead>
-              <TableHead className="text-right">رمز المنتج</TableHead>
-              <TableHead className="text-right">الفئة</TableHead>
-              <TableHead className="text-right">الكمية</TableHead>
-              <TableHead className="text-right">سعر التكلفة</TableHead>
-              <TableHead className="text-right">سعر البيع</TableHead>
-              <TableHead className="text-right">الحالة</TableHead>
-              <TableHead className="text-right">الإجراءات</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                  <TableCell><Skeleton className="h-6 w-16" /></TableCell>
-                  <TableCell><Skeleton className="h-8 w-8" /></TableCell>
-                </TableRow>
-              ))
-            ) : filteredProducts.length === 0 ? (
+          <Card className="bg-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-medium text-gray-500">مخزون منخفض</div>
+                <div className="text-4xl font-bold text-orange-600 mt-2">{lowStockProducts}</div>
+                <p className="text-xs text-gray-500 mt-1">منتج</p>
+              </div>
+              <div className="h-16 w-16 bg-gradient-to-br from-orange-100 to-orange-200 rounded-2xl flex items-center justify-center">
+                <AlertCircle className="h-8 w-8 text-orange-600" />
+              </div>
+            </div>
+          </Card>
+
+          <Card className="bg-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-medium text-gray-500">قيمة المخزون</div>
+                <div className="text-3xl font-bold text-purple-600 mt-2">
+                  {totalValue.toLocaleString()}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">ريال سعودي</p>
+              </div>
+              <div className="h-16 w-16 bg-gradient-to-br from-purple-100 to-purple-200 rounded-2xl flex items-center justify-center">
+                <TrendingDown className="h-8 w-8 text-purple-600" />
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        <div className="relative max-w-md">
+          <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="بحث عن منتج..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pr-10"
+          />
+        </div>
+
+        <Card className="border-0 shadow-lg bg-white">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                  {searchQuery ? "لا توجد نتائج" : "لا توجد منتجات. ابدأ بإضافة منتج جديد!"}
-                </TableCell>
+                <TableHead className="text-right">كود المنتج</TableHead>
+                <TableHead className="text-right">اسم المنتج</TableHead>
+                <TableHead className="text-right">التصنيف</TableHead>
+                <TableHead className="text-right">الوحدة</TableHead>
+                <TableHead className="text-right">سعر التكلفة</TableHead>
+                <TableHead className="text-right">سعر البيع</TableHead>
+                <TableHead className="text-right">المخزون</TableHead>
+                <TableHead className="text-right">الحالة</TableHead>
+                <TableHead className="text-right">الإجراءات</TableHead>
               </TableRow>
-            ) : (
-              filteredProducts.map((product) => (
-                <TableRow key={product.id}>
-                  <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell>{product.sku || "-"}</TableCell>
-                  <TableCell>{product.category || "-"}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <span className={product.quantity <= product.min_stock_level ? "text-destructive font-semibold" : ""}>
-                        {product.quantity} {product.unit}
-                      </span>
-                      {product.quantity <= product.min_stock_level && (
-                        <AlertCircle className="h-4 w-4 text-destructive" />
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>{product.cost_price.toLocaleString()} ر.س</TableCell>
-                  <TableCell className="font-semibold">{product.selling_price.toLocaleString()} ر.س</TableCell>
-                  <TableCell>
-                    {product.is_active ? (
-                      <Badge variant="default" className="bg-green-600">نشط</Badge>
-                    ) : (
-                      <Badge variant="destructive">غير نشط</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem className="gap-2" onClick={() => handleEdit(product)}>
-                          <Edit className="h-4 w-4" />
-                          تعديل
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="gap-2 text-destructive"
-                          onClick={() => {
-                            setProductToDelete(product.id);
-                            setDeleteDialogOpen(true);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          حذف
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto" />
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </Card>
+              ) : filteredProducts.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    لا توجد منتجات
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredProducts.map((product) => (
+                  <TableRow key={product.id}>
+                    <TableCell className="font-medium text-gray-600">{product.product_code}</TableCell>
+                    <TableCell className="font-medium">{product.product_name}</TableCell>
+                    <TableCell>{product.category || "-"}</TableCell>
+                    <TableCell>{product.unit}</TableCell>
+                    <TableCell>{product.cost_price.toFixed(2)} ر.س</TableCell>
+                    <TableCell>{product.selling_price.toFixed(2)} ر.س</TableCell>
+                    <TableCell>
+                      <Badge variant={product.current_stock <= product.reorder_point ? "destructive" : "default"}>
+                        {product.current_stock}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={product.status === 'active' ? "default" : "secondary"}>
+                        {product.status === 'active' ? "نشط" : "غير نشط"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="hover:bg-gray-100">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem className="gap-2 hover:bg-blue-50 hover:text-blue-600" onClick={() => handleEdit(product)}>
+                            <Edit className="h-4 w-4" />
+                            تعديل
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="gap-2 text-destructive hover:bg-red-50 hover:text-red-600"
+                            onClick={() => {
+                              setProductToDelete(product.id);
+                              setDeleteDialogOpen(true);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            حذف
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </Card>
 
-      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>إضافة منتج جديد</DialogTitle>
-            <DialogDescription>أدخل معلومات المنتج الجديد</DialogDescription>
-          </DialogHeader>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">اسم المنتج *</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="أدخل اسم المنتج"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="sku">رمز المنتج (SKU)</Label>
-              <Input
-                id="sku"
-                value={formData.sku}
-                onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                placeholder="مثال: PRD-001"
-              />
-            </div>
-            <div className="col-span-2 space-y-2">
-              <Label htmlFor="description">الوصف</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="وصف المنتج"
-                rows={2}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="category">الفئة</Label>
-              <Input
-                id="category"
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                placeholder="مثال: إلكترونيات"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="unit">الوحدة</Label>
-              <Select value={formData.unit} onValueChange={(value) => setFormData({ ...formData, unit: value })}>
-                <SelectTrigger id="unit">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="piece">قطعة</SelectItem>
-                  <SelectItem value="kg">كيلوجرام</SelectItem>
-                  <SelectItem value="liter">لتر</SelectItem>
-                  <SelectItem value="meter">متر</SelectItem>
-                  <SelectItem value="box">صندوق</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="cost_price">سعر التكلفة</Label>
-              <Input
-                id="cost_price"
-                type="number"
-                step="0.01"
-                value={formData.cost_price}
-                onChange={(e) => setFormData({ ...formData, cost_price: e.target.value })}
-                placeholder="0.00"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="selling_price">سعر البيع *</Label>
-              <Input
-                id="selling_price"
-                type="number"
-                step="0.01"
-                value={formData.selling_price}
-                onChange={(e) => setFormData({ ...formData, selling_price: e.target.value })}
-                placeholder="0.00"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="quantity">الكمية</Label>
-              <Input
-                id="quantity"
-                type="number"
-                value={formData.quantity}
-                onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                placeholder="0"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="min_stock_level">الحد الأدنى للمخزون</Label>
-              <Input
-                id="min_stock_level"
-                type="number"
-                value={formData.min_stock_level}
-                onChange={(e) => setFormData({ ...formData, min_stock_level: e.target.value })}
-                placeholder="0"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="tax_rate">نسبة الضريبة (%)</Label>
-              <Input
-                id="tax_rate"
-                type="number"
-                step="0.01"
-                value={formData.tax_rate}
-                onChange={(e) => setFormData({ ...formData, tax_rate: e.target.value })}
-                placeholder="15"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setAddDialogOpen(false); resetForm(); }}>
-              إلغاء
-            </Button>
-            <Button onClick={() => addProductMutation.mutate(formData)} disabled={addProductMutation.isPending}>
-              {addProductMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-              إضافة المنتج
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        {/* Add Product Dialog */}
+        <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+          <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>إضافة منتج جديد</DialogTitle>
+              <DialogDescription>
+                أدخل معلومات المنتج الجديد
+              </DialogDescription>
+            </DialogHeader>
+            <ProductForm />
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
+                إلغاء
+              </Button>
+              <Button
+                onClick={() => addProductMutation.mutate(formData)}
+                disabled={addProductMutation.isPending || !formData.product_name}
+              >
+                {addProductMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                إضافة
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>تعديل المنتج</DialogTitle>
-            <DialogDescription>تحديث معلومات المنتج</DialogDescription>
-          </DialogHeader>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-name">اسم المنتج *</Label>
-              <Input
-                id="edit-name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-sku">رمز المنتج (SKU)</Label>
-              <Input
-                id="edit-sku"
-                value={formData.sku}
-                onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-              />
-            </div>
-            <div className="col-span-2 space-y-2">
-              <Label htmlFor="edit-description">الوصف</Label>
-              <Textarea
-                id="edit-description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                rows={2}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-category">الفئة</Label>
-              <Input
-                id="edit-category"
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-unit">الوحدة</Label>
-              <Select value={formData.unit} onValueChange={(value) => setFormData({ ...formData, unit: value })}>
-                <SelectTrigger id="edit-unit">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="piece">قطعة</SelectItem>
-                  <SelectItem value="kg">كيلوجرام</SelectItem>
-                  <SelectItem value="liter">لتر</SelectItem>
-                  <SelectItem value="meter">متر</SelectItem>
-                  <SelectItem value="box">صندوق</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-cost_price">سعر التكلفة</Label>
-              <Input
-                id="edit-cost_price"
-                type="number"
-                step="0.01"
-                value={formData.cost_price}
-                onChange={(e) => setFormData({ ...formData, cost_price: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-selling_price">سعر البيع *</Label>
-              <Input
-                id="edit-selling_price"
-                type="number"
-                step="0.01"
-                value={formData.selling_price}
-                onChange={(e) => setFormData({ ...formData, selling_price: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-quantity">الكمية</Label>
-              <Input
-                id="edit-quantity"
-                type="number"
-                value={formData.quantity}
-                onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-min_stock_level">الحد الأدنى للمخزون</Label>
-              <Input
-                id="edit-min_stock_level"
-                type="number"
-                value={formData.min_stock_level}
-                onChange={(e) => setFormData({ ...formData, min_stock_level: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-tax_rate">نسبة الضريبة (%)</Label>
-              <Input
-                id="edit-tax_rate"
-                type="number"
-                step="0.01"
-                value={formData.tax_rate}
-                onChange={(e) => setFormData({ ...formData, tax_rate: e.target.value })}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setEditDialogOpen(false); setSelectedProduct(null); resetForm(); }}>
-              إلغاء
-            </Button>
-            <Button
-              onClick={() => selectedProduct && updateProductMutation.mutate({ id: selectedProduct.id, data: formData })}
-              disabled={updateProductMutation.isPending}
-            >
-              {updateProductMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-              حفظ التعديلات
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        {/* Edit Product Dialog */}
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>تعديل المنتج</DialogTitle>
+              <DialogDescription>
+                تحديث معلومات المنتج
+              </DialogDescription>
+            </DialogHeader>
+            <ProductForm isEdit />
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+                إلغاء
+              </Button>
+              <Button
+                onClick={() =>
+                  selectedProduct && updateProductMutation.mutate({ id: selectedProduct.id, data: formData })
+                }
+                disabled={updateProductMutation.isPending || !formData.product_name}
+              >
+                {updateProductMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                تحديث
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
-            <AlertDialogDescription>
-              هذا الإجراء لا يمكن التراجع عنه. سيتم حذف المنتج نهائياً.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>إلغاء</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => productToDelete && deleteProductMutation.mutate(productToDelete)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {deleteProductMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-              حذف
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>تأكيد الحذف</AlertDialogTitle>
+              <AlertDialogDescription>
+                هل أنت متأكد من حذف هذا المنتج؟ لا يمكن التراجع عن هذا الإجراء.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>إلغاء</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => productToDelete && deleteProductMutation.mutate(productToDelete)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                حذف
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
     </div>
   );
 };
