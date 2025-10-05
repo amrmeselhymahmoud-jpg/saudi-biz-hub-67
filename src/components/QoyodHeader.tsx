@@ -34,15 +34,12 @@ const QoyodHeader = () => {
       <div className="px-6 py-3">
         <div className="flex items-center justify-between max-w-full">
           {/* الشعار */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center">
             <img
               src="/finzo logo-01.svg"
               alt="Finzo Logo"
               className="h-12 w-auto filter brightness-0 invert"
             />
-            <div className="flex flex-col">
-              <h1 className="text-xl font-bold text-white leading-tight">Finzo</h1>
-            </div>
           </div>
 
           {/* الإجراءات الجانبية */}
