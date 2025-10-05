@@ -1,5 +1,5 @@
 import { Package, Plus, Search, MoveHorizontal as MoreHorizontal, Eye, CreditCard as Edit, Trash2, Loader as Loader2, CircleAlert as AlertCircle, TrendingUp, TrendingDown, Download, Upload } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -252,18 +252,30 @@ const ProductsCosts = () => {
   const lowStockProducts = products.filter(p => p.current_stock <= p.reorder_point).length;
   const totalValue = products.reduce((sum, p) => sum + (p.current_stock * p.cost_price), 0);
 
-  const ProductForm = ({ isEdit = false }: { isEdit?: boolean }) => (
+  const ProductForm = ({ isEdit = false }: { isEdit?: boolean }) => {
+    const productNameRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+      if (!isEdit && productNameRef.current) {
+        const timer = setTimeout(() => {
+          productNameRef.current?.focus();
+        }, 100);
+        return () => clearTimeout(timer);
+      }
+    }, [isEdit]);
+
+    return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="col-span-2">
           <Label htmlFor="product_name">اسم المنتج *</Label>
           <Input
+            ref={productNameRef}
             id="product_name"
             value={formData.product_name}
             onChange={(e) => setFormData({ ...formData, product_name: e.target.value })}
             placeholder="أدخل اسم المنتج"
             required
-            autoFocus
           />
         </div>
 
@@ -401,7 +413,8 @@ const ProductsCosts = () => {
         </div>
       </div>
     </div>
-  );
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/20 to-purple-50/30">
