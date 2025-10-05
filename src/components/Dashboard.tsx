@@ -11,69 +11,40 @@ const Dashboard = () => {
   const { data: customersCount = 0, isLoading: loadingCustomers } = useQuery({
     queryKey: ["customers-count"],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return 0;
-      const { count } = await supabase
-        .from("customers")
-        .select("*", { count: "exact", head: true })
-        .eq("created_by", user.id);
-      return count || 0;
+      // Demo mode: return mock data
+      return 0;
     },
   });
 
   const { data: suppliersCount = 0, isLoading: loadingSuppliers } = useQuery({
     queryKey: ["suppliers-count"],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return 0;
-      const { count } = await supabase
-        .from("suppliers")
-        .select("*", { count: "exact", head: true })
-        .eq("created_by", user.id);
-      return count || 0;
+      // Demo mode: return mock data
+      return 0;
     },
   });
 
   const { data: productsCount = 0, isLoading: loadingProducts } = useQuery({
     queryKey: ["products-count"],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return 0;
-      const { count } = await supabase
-        .from("products")
-        .select("*", { count: "exact", head: true })
-        .eq("created_by", user.id);
-      return count || 0;
+      // Demo mode: return mock data
+      return 0;
     },
   });
 
   const { data: recentInvoices = [], isLoading: loadingInvoices } = useQuery({
     queryKey: ["recent-invoices"],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
-      const { data } = await supabase
-        .from("sales_invoices")
-        .select("id, invoice_number, customer_name, total_amount, status")
-        .eq("created_by", user.id)
-        .order("created_at", { ascending: false })
-        .limit(3);
-      return data || [];
+      // Demo mode: return empty array
+      return [];
     },
   });
 
   const { data: lowStockProducts = [], isLoading: loadingStock } = useQuery({
     queryKey: ["low-stock"],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
-      const { data } = await supabase
-        .from("products")
-        .select("product_name, stock_quantity")
-        .eq("created_by", user.id)
-        .lt("stock_quantity", 20)
-        .limit(3);
-      return data || [];
+      // Demo mode: return empty array
+      return [];
     },
   });
 
