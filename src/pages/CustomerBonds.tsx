@@ -321,6 +321,15 @@ const CustomerBonds = () => {
   };
 
   const handlePrint = () => {
+    if (filteredBonds.length === 0) {
+      toast({
+        title: "تنبيه",
+        description: "لا توجد بيانات للطباعة",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const printContent = filteredBonds.map(bond => `
       <tr>
         <td style="border: 1px solid #ddd; padding: 8px;">${bond.bond_number}</td>
@@ -335,79 +344,160 @@ const CustomerBonds = () => {
       </tr>
     `).join('');
 
-    const printWindow = window.open('', '', 'width=800,height=600');
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html dir="rtl" lang="ar">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>قائمة سندات العملاء</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+              font-family: 'Arial', 'Tahoma', sans-serif;
+              direction: rtl;
+              padding: 20px;
+              background: white;
+            }
+            h1 {
+              text-align: center;
+              color: #ea580c;
+              margin-bottom: 10px;
+              font-size: 28px;
+            }
+            .date {
+              text-align: center;
+              color: #666;
+              margin-bottom: 20px;
+              font-size: 14px;
+            }
+            .summary {
+              margin: 20px 0;
+              padding: 15px;
+              background-color: #fff7ed;
+              border-radius: 8px;
+              display: grid;
+              grid-template-columns: repeat(3, 1fr);
+              gap: 15px;
+            }
+            .summary-item { text-align: center; }
+            .summary-label {
+              font-size: 14px;
+              color: #666;
+              margin-bottom: 5px;
+            }
+            .summary-value {
+              font-size: 24px;
+              font-weight: bold;
+            }
+            .receipts { color: #16a34a; }
+            .payments { color: #2563eb; }
+            .net { color: ${totalAmount >= 0 ? '#16a34a' : '#dc2626'}; }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 20px;
+              font-size: 13px;
+            }
+            th {
+              background-color: #ea580c;
+              color: white;
+              padding: 12px 8px;
+              border: 1px solid #ddd;
+              font-weight: bold;
+            }
+            td {
+              padding: 8px;
+              border: 1px solid #ddd;
+            }
+            tr:nth-child(even) {
+              background-color: #f9fafb;
+            }
+            .footer {
+              margin-top: 30px;
+              text-align: center;
+              color: #666;
+              font-size: 12px;
+              border-top: 2px solid #ea580c;
+              padding-top: 15px;
+            }
+            @media print {
+              body { padding: 10px; }
+              .summary { page-break-inside: avoid; }
+              table { page-break-inside: auto; }
+              tr { page-break-inside: avoid; }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>قائمة سندات العملاء</h1>
+          <p class="date">التاريخ: ${new Date().toLocaleDateString('ar-SA')}</p>
+
+          <div class="summary">
+            <div class="summary-item">
+              <div class="summary-label">إجمالي المقبوضات</div>
+              <div class="summary-value receipts">${receiptsTotal.toLocaleString('ar-SA')} ر.س</div>
+            </div>
+            <div class="summary-item">
+              <div class="summary-label">إجمالي المدفوعات</div>
+              <div class="summary-value payments">${paymentsTotal.toLocaleString('ar-SA')} ر.س</div>
+            </div>
+            <div class="summary-item">
+              <div class="summary-label">الصافي</div>
+              <div class="summary-value net">${totalAmount.toLocaleString('ar-SA')} ر.س</div>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>رقم السند</th>
+                <th>التاريخ</th>
+                <th>العميل</th>
+                <th>النوع</th>
+                <th>طريقة الدفع</th>
+                <th>المبلغ</th>
+                <th>الحالة</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${printContent}
+            </tbody>
+          </table>
+
+          <div class="footer">
+            <p>إجمالي السندات: ${filteredBonds.length}</p>
+            <p>تم الطباعة في: ${new Date().toLocaleString('ar-SA')}</p>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank', 'width=900,height=700');
+
     if (printWindow) {
-      printWindow.document.write(`
-        <html dir="rtl">
-          <head>
-            <title>قائمة سندات العملاء</title>
-            <style>
-              body { font-family: Arial, sans-serif; direction: rtl; padding: 20px; }
-              h1 { text-align: center; color: #ea580c; }
-              table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-              th { background-color: #ea580c; color: white; padding: 12px; border: 1px solid #ddd; }
-              td { padding: 8px; border: 1px solid #ddd; }
-              .summary { margin-top: 20px; padding: 15px; background-color: #fff7ed; border-radius: 8px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
-              .summary-item { text-align: center; }
-              .summary-label { font-size: 14px; color: #666; margin-bottom: 5px; }
-              .summary-value { font-size: 24px; font-weight: bold; }
-              .receipts { color: #16a34a; }
-              .payments { color: #2563eb; }
-              .net { color: ${totalAmount >= 0 ? '#16a34a' : '#dc2626'}; }
-              .footer { margin-top: 20px; text-align: center; color: #666; font-size: 12px; }
-            </style>
-          </head>
-          <body>
-            <h1>قائمة سندات العملاء</h1>
-            <p>التاريخ: ${new Date().toLocaleDateString('ar-SA')}</p>
-
-            <div class="summary">
-              <div class="summary-item">
-                <div class="summary-label">إجمالي المقبوضات</div>
-                <div class="summary-value receipts">${receiptsTotal.toLocaleString('ar-SA')} ر.س</div>
-              </div>
-              <div class="summary-item">
-                <div class="summary-label">إجمالي المدفوعات</div>
-                <div class="summary-value payments">${paymentsTotal.toLocaleString('ar-SA')} ر.س</div>
-              </div>
-              <div class="summary-item">
-                <div class="summary-label">الصافي</div>
-                <div class="summary-value net">${totalAmount.toLocaleString('ar-SA')} ر.س</div>
-              </div>
-            </div>
-
-            <table>
-              <thead>
-                <tr>
-                  <th>رقم السند</th>
-                  <th>التاريخ</th>
-                  <th>العميل</th>
-                  <th>النوع</th>
-                  <th>طريقة الدفع</th>
-                  <th>المبلغ</th>
-                  <th>الحالة</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${printContent}
-              </tbody>
-            </table>
-
-            <div class="footer">
-              <p>إجمالي السندات: ${filteredBonds.length}</p>
-              <p>تم الطباعة في: ${new Date().toLocaleString('ar-SA')}</p>
-            </div>
-          </body>
-        </html>
-      `);
+      printWindow.document.open();
+      printWindow.document.write(htmlContent);
       printWindow.document.close();
-      printWindow.print();
-    }
 
-    toast({
-      title: "جاهز للطباعة",
-      description: "تم فتح نافذة الطباعة",
-    });
+      printWindow.onload = () => {
+        setTimeout(() => {
+          printWindow.focus();
+          printWindow.print();
+        }, 250);
+      };
+
+      toast({
+        title: "جاهز للطباعة",
+        description: "تم فتح نافذة الطباعة",
+      });
+    } else {
+      toast({
+        title: "خطأ",
+        description: "يرجى السماح بفتح النوافذ المنبثقة في المتصفح",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
