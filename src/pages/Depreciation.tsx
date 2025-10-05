@@ -226,57 +226,72 @@ const Depreciation = () => {
     .reduce((sum, r) => sum + r.depreciation_amount, 0);
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <TrendingDown className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold text-foreground">الإهلاك</h1>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/20 to-cyan-50/30">
+      <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-4">
+          <div className="h-14 w-14 bg-gradient-to-br from-red-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg">
+            <TrendingDown className="h-7 w-7 text-white" />
+          </div>
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900">الإهلاك</h1>
+            <p className="text-gray-600 mt-1">سجلات إهلاك الأصول الثابتة</p>
+          </div>
         </div>
-        <Button onClick={() => { resetForm(); setDialogOpen(true); }}>
-          <Plus className="ml-2 h-4 w-4" />
+        <Button onClick={() => { resetForm(); setDialogOpen(true); }} size="lg" className="h-12 px-6 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 shadow-lg hover:shadow-xl transition-all">
+          <Plus className="ml-2 h-5 w-5" />
           تسجيل إهلاك جديد
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="bg-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">إجمالي السجلات</p>
-                <p className="text-3xl font-bold">{totalRecords}</p>
+                <p className="text-sm font-medium text-gray-500">إجمالي السجلات</p>
+                <p className="text-4xl font-bold text-gray-900 mt-2">{totalRecords}</p>
+                <p className="text-xs text-gray-500 mt-1">سجل إهلاك</p>
               </div>
-              <Calendar className="h-12 w-12 text-primary opacity-20" />
+              <div className="h-16 w-16 bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl flex items-center justify-center">
+                <Calendar className="h-8 w-8 text-blue-600" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">إهلاك هذا الشهر</p>
-                <p className="text-2xl font-bold text-blue-600">{thisMonthDepreciation.toFixed(2)} ر.س</p>
+                <p className="text-sm font-medium text-gray-500">إهلاك هذا الشهر</p>
+                <p className="text-3xl font-bold text-cyan-600 mt-2">{thisMonthDepreciation.toFixed(2)}</p>
+                <p className="text-xs text-gray-500 mt-1">ريال سعودي</p>
               </div>
-              <TrendingDown className="h-12 w-12 text-blue-600 opacity-20" />
+              <div className="h-16 w-16 bg-gradient-to-br from-cyan-100 to-cyan-200 rounded-2xl flex items-center justify-center">
+                <TrendingDown className="h-8 w-8 text-cyan-600" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">إجمالي الإهلاك</p>
-                <p className="text-2xl font-bold text-red-600">{totalDepreciation.toFixed(2)} ر.س</p>
+                <p className="text-sm font-medium text-gray-500">إجمالي الإهلاك</p>
+                <p className="text-3xl font-bold text-red-600 mt-2">{totalDepreciation.toFixed(2)}</p>
+                <p className="text-xs text-gray-500 mt-1">ريال سعودي</p>
               </div>
-              <TrendingDown className="h-12 w-12 text-red-600 opacity-20" />
+              <div className="h-16 w-16 bg-gradient-to-br from-red-100 to-red-200 rounded-2xl flex items-center justify-center">
+                <TrendingDown className="h-8 w-8 text-red-600" />
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <Card>
+      <Card className="border-0 shadow-lg bg-white">
         <CardHeader>
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
@@ -284,10 +299,11 @@ const Depreciation = () => {
                 placeholder="بحث بكود الأصل أو الاسم..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                className="h-11"
               />
             </div>
             <Select value={assetFilter} onValueChange={setAssetFilter}>
-              <SelectTrigger className="w-full md:w-64">
+              <SelectTrigger className="w-full md:w-64 h-11">
                 <SelectValue placeholder="تصفية حسب الأصل" />
               </SelectTrigger>
               <SelectContent>
@@ -303,10 +319,15 @@ const Depreciation = () => {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8">جاري التحميل...</div>
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">جاري التحميل...</p>
+            </div>
           ) : filteredRecords.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              لا توجد سجلات إهلاك
+            <div className="text-center py-12">
+              <TrendingDown className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500 text-lg font-medium">لا توجد سجلات إهلاك</p>
+              <p className="text-gray-400 text-sm mt-2">ابدأ بتسجيل إهلاك جديد</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -325,22 +346,22 @@ const Depreciation = () => {
                 </TableHeader>
                 <TableBody>
                   {filteredRecords.map((record) => (
-                    <TableRow key={record.id}>
-                      <TableCell className="font-mono font-medium">
+                    <TableRow key={record.id} className="hover:bg-gray-50 transition-colors">
+                      <TableCell className="font-mono font-medium text-gray-900">
                         {record.fixed_assets?.asset_code}
                       </TableCell>
-                      <TableCell className="font-medium">
+                      <TableCell className="font-medium text-gray-900">
                         {record.fixed_assets?.asset_name}
                       </TableCell>
-                      <TableCell>{record.fixed_assets?.category}</TableCell>
-                      <TableCell>{format(new Date(record.period_date), "yyyy-MM-dd")}</TableCell>
-                      <TableCell className="font-bold text-red-600">
+                      <TableCell className="text-gray-700">{record.fixed_assets?.category}</TableCell>
+                      <TableCell className="text-gray-700">{format(new Date(record.period_date), "yyyy-MM-dd")}</TableCell>
+                      <TableCell className="font-bold text-red-600 text-base">
                         {record.depreciation_amount.toFixed(2)} ر.س
                       </TableCell>
-                      <TableCell className="font-bold">
+                      <TableCell className="font-bold text-gray-900 text-base">
                         {record.accumulated_depreciation.toFixed(2)} ر.س
                       </TableCell>
-                      <TableCell className="font-bold text-blue-600">
+                      <TableCell className="font-bold text-blue-600 text-base">
                         {record.book_value.toFixed(2)} ر.س
                       </TableCell>
                       <TableCell>
@@ -349,6 +370,7 @@ const Depreciation = () => {
                             size="sm"
                             variant="outline"
                             onClick={() => handleView(record)}
+                            className="hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-all"
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -530,6 +552,7 @@ const Depreciation = () => {
           )}
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 };
