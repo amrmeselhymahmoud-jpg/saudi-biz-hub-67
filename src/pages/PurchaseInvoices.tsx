@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Receipt, Plus, Eye, CreditCard as Edit, Trash2, DollarSign, Download } from "lucide-react";
+import { Receipt, Plus, Eye, CreditCard as Edit, Trash2, DollarSign, Download, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -484,7 +484,7 @@ const PurchaseInvoices = () => {
     }
   };
 
-  const handleExport = (format: 'csv' | 'json') => {
+  const handleExport = (exportFormat: 'csv' | 'json') => {
     if (filteredInvoices.length === 0) {
       toast({
         title: "تنبيه",
@@ -509,7 +509,7 @@ const PurchaseInvoices = () => {
       'الملاحظات': invoice.notes || '-'
     }));
 
-    if (format === 'csv') {
+    if (exportFormat === 'csv') {
       exportToCSV(exportData, 'purchase_invoices');
     } else {
       exportToJSON(exportData, 'purchase_invoices');
@@ -518,6 +518,82 @@ const PurchaseInvoices = () => {
     toast({
       title: "تم التصدير",
       description: `تم تصدير ${filteredInvoices.length} فاتورة بنجاح`,
+    });
+  };
+
+  const handlePrint = () => {
+    const printContent = filteredInvoices.map(inv => `
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px;">${inv.invoice_number}</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">${inv.suppliers?.name}</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">${format(new Date(inv.invoice_date), "yyyy-MM-dd")}</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">${inv.due_date ? format(new Date(inv.due_date), "yyyy-MM-dd") : '-'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">${paymentStatusLabels[inv.payment_status]}</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">${inv.total_amount.toFixed(2)} ر.س</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">${inv.paid_amount.toFixed(2)} ر.س</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">${(inv.total_amount - inv.paid_amount).toFixed(2)} ر.س</td>
+      </tr>
+    `).join('');
+
+    const totalAmount = filteredInvoices.reduce((sum, inv) => sum + inv.total_amount, 0);
+    const totalPaid = filteredInvoices.reduce((sum, inv) => sum + inv.paid_amount, 0);
+    const totalRemaining = totalAmount - totalPaid;
+
+    const printWindow = window.open('', '', 'width=800,height=600');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html dir="rtl">
+          <head>
+            <title>قائمة فواتير المشتريات</title>
+            <style>
+              body { font-family: Arial, sans-serif; direction: rtl; padding: 20px; }
+              h1 { text-align: center; color: #ea580c; }
+              table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+              th { background-color: #ea580c; color: white; padding: 12px; border: 1px solid #ddd; }
+              td { padding: 8px; border: 1px solid #ddd; }
+              .summary { margin-top: 20px; padding: 15px; background-color: #fff7ed; border-radius: 8px; }
+              .footer { margin-top: 20px; text-align: center; color: #666; font-size: 12px; }
+            </style>
+          </head>
+          <body>
+            <h1>قائمة فواتير المشتريات</h1>
+            <p>التاريخ: ${new Date().toLocaleDateString('ar-SA')}</p>
+            <div class="summary">
+              <p><strong>إجمالي الفواتير:</strong> ${filteredInvoices.length}</p>
+              <p><strong>المبلغ الإجمالي:</strong> ${totalAmount.toFixed(2)} ر.س</p>
+              <p><strong>المدفوع:</strong> ${totalPaid.toFixed(2)} ر.س</p>
+              <p><strong>المتبقي:</strong> ${totalRemaining.toFixed(2)} ر.س</p>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>رقم الفاتورة</th>
+                  <th>المورد</th>
+                  <th>تاريخ الفاتورة</th>
+                  <th>تاريخ الاستحقاق</th>
+                  <th>حالة الدفع</th>
+                  <th>الإجمالي</th>
+                  <th>المدفوع</th>
+                  <th>المتبقي</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${printContent}
+              </tbody>
+            </table>
+            <div class="footer">
+              <p>تم الطباعة في: ${new Date().toLocaleString('ar-SA')}</p>
+            </div>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    }
+
+    toast({
+      title: "جاهز للطباعة",
+      description: "تم فتح نافذة الطباعة",
     });
   };
 
@@ -580,6 +656,10 @@ const PurchaseInvoices = () => {
           <h1 className="text-3xl font-bold text-foreground">فواتير المشتريات</h1>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={handlePrint}>
+            <Printer className="ml-2 h-4 w-4" />
+            طباعة
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline">

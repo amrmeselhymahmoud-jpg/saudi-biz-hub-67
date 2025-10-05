@@ -1,4 +1,4 @@
-import { Users, Plus, Search, MoveHorizontal as MoreHorizontal, CreditCard as Edit, Trash2, Eye, Loader as Loader2, DollarSign, Download, Upload } from "lucide-react";
+import { Users, Plus, Search, MoveHorizontal as MoreHorizontal, CreditCard as Edit, Trash2, Eye, Loader as Loader2, DollarSign, Download, Upload, Printer } from "lucide-react";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -177,6 +177,70 @@ const Customers = () => {
     });
   };
 
+  const handlePrint = () => {
+    const printContent = filteredCustomers.map(c => `
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px;">${c.customer_code}</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">${c.customer_name}</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">${c.email || '-'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">${c.phone || '-'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">${c.city || '-'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">${c.credit_limit.toLocaleString()}</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">${c.status === 'active' ? 'نشط' : 'غير نشط'}</td>
+      </tr>
+    `).join('');
+
+    const printWindow = window.open('', '', 'width=800,height=600');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html dir="rtl">
+          <head>
+            <title>قائمة العملاء</title>
+            <style>
+              body { font-family: Arial, sans-serif; direction: rtl; padding: 20px; }
+              h1 { text-align: center; color: #0d9488; }
+              table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+              th { background-color: #0d9488; color: white; padding: 12px; border: 1px solid #ddd; }
+              td { padding: 8px; border: 1px solid #ddd; }
+              .footer { margin-top: 20px; text-align: center; color: #666; font-size: 12px; }
+            </style>
+          </head>
+          <body>
+            <h1>قائمة العملاء</h1>
+            <p>التاريخ: ${new Date().toLocaleDateString('ar-SA')}</p>
+            <p>عدد العملاء: ${filteredCustomers.length}</p>
+            <table>
+              <thead>
+                <tr>
+                  <th>كود العميل</th>
+                  <th>اسم العميل</th>
+                  <th>البريد الإلكتروني</th>
+                  <th>رقم الهاتف</th>
+                  <th>المدينة</th>
+                  <th>حد الائتمان</th>
+                  <th>الحالة</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${printContent}
+              </tbody>
+            </table>
+            <div class="footer">
+              <p>تم الطباعة في: ${new Date().toLocaleString('ar-SA')}</p>
+            </div>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    }
+
+    toast({
+      title: "جاهز للطباعة",
+      description: "تم فتح نافذة الطباعة",
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-teal-50/20 to-green-50/30">
       <div className="p-6 space-y-6">
@@ -191,6 +255,10 @@ const Customers = () => {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={handlePrint} className="gap-2 hover:bg-purple-50 hover:text-purple-600 hover:border-purple-300 transition-all">
+            <Printer className="h-4 w-4" />
+            طباعة
+          </Button>
           <Button variant="outline" onClick={handleImport} className="gap-2 hover:bg-green-50 hover:text-green-600 hover:border-green-300 transition-all">
             <Upload className="h-4 w-4" />
             استيراد

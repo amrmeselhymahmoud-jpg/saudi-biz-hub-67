@@ -1,4 +1,4 @@
-import { FileText, Plus, Search, MoveHorizontal as MoreHorizontal, CreditCard as Edit, Trash2, Eye, Send, CircleCheck as CheckCircle, Circle as XCircle, Clock, Loader as Loader2, Download, Upload } from "lucide-react";
+import { FileText, Plus, Search, MoveHorizontal as MoreHorizontal, CreditCard as Edit, Trash2, Eye, Send, CircleCheck as CheckCircle, Circle as XCircle, Clock, Loader as Loader2, Download, Upload, Printer } from "lucide-react";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -180,7 +180,16 @@ const Quotes = () => {
     .reduce((sum, q) => sum + q.total_amount, 0);
 
   const handleExport = () => {
-    const exportData = quotes.map(quote => ({
+    if (filteredQuotes.length === 0) {
+      toast({
+        title: "تنبيه",
+        description: "لا توجد بيانات للتصدير",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const exportData = filteredQuotes.map(quote => ({
       'رقم العرض': quote.quote_number,
       'العميل': quote.customers?.customer_name || '-',
       'تاريخ العرض': new Date(quote.quote_date).toLocaleDateString('ar-SA'),
@@ -191,7 +200,7 @@ const Quotes = () => {
     exportToCSV(exportData, 'quotes');
     toast({
       title: "تم التصدير بنجاح",
-      description: "تم تصدير عروض الأسعار إلى ملف CSV",
+      description: `تم تصدير ${filteredQuotes.length} عرض سعر بنجاح`,
     });
   };
 
@@ -199,6 +208,81 @@ const Quotes = () => {
     toast({
       title: "قريباً",
       description: "ميزة الاستيراد ستكون متاحة قريباً",
+    });
+  };
+
+  const handlePrint = () => {
+    const statusLabels: Record<string, string> = {
+      draft: 'مسودة',
+      sent: 'مرسل',
+      accepted: 'مقبول',
+      rejected: 'مرفوض',
+      expired: 'منتهي',
+    };
+
+    const printContent = filteredQuotes.map(q => `
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px;">${q.quote_number}</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">${q.customers?.customer_name || '-'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">${new Date(q.quote_date).toLocaleDateString('ar-SA')}</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">${q.expiry_date ? new Date(q.expiry_date).toLocaleDateString('ar-SA') : '-'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">${q.total_amount.toLocaleString()} ر.س</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">${statusLabels[q.status] || q.status}</td>
+      </tr>
+    `).join('');
+
+    const printWindow = window.open('', '', 'width=800,height=600');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html dir="rtl">
+          <head>
+            <title>قائمة عروض الأسعار</title>
+            <style>
+              body { font-family: Arial, sans-serif; direction: rtl; padding: 20px; }
+              h1 { text-align: center; color: #0891b2; }
+              table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+              th { background-color: #0891b2; color: white; padding: 12px; border: 1px solid #ddd; }
+              td { padding: 8px; border: 1px solid #ddd; }
+              .summary { margin-top: 20px; padding: 15px; background-color: #f0f9ff; border-radius: 8px; }
+              .footer { margin-top: 20px; text-align: center; color: #666; font-size: 12px; }
+            </style>
+          </head>
+          <body>
+            <h1>قائمة عروض الأسعار</h1>
+            <p>التاريخ: ${new Date().toLocaleDateString('ar-SA')}</p>
+            <div class="summary">
+              <p><strong>إجمالي العروض:</strong> ${filteredQuotes.length}</p>
+              <p><strong>قيمة العروض الكلية:</strong> ${totalValue.toLocaleString()} ر.س</p>
+              <p><strong>قيمة العروض المقبولة:</strong> ${acceptedValue.toLocaleString()} ر.س</p>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>رقم العرض</th>
+                  <th>العميل</th>
+                  <th>تاريخ العرض</th>
+                  <th>تاريخ الانتهاء</th>
+                  <th>المبلغ الإجمالي</th>
+                  <th>الحالة</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${printContent}
+              </tbody>
+            </table>
+            <div class="footer">
+              <p>تم الطباعة في: ${new Date().toLocaleString('ar-SA')}</p>
+            </div>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    }
+
+    toast({
+      title: "جاهز للطباعة",
+      description: "تم فتح نافذة الطباعة",
     });
   };
 
@@ -213,6 +297,14 @@ const Quotes = () => {
             <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">عروض الأسعار</h1>
           </div>
           <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handlePrint}
+              className="gap-2 hover:bg-purple-50 hover:text-purple-600 hover:border-purple-300 transition-all"
+            >
+              <Printer className="h-4 w-4" />
+              طباعة
+            </Button>
             <Button
               variant="outline"
               onClick={handleExport}
