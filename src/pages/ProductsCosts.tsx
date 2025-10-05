@@ -1,5 +1,5 @@
 import { Package, Plus, Search, MoveHorizontal as MoreHorizontal, Eye, CreditCard as Edit, Trash2, Loader as Loader2, CircleAlert as AlertCircle, TrendingUp, TrendingDown, Download, Upload } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -253,166 +253,244 @@ const ProductsCosts = () => {
   const totalValue = products.reduce((sum, p) => sum + (p.current_stock * p.cost_price), 0);
 
   const ProductForm = ({ isEdit = false }: { isEdit?: boolean }) => {
-    const productNameRef = useRef<HTMLInputElement>(null);
-
-    useEffect(() => {
-      if (!isEdit && productNameRef.current) {
-        const timer = setTimeout(() => {
-          productNameRef.current?.focus();
-        }, 100);
-        return () => clearTimeout(timer);
-      }
-    }, [isEdit]);
+    const handleInputChange = (field: keyof typeof formData, value: string) => {
+      setFormData(prev => ({
+        ...prev,
+        [field]: value
+      }));
+    };
 
     return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="col-span-2">
-          <Label htmlFor="product_name">اسم المنتج *</Label>
-          <Input
-            ref={productNameRef}
-            id="product_name"
-            value={formData.product_name}
-            onChange={(e) => setFormData({ ...formData, product_name: e.target.value })}
-            placeholder="أدخل اسم المنتج"
-            required
-          />
-        </div>
+      <div className="space-y-6">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="product_name" className="text-base font-semibold">
+              اسم المنتج <span className="text-red-500">*</span>
+            </Label>
+            <Input
+              id="product_name"
+              name="product_name"
+              type="text"
+              value={formData.product_name}
+              onChange={(e) => handleInputChange('product_name', e.target.value)}
+              placeholder="مثال: كمبيوتر محمول Dell"
+              className="text-base"
+              dir="rtl"
+            />
+          </div>
 
-        <div>
-          <Label htmlFor="category">التصنيف</Label>
-          <Input
-            id="category"
-            value={formData.category}
-            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-            placeholder="أدخل التصنيف"
-          />
-        </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="category" className="text-base font-semibold">
+                التصنيف
+              </Label>
+              <Input
+                id="category"
+                name="category"
+                type="text"
+                value={formData.category}
+                onChange={(e) => handleInputChange('category', e.target.value)}
+                placeholder="مثال: إلكترونيات"
+                className="text-base"
+                dir="rtl"
+              />
+            </div>
 
-        <div>
-          <Label htmlFor="unit">الوحدة *</Label>
-          <Select value={formData.unit} onValueChange={(value) => setFormData({ ...formData, unit: value })}>
-            <SelectTrigger>
-              <SelectValue placeholder="اختر الوحدة" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="قطعة">قطعة</SelectItem>
-              <SelectItem value="كيلو">كيلو</SelectItem>
-              <SelectItem value="لتر">لتر</SelectItem>
-              <SelectItem value="متر">متر</SelectItem>
-              <SelectItem value="علبة">علبة</SelectItem>
-              <SelectItem value="كرتون">كرتون</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+            <div className="space-y-2">
+              <Label htmlFor="unit" className="text-base font-semibold">
+                الوحدة <span className="text-red-500">*</span>
+              </Label>
+              <Select
+                value={formData.unit}
+                onValueChange={(value) => handleInputChange('unit', value)}
+              >
+                <SelectTrigger id="unit" className="text-base" dir="rtl">
+                  <SelectValue placeholder="اختر الوحدة" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="قطعة">قطعة</SelectItem>
+                  <SelectItem value="كيلو">كيلو</SelectItem>
+                  <SelectItem value="لتر">لتر</SelectItem>
+                  <SelectItem value="متر">متر</SelectItem>
+                  <SelectItem value="علبة">علبة</SelectItem>
+                  <SelectItem value="كرتون">كرتون</SelectItem>
+                  <SelectItem value="صندوق">صندوق</SelectItem>
+                  <SelectItem value="باكو">باكو</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
-        <div>
-          <Label htmlFor="cost_price">سعر التكلفة (ر.س) *</Label>
-          <Input
-            id="cost_price"
-            type="number"
-            step="0.01"
-            min="0"
-            value={formData.cost_price}
-            onChange={(e) => setFormData({ ...formData, cost_price: e.target.value })}
-            placeholder="0.00"
-            required
-          />
-        </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="cost_price" className="text-base font-semibold">
+                سعر التكلفة (ر.س) <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="cost_price"
+                name="cost_price"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.cost_price}
+                onChange={(e) => handleInputChange('cost_price', e.target.value)}
+                placeholder="0.00"
+                className="text-base"
+                dir="ltr"
+              />
+            </div>
 
-        <div>
-          <Label htmlFor="selling_price">سعر البيع (ر.س) *</Label>
-          <Input
-            id="selling_price"
-            type="number"
-            step="0.01"
-            min="0"
-            value={formData.selling_price}
-            onChange={(e) => setFormData({ ...formData, selling_price: e.target.value })}
-            placeholder="0.00"
-            required
-          />
-        </div>
+            <div className="space-y-2">
+              <Label htmlFor="selling_price" className="text-base font-semibold">
+                سعر البيع (ر.س) <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="selling_price"
+                name="selling_price"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.selling_price}
+                onChange={(e) => handleInputChange('selling_price', e.target.value)}
+                placeholder="0.00"
+                className="text-base"
+                dir="ltr"
+              />
+            </div>
+          </div>
 
-        <div>
-          <Label htmlFor="tax_rate">نسبة الضريبة (%)</Label>
-          <Input
-            id="tax_rate"
-            type="number"
-            step="0.01"
-            value={formData.tax_rate}
-            onChange={(e) => setFormData({ ...formData, tax_rate: e.target.value })}
-            placeholder="15"
-          />
-        </div>
+          <div className="space-y-2">
+            <Label htmlFor="tax_rate" className="text-base font-semibold">
+              نسبة الضريبة (%)
+            </Label>
+            <Input
+              id="tax_rate"
+              name="tax_rate"
+              type="number"
+              step="0.01"
+              min="0"
+              max="100"
+              value={formData.tax_rate}
+              onChange={(e) => handleInputChange('tax_rate', e.target.value)}
+              placeholder="15"
+              className="text-base"
+              dir="ltr"
+            />
+          </div>
 
-        <div>
-          <Label htmlFor="current_stock">المخزون الحالي</Label>
-          <Input
-            id="current_stock"
-            type="number"
-            value={formData.current_stock}
-            onChange={(e) => setFormData({ ...formData, current_stock: e.target.value })}
-            placeholder="0"
-          />
-        </div>
+          <div className="border-t pt-4 mt-4">
+            <h3 className="text-lg font-semibold mb-4">إدارة المخزون</h3>
 
-        <div>
-          <Label htmlFor="reorder_point">نقطة إعادة الطلب</Label>
-          <Input
-            id="reorder_point"
-            type="number"
-            value={formData.reorder_point}
-            onChange={(e) => setFormData({ ...formData, reorder_point: e.target.value })}
-            placeholder="10"
-          />
-        </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="current_stock" className="text-base font-semibold">
+                  المخزون الحالي
+                </Label>
+                <Input
+                  id="current_stock"
+                  name="current_stock"
+                  type="number"
+                  min="0"
+                  value={formData.current_stock}
+                  onChange={(e) => handleInputChange('current_stock', e.target.value)}
+                  placeholder="0"
+                  className="text-base"
+                  dir="ltr"
+                />
+              </div>
 
-        <div>
-          <Label htmlFor="min_stock_level">الحد الأدنى للمخزون</Label>
-          <Input
-            id="min_stock_level"
-            type="number"
-            value={formData.min_stock_level}
-            onChange={(e) => setFormData({ ...formData, min_stock_level: e.target.value })}
-            placeholder="0"
-          />
-        </div>
+              <div className="space-y-2">
+                <Label htmlFor="reorder_point" className="text-base font-semibold">
+                  نقطة إعادة الطلب
+                </Label>
+                <Input
+                  id="reorder_point"
+                  name="reorder_point"
+                  type="number"
+                  min="0"
+                  value={formData.reorder_point}
+                  onChange={(e) => handleInputChange('reorder_point', e.target.value)}
+                  placeholder="10"
+                  className="text-base"
+                  dir="ltr"
+                />
+              </div>
 
-        <div>
-          <Label htmlFor="max_stock_level">الحد الأقصى للمخزون</Label>
-          <Input
-            id="max_stock_level"
-            type="number"
-            value={formData.max_stock_level}
-            onChange={(e) => setFormData({ ...formData, max_stock_level: e.target.value })}
-            placeholder="1000"
-          />
-        </div>
+              <div className="space-y-2">
+                <Label htmlFor="min_stock_level" className="text-base font-semibold">
+                  الحد الأدنى للمخزون
+                </Label>
+                <Input
+                  id="min_stock_level"
+                  name="min_stock_level"
+                  type="number"
+                  min="0"
+                  value={formData.min_stock_level}
+                  onChange={(e) => handleInputChange('min_stock_level', e.target.value)}
+                  placeholder="0"
+                  className="text-base"
+                  dir="ltr"
+                />
+              </div>
 
-        <div className="col-span-2">
-          <Label htmlFor="description">الوصف</Label>
-          <Textarea
-            id="description"
-            value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            placeholder="أدخل وصف المنتج"
-            rows={3}
-          />
-        </div>
+              <div className="space-y-2">
+                <Label htmlFor="max_stock_level" className="text-base font-semibold">
+                  الحد الأقصى للمخزون
+                </Label>
+                <Input
+                  id="max_stock_level"
+                  name="max_stock_level"
+                  type="number"
+                  min="0"
+                  value={formData.max_stock_level}
+                  onChange={(e) => handleInputChange('max_stock_level', e.target.value)}
+                  placeholder="1000"
+                  className="text-base"
+                  dir="ltr"
+                />
+              </div>
+            </div>
+          </div>
 
-        <div className="col-span-2">
-          <Label htmlFor="notes">ملاحظات</Label>
-          <Textarea
-            id="notes"
-            value={formData.notes}
-            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-            placeholder="ملاحظات إضافية"
-            rows={2}
-          />
+          <div className="border-t pt-4 mt-4">
+            <h3 className="text-lg font-semibold mb-4">معلومات إضافية</h3>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="description" className="text-base font-semibold">
+                  الوصف
+                </Label>
+                <Textarea
+                  id="description"
+                  name="description"
+                  value={formData.description}
+                  onChange={(e) => handleInputChange('description', e.target.value)}
+                  placeholder="أدخل وصف تفصيلي للمنتج..."
+                  rows={3}
+                  className="text-base resize-none"
+                  dir="rtl"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="notes" className="text-base font-semibold">
+                  ملاحظات
+                </Label>
+                <Textarea
+                  id="notes"
+                  name="notes"
+                  value={formData.notes}
+                  onChange={(e) => handleInputChange('notes', e.target.value)}
+                  placeholder="أي ملاحظات إضافية..."
+                  rows={2}
+                  className="text-base resize-none"
+                  dir="rtl"
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
     );
   };
 
@@ -641,17 +719,29 @@ const ProductsCosts = () => {
         </Card>
 
         {/* Add Product Dialog */}
-        <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-          <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+        <Dialog open={addDialogOpen} onOpenChange={(open) => {
+          setAddDialogOpen(open);
+          if (!open) {
+            resetForm();
+          }
+        }}>
+          <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>إضافة منتج جديد</DialogTitle>
-              <DialogDescription>
-                أدخل معلومات المنتج الجديد
+              <DialogTitle className="text-2xl font-bold">إضافة منتج جديد</DialogTitle>
+              <DialogDescription className="text-base">
+                قم بملء جميع الحقول المطلوبة لإضافة منتج جديد إلى النظام
               </DialogDescription>
             </DialogHeader>
             <ProductForm />
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setAddDialogOpen(false);
+                  resetForm();
+                }}
+                className="text-base"
+              >
                 إلغاء
               </Button>
               <Button
@@ -667,7 +757,7 @@ const ProductsCosts = () => {
                   addProductMutation.mutate(formData);
                 }}
                 disabled={addProductMutation.isPending || !formData.product_name}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-base"
               >
                 {addProductMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
                 إضافة المنتج
@@ -677,17 +767,31 @@ const ProductsCosts = () => {
         </Dialog>
 
         {/* Edit Product Dialog */}
-        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+        <Dialog open={editDialogOpen} onOpenChange={(open) => {
+          setEditDialogOpen(open);
+          if (!open) {
+            setSelectedProduct(null);
+            resetForm();
+          }
+        }}>
+          <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>تعديل المنتج</DialogTitle>
-              <DialogDescription>
-                تحديث معلومات المنتج
+              <DialogTitle className="text-2xl font-bold">تعديل المنتج</DialogTitle>
+              <DialogDescription className="text-base">
+                قم بتحديث معلومات المنتج حسب الحاجة
               </DialogDescription>
             </DialogHeader>
             <ProductForm isEdit />
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setEditDialogOpen(false);
+                  setSelectedProduct(null);
+                  resetForm();
+                }}
+                className="text-base"
+              >
                 إلغاء
               </Button>
               <Button
@@ -695,9 +799,10 @@ const ProductsCosts = () => {
                   selectedProduct && updateProductMutation.mutate({ id: selectedProduct.id, data: formData })
                 }
                 disabled={updateProductMutation.isPending || !formData.product_name}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-base"
               >
                 {updateProductMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-                تحديث
+                تحديث المنتج
               </Button>
             </DialogFooter>
           </DialogContent>
