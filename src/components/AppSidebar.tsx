@@ -157,6 +157,9 @@ export function AppSidebar() {
         {!collapsed && (
           <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50">
             <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                <span className="text-white font-bold text-2xl">F</span>
+              </div>
               <div>
                 <h2 className="text-xl font-bold text-gray-900">Finzo</h2>
                 <p className="text-xs text-gray-600">نظام المحاسبة السحابي</p>
