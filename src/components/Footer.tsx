@@ -5,13 +5,15 @@ const Footer = () => {
         <div className="grid md:grid-cols-4 gap-8">
           <div className="space-y-4">
             <div className="flex items-center space-x-2 rtl:space-x-reverse">
-              <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
-                <span className="text-primary-foreground font-bold">ق</span>
-              </div>
-              <span className="text-xl font-bold">منصة الأعمال</span>
+              <img
+                src="/finzo logo-01.svg"
+                alt="Finzo Logo"
+                className="h-10 w-auto"
+              />
+              <span className="text-xl font-bold">Finzo</span>
             </div>
             <p className="text-muted-foreground">
-              النظام الأول لإدارة الأعمال في المملكة العربية السعودية
+              نظام إدارة مالي متكامل للشركات السعودية
             </p>
           </div>
 
@@ -40,13 +42,13 @@ const Footer = () => {
             <ul className="space-y-2 text-muted-foreground">
               <li>الرياض، المملكة العربية السعودية</li>
               <li>+966 11 123 4567</li>
-              <li>info@business-platform.sa</li>
+              <li>info@finzo.sa</li>
             </ul>
           </div>
         </div>
 
         <div className="border-t border-border mt-8 pt-8 text-center text-muted-foreground">
-          <p>&copy; 2024 منصة الأعمال. جميع الحقوق محفوظة.</p>
+          <p>&copy; 2024 Finzo. جميع الحقوق محفوظة.</p>
         </div>
       </div>
     </footer>

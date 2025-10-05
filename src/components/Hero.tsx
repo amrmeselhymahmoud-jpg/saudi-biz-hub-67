@@ -11,13 +11,13 @@ const Hero = () => {
             </Badge>
             
             <h1 className="text-4xl lg:text-6xl font-bold text-white leading-tight">
-              منصة الأعمال
-              <span className="block text-accent">الشاملة</span>
+              Finzo
+              <span className="block text-accent">نظام الإدارة المالي</span>
             </h1>
-            
+
             <p className="text-xl text-white/90 leading-relaxed max-w-2xl mx-auto lg:mx-0">
-              نظام إدارة شامل لجميع الأنشطة التجارية في المملكة العربية السعودية. 
-              محاسبة، مبيعات، مخزون، وتقارير مالية في منصة واحدة متكاملة.
+              حل مالي متكامل للشركات السعودية.
+              محاسبة احترافية، مبيعات، مخزون، وتقارير مالية دقيقة في منصة واحدة قوية.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">

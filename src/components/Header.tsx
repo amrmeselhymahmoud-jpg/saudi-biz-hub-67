@@ -6,12 +6,14 @@ const Header = () => {
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4 rtl:space-x-reverse">
-            <div className="w-10 h-10 bg-gradient-primary rounded-xl flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-xl">ق</span>
-            </div>
+            <img
+              src="/finzo logo-01.svg"
+              alt="Finzo Logo"
+              className="h-12 w-auto"
+            />
             <div>
-              <h1 className="text-xl font-bold text-foreground">منصة الأعمال</h1>
-              <p className="text-sm text-muted-foreground">نظام إدارة شامل</p>
+              <h1 className="text-xl font-bold text-foreground">Finzo</h1>
+              <p className="text-sm text-muted-foreground">نظام إدارة مالي متكامل</p>
             </div>
           </div>
           
