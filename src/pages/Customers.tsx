@@ -67,16 +67,10 @@ const Customers = () => {
   const { data: customers = [], isLoading } = useQuery({
     queryKey: ["customers"],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        throw new Error("يجب تسجيل الدخول أولاً");
-      }
-
+      // Get all customers (demo mode)
       const { data, error } = await supabase
         .from("customers")
         .select("*")
-        .eq("created_by", user.id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;

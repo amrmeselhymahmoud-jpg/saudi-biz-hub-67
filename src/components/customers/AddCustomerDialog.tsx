@@ -73,11 +73,8 @@ export function AddCustomerDialog({ open, onOpenChange }: AddCustomerDialogProps
 
   const addCustomerMutation = useMutation({
     mutationFn: async (values: FormValues) => {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        throw new Error("يجب تسجيل الدخول أولاً");
-      }
+      // Get demo user ID
+      const demoUserId = "00000000-0000-0000-0000-000000000000";
 
       const customerCode = `CUST-${Date.now()}`;
 
@@ -96,7 +93,7 @@ export function AddCustomerDialog({ open, onOpenChange }: AddCustomerDialogProps
             payment_terms: parseInt(values.payment_terms || "30"),
             status: "active",
             notes: values.notes || null,
-            created_by: user.id,
+            created_by: demoUserId,
           },
         ])
         .select()
