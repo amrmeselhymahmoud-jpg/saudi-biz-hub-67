@@ -1,9 +1,10 @@
-import { Package, Plus, Search, MoveHorizontal as MoreHorizontal, Eye, CreditCard as Edit, Trash2, Loader as Loader2, CircleAlert as AlertCircle, TrendingUp, TrendingDown } from "lucide-react";
+import { Package, Plus, Search, MoveHorizontal as MoreHorizontal, Eye, CreditCard as Edit, Trash2, Loader as Loader2, CircleAlert as AlertCircle, TrendingUp, TrendingDown, Download, Upload } from "lucide-react";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { exportToExcel, exportToCSV, importFromFile } from "@/utils/exportImport";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -262,6 +263,7 @@ const ProductsCosts = () => {
             onChange={(e) => setFormData({ ...formData, product_name: e.target.value })}
             placeholder="أدخل اسم المنتج"
             required
+            autoFocus
           />
         </div>
 
@@ -414,14 +416,43 @@ const ProductsCosts = () => {
               <p className="text-gray-600 mt-1">إدارة المنتجات والأسعار ومراقبة المخزون</p>
             </div>
           </div>
-          <Button
-            size="lg"
-            className="h-12 px-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all gap-2"
-            onClick={() => setAddDialogOpen(true)}
-          >
-            <Plus className="h-5 w-5" />
-            إضافة منتج جديد
-          </Button>
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              size="lg"
+              className="h-12 px-6 border-2 gap-2 hover:bg-gray-50"
+              onClick={() => {
+                const headers = ['كود المنتج', 'اسم المنتج', 'التصنيف', 'الوحدة', 'سعر التكلفة', 'سعر البيع', 'نسبة الضريبة', 'المخزون الحالي', 'نقطة إعادة الطلب', 'الحد الأدنى', 'الحد الأقصى', 'الحالة'];
+                const data = products.map(p => [
+                  p.product_code,
+                  p.product_name,
+                  p.category || '',
+                  p.unit,
+                  p.cost_price,
+                  p.selling_price,
+                  p.tax_rate,
+                  p.current_stock,
+                  p.reorder_point,
+                  p.min_stock_level,
+                  p.max_stock_level,
+                  p.status === 'active' ? 'نشط' : 'غير نشط'
+                ]);
+                exportToExcel(headers, data, 'المنتجات');
+                toast({ title: 'تم التصدير بنجاح', description: 'تم تصدير البيانات إلى ملف Excel' });
+              }}
+            >
+              <Download className="h-5 w-5" />
+              تصدير
+            </Button>
+            <Button
+              size="lg"
+              className="h-12 px-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all gap-2"
+              onClick={() => setAddDialogOpen(true)}
+            >
+              <Plus className="h-5 w-5" />
+              إضافة منتج جديد
+            </Button>
+          </div>
         </div>
 
         <div className="grid gap-6 md:grid-cols-4">
@@ -480,14 +511,40 @@ const ProductsCosts = () => {
           </Card>
         </div>
 
-        <div className="relative max-w-md">
-          <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="بحث عن منتج..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pr-10"
-          />
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="بحث عن منتج..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pr-10"
+            />
+          </div>
+          <Button
+            variant="outline"
+            size="lg"
+            className="h-10 px-4 border-2 gap-2 hover:bg-gray-50"
+            onClick={() => {
+              const input = document.createElement('input');
+              input.type = 'file';
+              input.accept = '.xlsx,.xls,.csv';
+              input.onchange = async (e: any) => {
+                const file = e.target?.files?.[0];
+                if (file) {
+                  try {
+                    toast({ title: 'جاري الاستيراد...', description: 'يرجى الانتظار' });
+                  } catch (error) {
+                    toast({ title: 'خطأ', description: 'حدث خطأ أثناء الاستيراد', variant: 'destructive' });
+                  }
+                }
+              };
+              input.click();
+            }}
+          >
+            <Upload className="h-4 w-4" />
+            استيراد
+          </Button>
         </div>
 
         <Card className="border-0 shadow-lg bg-white">

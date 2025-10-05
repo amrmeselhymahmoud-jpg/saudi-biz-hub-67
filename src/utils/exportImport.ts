@@ -1,3 +1,40 @@
+export const exportToExcel = (headers: string[], data: any[][], filename: string) => {
+  let csvContent = headers.join(',') + '\n';
+
+  data.forEach(row => {
+    csvContent += row.map(cell => {
+      const value = cell === null || cell === undefined ? '' : String(cell);
+      return value.includes(',') || value.includes('"') || value.includes('\n')
+        ? `"${value.replace(/"/g, '""')}"`
+        : value;
+    }).join(',') + '\n';
+  });
+
+  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+
+  link.setAttribute('href', url);
+  link.setAttribute('download', `${filename}_${new Date().toISOString().split('T')[0]}.csv`);
+  link.style.visibility = 'hidden';
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+export const importFromFile = async (file: File): Promise<any[]> => {
+  const extension = file.name.split('.').pop()?.toLowerCase();
+
+  if (extension === 'csv') {
+    return importFromCSV(file);
+  } else if (extension === 'json') {
+    return importFromJSON(file);
+  } else {
+    throw new Error('نوع الملف غير مدعوم. يرجى استخدام CSV أو JSON');
+  }
+};
+
 export const exportToCSV = (data: any[], filename: string) => {
   if (data.length === 0) return;
 
