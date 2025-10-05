@@ -104,10 +104,78 @@ const PurchaseOrders = () => {
   };
 
   useEffect(() => {
+    // Initialize demo data if not exists
+    initializeDemoData();
     fetchOrders();
     fetchSuppliers();
     fetchProducts();
   }, []);
+
+  const initializeDemoData = () => {
+    // Initialize demo suppliers if not exists
+    const storedSuppliers = localStorage.getItem('demo_suppliers');
+    if (!storedSuppliers) {
+      const demoSuppliers = [
+        { id: 'sup_1', name: 'شركة التوريدات المتقدمة' },
+        { id: 'sup_2', name: 'مؤسسة الإمداد التجاري' },
+        { id: 'sup_3', name: 'شركة النجاح للتوريد' },
+      ];
+      localStorage.setItem('demo_suppliers', JSON.stringify(demoSuppliers));
+    }
+
+    // Initialize demo products if not exists
+    const storedProducts = localStorage.getItem('demo_products');
+    if (!storedProducts) {
+      const demoProducts = [
+        { id: 'prod_1', name: 'منتج أ', cost_price: 100, tax_rate: 15 },
+        { id: 'prod_2', name: 'منتج ب', cost_price: 200, tax_rate: 15 },
+        { id: 'prod_3', name: 'منتج ج', cost_price: 150, tax_rate: 15 },
+      ];
+      localStorage.setItem('demo_products', JSON.stringify(demoProducts));
+    }
+
+    // Initialize demo purchase orders if not exists
+    const storedOrders = localStorage.getItem('demo_purchase_orders');
+    if (!storedOrders) {
+      const demoOrders = [
+        {
+          id: 'po_1',
+          order_number: 'PO-100001',
+          supplier_id: 'sup_1',
+          order_date: new Date().toISOString().split('T')[0],
+          delivery_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          status: 'draft',
+          items: [
+            { product_id: 'prod_1', product_name: 'منتج أ', quantity: 5, unit_price: 100, tax_rate: 15, total: 575 }
+          ],
+          subtotal: 500,
+          tax_amount: 75,
+          total_amount: 575,
+          notes: 'أمر شراء تجريبي',
+          suppliers: { name: 'شركة التوريدات المتقدمة' },
+          created_at: new Date().toISOString(),
+        },
+        {
+          id: 'po_2',
+          order_number: 'PO-100002',
+          supplier_id: 'sup_2',
+          order_date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          delivery_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          status: 'sent',
+          items: [
+            { product_id: 'prod_2', product_name: 'منتج ب', quantity: 10, unit_price: 200, tax_rate: 15, total: 2300 }
+          ],
+          subtotal: 2000,
+          tax_amount: 300,
+          total_amount: 2300,
+          notes: null,
+          suppliers: { name: 'مؤسسة الإمداد التجاري' },
+          created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        },
+      ];
+      localStorage.setItem('demo_purchase_orders', JSON.stringify(demoOrders));
+    }
+  };
 
   const fetchOrders = async () => {
     try {
