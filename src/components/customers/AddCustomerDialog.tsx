@@ -23,14 +23,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Loader as Loader2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const formSchema = z.object({
   customer_name: z.string().min(2, "يجب أن يكون الاسم حرفين على الأقل"),
@@ -54,7 +48,7 @@ interface AddCustomerDialogProps {
 export function AddCustomerDialog({ open, onOpenChange }: AddCustomerDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [isLoading, setIsLoading] = useState(false);
+  const { user } = useAuth();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -73,33 +67,37 @@ export function AddCustomerDialog({ open, onOpenChange }: AddCustomerDialogProps
 
   const addCustomerMutation = useMutation({
     mutationFn: async (values: FormValues) => {
-      // Get demo user ID
-      const demoUserId = "00000000-0000-0000-0000-000000000000";
-
       const customerCode = `CUST-${Date.now()}`;
+
+      const customerData: any = {
+        customer_code: customerCode,
+        customer_name: values.customer_name,
+        email: values.email || null,
+        phone: values.phone || null,
+        address: values.address || null,
+        city: values.city || null,
+        tax_number: values.tax_number || null,
+        credit_limit: parseFloat(values.credit_limit || "0"),
+        payment_terms: parseInt(values.payment_terms || "30"),
+        status: "active",
+        notes: values.notes || null,
+      };
+
+      if (user?.id) {
+        customerData.created_by = user.id;
+      }
 
       const { data, error } = await supabase
         .from("customers")
-        .insert([
-          {
-            customer_code: customerCode,
-            customer_name: values.customer_name,
-            email: values.email || null,
-            phone: values.phone || null,
-            address: values.address || null,
-            city: values.city || null,
-            tax_number: values.tax_number || null,
-            credit_limit: parseFloat(values.credit_limit || "0"),
-            payment_terms: parseInt(values.payment_terms || "30"),
-            status: "active",
-            notes: values.notes || null,
-            created_by: demoUserId,
-          },
-        ])
+        .insert([customerData])
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error adding customer:", error);
+        throw error;
+      }
+
       return data;
     },
     onSuccess: () => {
@@ -112,9 +110,10 @@ export function AddCustomerDialog({ open, onOpenChange }: AddCustomerDialogProps
       onOpenChange(false);
     },
     onError: (error: Error) => {
+      console.error("Mutation error:", error);
       toast({
-        title: "خطأ",
-        description: error.message,
+        title: "خطأ في إضافة العميل",
+        description: error.message || "حدث خطأ أثناء إضافة العميل",
         variant: "destructive",
       });
     },
@@ -291,7 +290,11 @@ export function AddCustomerDialog({ open, onOpenChange }: AddCustomerDialogProps
               >
                 إلغاء
               </Button>
-              <Button type="submit" disabled={addCustomerMutation.isPending}>
+              <Button
+                type="submit"
+                disabled={addCustomerMutation.isPending}
+                className="bg-gradient-to-r from-teal-600 to-green-600 hover:from-teal-700 hover:to-green-700"
+              >
                 {addCustomerMutation.isPending && (
                   <Loader2 className="ml-2 h-4 w-4 animate-spin" />
                 )}
