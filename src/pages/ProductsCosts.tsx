@@ -252,247 +252,238 @@ const ProductsCosts = () => {
   const lowStockProducts = products.filter(p => p.current_stock <= p.reorder_point).length;
   const totalValue = products.reduce((sum, p) => sum + (p.current_stock * p.cost_price), 0);
 
-  const ProductForm = ({ isEdit = false }: { isEdit?: boolean }) => {
-    const handleInputChange = (field: keyof typeof formData, value: string) => {
-      setFormData(prev => ({
-        ...prev,
-        [field]: value
-      }));
-    };
+  const ProductForm = ({ isEdit = false }: { isEdit?: boolean }) => (
+    <div className="space-y-6">
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="product_name" className="text-base font-semibold">
+            اسم المنتج <span className="text-red-500">*</span>
+          </Label>
+          <Input
+            id="product_name"
+            name="product_name"
+            type="text"
+            value={formData.product_name}
+            onChange={(e) => setFormData({ ...formData, product_name: e.target.value })}
+            placeholder="مثال: كمبيوتر محمول Dell"
+            className="text-base"
+            dir="rtl"
+          />
+        </div>
 
-    return (
-      <div className="space-y-6">
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="product_name" className="text-base font-semibold">
-              اسم المنتج <span className="text-red-500">*</span>
+            <Label htmlFor="category" className="text-base font-semibold">
+              التصنيف
             </Label>
             <Input
-              id="product_name"
-              name="product_name"
+              id="category"
+              name="category"
               type="text"
-              value={formData.product_name}
-              onChange={(e) => handleInputChange('product_name', e.target.value)}
-              placeholder="مثال: كمبيوتر محمول Dell"
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              placeholder="مثال: إلكترونيات"
               className="text-base"
               dir="rtl"
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="category" className="text-base font-semibold">
-                التصنيف
-              </Label>
-              <Input
-                id="category"
-                name="category"
-                type="text"
-                value={formData.category}
-                onChange={(e) => handleInputChange('category', e.target.value)}
-                placeholder="مثال: إلكترونيات"
-                className="text-base"
-                dir="rtl"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="unit" className="text-base font-semibold">
-                الوحدة <span className="text-red-500">*</span>
-              </Label>
-              <Select
-                value={formData.unit}
-                onValueChange={(value) => handleInputChange('unit', value)}
-              >
-                <SelectTrigger id="unit" className="text-base" dir="rtl">
-                  <SelectValue placeholder="اختر الوحدة" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="قطعة">قطعة</SelectItem>
-                  <SelectItem value="كيلو">كيلو</SelectItem>
-                  <SelectItem value="لتر">لتر</SelectItem>
-                  <SelectItem value="متر">متر</SelectItem>
-                  <SelectItem value="علبة">علبة</SelectItem>
-                  <SelectItem value="كرتون">كرتون</SelectItem>
-                  <SelectItem value="صندوق">صندوق</SelectItem>
-                  <SelectItem value="باكو">باكو</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="cost_price" className="text-base font-semibold">
-                سعر التكلفة (ر.س) <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="cost_price"
-                name="cost_price"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.cost_price}
-                onChange={(e) => handleInputChange('cost_price', e.target.value)}
-                placeholder="0.00"
-                className="text-base"
-                dir="ltr"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="selling_price" className="text-base font-semibold">
-                سعر البيع (ر.س) <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="selling_price"
-                name="selling_price"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.selling_price}
-                onChange={(e) => handleInputChange('selling_price', e.target.value)}
-                placeholder="0.00"
-                className="text-base"
-                dir="ltr"
-              />
-            </div>
-          </div>
-
           <div className="space-y-2">
-            <Label htmlFor="tax_rate" className="text-base font-semibold">
-              نسبة الضريبة (%)
+            <Label htmlFor="unit" className="text-base font-semibold">
+              الوحدة <span className="text-red-500">*</span>
+            </Label>
+            <Select
+              value={formData.unit}
+              onValueChange={(value) => setFormData({ ...formData, unit: value })}
+            >
+              <SelectTrigger id="unit" className="text-base" dir="rtl">
+                <SelectValue placeholder="اختر الوحدة" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="قطعة">قطعة</SelectItem>
+                <SelectItem value="كيلو">كيلو</SelectItem>
+                <SelectItem value="لتر">لتر</SelectItem>
+                <SelectItem value="متر">متر</SelectItem>
+                <SelectItem value="علبة">علبة</SelectItem>
+                <SelectItem value="كرتون">كرتون</SelectItem>
+                <SelectItem value="صندوق">صندوق</SelectItem>
+                <SelectItem value="باكو">باكو</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="cost_price" className="text-base font-semibold">
+              سعر التكلفة (ر.س) <span className="text-red-500">*</span>
             </Label>
             <Input
-              id="tax_rate"
-              name="tax_rate"
+              id="cost_price"
+              name="cost_price"
               type="number"
               step="0.01"
               min="0"
-              max="100"
-              value={formData.tax_rate}
-              onChange={(e) => handleInputChange('tax_rate', e.target.value)}
-              placeholder="15"
+              value={formData.cost_price}
+              onChange={(e) => setFormData({ ...formData, cost_price: e.target.value })}
+              placeholder="0.00"
               className="text-base"
               dir="ltr"
             />
           </div>
 
-          <div className="border-t pt-4 mt-4">
-            <h3 className="text-lg font-semibold mb-4">إدارة المخزون</h3>
+          <div className="space-y-2">
+            <Label htmlFor="selling_price" className="text-base font-semibold">
+              سعر البيع (ر.س) <span className="text-red-500">*</span>
+            </Label>
+            <Input
+              id="selling_price"
+              name="selling_price"
+              type="number"
+              step="0.01"
+              min="0"
+              value={formData.selling_price}
+              onChange={(e) => setFormData({ ...formData, selling_price: e.target.value })}
+              placeholder="0.00"
+              className="text-base"
+              dir="ltr"
+            />
+          </div>
+        </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="current_stock" className="text-base font-semibold">
-                  المخزون الحالي
-                </Label>
-                <Input
-                  id="current_stock"
-                  name="current_stock"
-                  type="number"
-                  min="0"
-                  value={formData.current_stock}
-                  onChange={(e) => handleInputChange('current_stock', e.target.value)}
-                  placeholder="0"
-                  className="text-base"
-                  dir="ltr"
-                />
-              </div>
+        <div className="space-y-2">
+          <Label htmlFor="tax_rate" className="text-base font-semibold">
+            نسبة الضريبة (%)
+          </Label>
+          <Input
+            id="tax_rate"
+            name="tax_rate"
+            type="number"
+            step="0.01"
+            min="0"
+            max="100"
+            value={formData.tax_rate}
+            onChange={(e) => setFormData({ ...formData, tax_rate: e.target.value })}
+            placeholder="15"
+            className="text-base"
+            dir="ltr"
+          />
+        </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="reorder_point" className="text-base font-semibold">
-                  نقطة إعادة الطلب
-                </Label>
-                <Input
-                  id="reorder_point"
-                  name="reorder_point"
-                  type="number"
-                  min="0"
-                  value={formData.reorder_point}
-                  onChange={(e) => handleInputChange('reorder_point', e.target.value)}
-                  placeholder="10"
-                  className="text-base"
-                  dir="ltr"
-                />
-              </div>
+        <div className="border-t pt-4 mt-4">
+          <h3 className="text-lg font-semibold mb-4">إدارة المخزون</h3>
 
-              <div className="space-y-2">
-                <Label htmlFor="min_stock_level" className="text-base font-semibold">
-                  الحد الأدنى للمخزون
-                </Label>
-                <Input
-                  id="min_stock_level"
-                  name="min_stock_level"
-                  type="number"
-                  min="0"
-                  value={formData.min_stock_level}
-                  onChange={(e) => handleInputChange('min_stock_level', e.target.value)}
-                  placeholder="0"
-                  className="text-base"
-                  dir="ltr"
-                />
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="current_stock" className="text-base font-semibold">
+                المخزون الحالي
+              </Label>
+              <Input
+                id="current_stock"
+                name="current_stock"
+                type="number"
+                min="0"
+                value={formData.current_stock}
+                onChange={(e) => setFormData({ ...formData, current_stock: e.target.value })}
+                placeholder="0"
+                className="text-base"
+                dir="ltr"
+              />
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="max_stock_level" className="text-base font-semibold">
-                  الحد الأقصى للمخزون
-                </Label>
-                <Input
-                  id="max_stock_level"
-                  name="max_stock_level"
-                  type="number"
-                  min="0"
-                  value={formData.max_stock_level}
-                  onChange={(e) => handleInputChange('max_stock_level', e.target.value)}
-                  placeholder="1000"
-                  className="text-base"
-                  dir="ltr"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="reorder_point" className="text-base font-semibold">
+                نقطة إعادة الطلب
+              </Label>
+              <Input
+                id="reorder_point"
+                name="reorder_point"
+                type="number"
+                min="0"
+                value={formData.reorder_point}
+                onChange={(e) => setFormData({ ...formData, reorder_point: e.target.value })}
+                placeholder="10"
+                className="text-base"
+                dir="ltr"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="min_stock_level" className="text-base font-semibold">
+                الحد الأدنى للمخزون
+              </Label>
+              <Input
+                id="min_stock_level"
+                name="min_stock_level"
+                type="number"
+                min="0"
+                value={formData.min_stock_level}
+                onChange={(e) => setFormData({ ...formData, min_stock_level: e.target.value })}
+                placeholder="0"
+                className="text-base"
+                dir="ltr"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="max_stock_level" className="text-base font-semibold">
+                الحد الأقصى للمخزون
+              </Label>
+              <Input
+                id="max_stock_level"
+                name="max_stock_level"
+                type="number"
+                min="0"
+                value={formData.max_stock_level}
+                onChange={(e) => setFormData({ ...formData, max_stock_level: e.target.value })}
+                placeholder="1000"
+                className="text-base"
+                dir="ltr"
+              />
             </div>
           </div>
+        </div>
 
-          <div className="border-t pt-4 mt-4">
-            <h3 className="text-lg font-semibold mb-4">معلومات إضافية</h3>
+        <div className="border-t pt-4 mt-4">
+          <h3 className="text-lg font-semibold mb-4">معلومات إضافية</h3>
 
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="description" className="text-base font-semibold">
-                  الوصف
-                </Label>
-                <Textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={(e) => handleInputChange('description', e.target.value)}
-                  placeholder="أدخل وصف تفصيلي للمنتج..."
-                  rows={3}
-                  className="text-base resize-none"
-                  dir="rtl"
-                />
-              </div>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="description" className="text-base font-semibold">
+                الوصف
+              </Label>
+              <Textarea
+                id="description"
+                name="description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="أدخل وصف تفصيلي للمنتج..."
+                rows={3}
+                className="text-base resize-none"
+                dir="rtl"
+              />
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="notes" className="text-base font-semibold">
-                  ملاحظات
-                </Label>
-                <Textarea
-                  id="notes"
-                  name="notes"
-                  value={formData.notes}
-                  onChange={(e) => handleInputChange('notes', e.target.value)}
-                  placeholder="أي ملاحظات إضافية..."
-                  rows={2}
-                  className="text-base resize-none"
-                  dir="rtl"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="notes" className="text-base font-semibold">
+                ملاحظات
+              </Label>
+              <Textarea
+                id="notes"
+                name="notes"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                placeholder="أي ملاحظات إضافية..."
+                rows={2}
+                className="text-base resize-none"
+                dir="rtl"
+              />
             </div>
           </div>
         </div>
       </div>
-    );
-  };
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/20 to-purple-50/30">
