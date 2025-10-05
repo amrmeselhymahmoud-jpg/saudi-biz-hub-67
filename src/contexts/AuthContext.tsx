@@ -32,39 +32,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     let mounted = true;
 
-    const initializeAuth = () => {
+    const initializeAuth = async () => {
       try {
-        // Check localStorage for demo session
-        const storedSession = localStorage.getItem('demo_session');
+        // Get initial session
+        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
 
-        if (storedSession) {
-          try {
-            const sessionData = JSON.parse(storedSession);
+        if (error) {
+          console.error('Error getting session:', error);
+        }
 
-            // Validate session structure
-            if (sessionData && sessionData.user && sessionData.expires_at) {
-              // Check if session is still valid
-              if (sessionData.expires_at > Date.now()) {
-                if (mounted) {
-                  setSession(sessionData as Session);
-                  setUser(sessionData.user as User);
-                }
-              } else {
-                // Clear expired session
-                localStorage.removeItem('demo_session');
-                if (mounted) {
-                  setSession(null);
-                  setUser(null);
-                }
-              }
-            } else {
-              // Invalid session structure
-              localStorage.removeItem('demo_session');
-            }
-          } catch (parseError) {
-            console.error('Error parsing session:', parseError);
-            localStorage.removeItem('demo_session');
-          }
+        if (mounted) {
+          setSession(initialSession);
+          setUser(initialSession?.user ?? null);
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
@@ -77,42 +56,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     initializeAuth();
 
-    // Listen for storage changes (for multi-tab support)
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'demo_session') {
-        if (e.newValue) {
-          try {
-            const sessionData = JSON.parse(e.newValue);
-            if (sessionData && sessionData.user && sessionData.expires_at > Date.now()) {
-              setSession(sessionData as Session);
-              setUser(sessionData.user as User);
-            }
-          } catch (error) {
-            console.error('Error handling storage change:', error);
-          }
-        } else {
-          setSession(null);
-          setUser(null);
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, currentSession) => {
+        console.log('Auth state changed:', event);
+
+        if (mounted) {
+          setSession(currentSession);
+          setUser(currentSession?.user ?? null);
+          setLoading(false);
         }
       }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
+    );
 
     return () => {
       mounted = false;
-      window.removeEventListener('storage', handleStorageChange);
+      subscription.unsubscribe();
     };
   }, []);
 
   const signOut = async () => {
     try {
-      // Clear demo session
-      localStorage.removeItem('demo_session');
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Error signing out:', error);
+        throw error;
+      }
       setSession(null);
       setUser(null);
     } catch (error) {
       console.error('Error signing out:', error);
+      throw error;
     }
   };
 

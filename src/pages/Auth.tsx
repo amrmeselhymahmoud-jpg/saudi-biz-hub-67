@@ -9,15 +9,14 @@ import { ArrowRight, Mail, Lock, User, Building2 } from "lucide-react";
 import EnhancedBackground from "@/components/animations/EnhancedBackground";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { z } from "zod";
 
-// Schema validation for login
 const loginSchema = z.object({
   email: z.string().trim().email("البريد الإلكتروني غير صحيح"),
   password: z.string().min(6, "كلمة المرور يجب أن تكون 6 أحرف على الأقل")
 });
 
-// Schema validation for signup
 const signupSchema = z.object({
   email: z.string().trim().email("البريد الإلكتروني غير صحيح"),
   password: z.string().min(6, "كلمة المرور يجب أن تكون 6 أحرف على الأقل"),
@@ -43,10 +42,11 @@ const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { session, loading } = useAuth();
 
   const businessTypes = [
     "تجارة التجزئة",
-    "الخدمات", 
+    "الخدمات",
     "التصنيع",
     "المقاولات",
     "التجارة الإلكترونية",
@@ -56,83 +56,40 @@ const Auth = () => {
   ];
 
   useEffect(() => {
-    // Check if user is already logged in
-    const checkUser = () => {
-      const session = localStorage.getItem('demo_session');
-      if (session) {
-        const sessionData = JSON.parse(session);
-        // Check if session is still valid
-        if (sessionData.expires_at > Date.now()) {
-          navigate("/dashboard");
-        } else {
-          // Clear expired session
-          localStorage.removeItem('demo_session');
-        }
-      }
-    };
-    checkUser();
-  }, [navigate]);
+    if (!loading && session) {
+      navigate("/dashboard");
+    }
+  }, [session, loading, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      // Validate input data
       const validatedData = loginSchema.parse({
         email: loginData.email.trim(),
         password: loginData.password
       });
 
-      // Check localStorage for demo mode
-      const storedUsers = localStorage.getItem('demo_users');
-
-      if (!storedUsers) {
-        throw new Error("لا يوجد حسابات مسجلة. يرجى إنشاء حساب جديد أولاً");
-      }
-
-      const users = JSON.parse(storedUsers);
-      const user = users.find((u: any) =>
-        u.email.toLowerCase() === validatedData.email.toLowerCase() &&
-        u.password === validatedData.password
-      );
-
-      if (!user) {
-        throw new Error("البريد الإلكتروني أو كلمة المرور غير صحيحة");
-      }
-
-      // Store session in localStorage
-      const session = {
-        user: {
-          id: user.id,
-          email: user.email,
-          user_metadata: {
-            display_name: user.displayName,
-            company_name: user.companyName,
-            business_type: user.businessType
-          }
-        },
-        access_token: 'demo_token_' + Date.now(),
-        expires_at: Date.now() + 7 * 24 * 60 * 60 * 1000
-      };
-
-      localStorage.setItem('demo_session', JSON.stringify(session));
-
-      toast({
-        title: "تم تسجيل الدخول بنجاح",
-        description: `مرحباً بك ${user.displayName}`
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: validatedData.email,
+        password: validatedData.password
       });
 
-      // Clear form
-      setLoginData({ email: "", password: "" });
+      if (error) {
+        throw error;
+      }
 
-      // Navigate to dashboard
-      setTimeout(() => {
-        navigate("/dashboard", { replace: true });
-        window.location.reload();
-      }, 500);
+      if (data.user) {
+        toast({
+          title: "تم تسجيل الدخول بنجاح",
+          description: "مرحباً بك في قيود"
+        });
 
-    } catch (error) {
+        setLoginData({ email: "", password: "" });
+        navigate("/dashboard");
+      }
+    } catch (error: any) {
       if (error instanceof z.ZodError) {
         toast({
           title: "خطأ في البيانات",
@@ -141,9 +98,17 @@ const Auth = () => {
         });
       } else {
         console.error("Login error:", error);
+        let errorMessage = "حدث خطأ أثناء تسجيل الدخول";
+
+        if (error.message === "Invalid login credentials") {
+          errorMessage = "البريد الإلكتروني أو كلمة المرور غير صحيحة";
+        } else if (error.message.includes("Email not confirmed")) {
+          errorMessage = "يرجى تأكيد بريدك الإلكتروني أولاً";
+        }
+
         toast({
           title: "خطأ في تسجيل الدخول",
-          description: error instanceof Error ? error.message : "حدث خطأ أثناء تسجيل الدخول",
+          description: errorMessage,
           variant: "destructive"
         });
       }
@@ -157,7 +122,6 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      // Validate input data
       const validatedData = signupSchema.parse({
         email: signupData.email.trim(),
         password: signupData.password,
@@ -167,79 +131,43 @@ const Auth = () => {
         businessType: signupData.businessType
       });
 
-      // Use localStorage for demo mode
-      const storedUsers = localStorage.getItem('demo_users');
-      const users = storedUsers ? JSON.parse(storedUsers) : [];
+      const { data, error } = await supabase.auth.signUp({
+        email: validatedData.email,
+        password: validatedData.password,
+        options: {
+          data: {
+            display_name: validatedData.displayName,
+            company_name: validatedData.companyName,
+            business_type: validatedData.businessType
+          },
+          emailRedirectTo: `${window.location.origin}/dashboard`
+        }
+      });
 
-      // Check if email already exists (case insensitive)
-      const existingUser = users.find((u: any) =>
-        u.email.toLowerCase() === validatedData.email.toLowerCase()
-      );
-
-      if (existingUser) {
-        toast({
-          title: "الحساب موجود مسبقاً",
-          description: "هذا البريد الإلكتروني مسجل مسبقاً. يرجى تسجيل الدخول بدلاً من ذلك.",
-          variant: "destructive"
-        });
-        setIsLoading(false);
-        return;
+      if (error) {
+        throw error;
       }
 
-      // Create new user
-      const newUser = {
-        id: 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-        email: validatedData.email.toLowerCase(),
-        password: validatedData.password,
-        displayName: validatedData.displayName,
-        companyName: validatedData.companyName,
-        businessType: validatedData.businessType,
-        createdAt: new Date().toISOString()
-      };
+      if (data.user) {
+        toast({
+          title: "تم إنشاء الحساب بنجاح",
+          description: `مرحباً بك ${validatedData.displayName}! يمكنك الآن تسجيل الدخول`
+        });
 
-      // Save user
-      users.push(newUser);
-      localStorage.setItem('demo_users', JSON.stringify(users));
+        setSignupData({
+          email: "",
+          password: "",
+          confirmPassword: "",
+          displayName: "",
+          companyName: "",
+          businessType: ""
+        });
 
-      // Create session
-      const session = {
-        user: {
-          id: newUser.id,
-          email: newUser.email,
-          user_metadata: {
-            display_name: newUser.displayName,
-            company_name: newUser.companyName,
-            business_type: newUser.businessType
-          }
-        },
-        access_token: 'demo_token_' + Date.now(),
-        expires_at: Date.now() + 7 * 24 * 60 * 60 * 1000
-      };
-
-      localStorage.setItem('demo_session', JSON.stringify(session));
-
-      toast({
-        title: "تم إنشاء الحساب بنجاح",
-        description: `مرحباً بك ${newUser.displayName}! يتم الآن تحويلك إلى لوحة التحكم...`
-      });
-
-      // Reset form
-      setSignupData({
-        email: "",
-        password: "",
-        confirmPassword: "",
-        displayName: "",
-        companyName: "",
-        businessType: ""
-      });
-
-      // Navigate to dashboard
-      setTimeout(() => {
-        navigate("/dashboard", { replace: true });
-        window.location.reload();
-      }, 500);
-
-    } catch (error) {
+        if (data.session) {
+          navigate("/dashboard");
+        }
+      }
+    } catch (error: any) {
       if (error instanceof z.ZodError) {
         toast({
           title: "خطأ في البيانات",
@@ -248,9 +176,17 @@ const Auth = () => {
         });
       } else {
         console.error("Signup error:", error);
+        let errorMessage = "حدث خطأ أثناء إنشاء الحساب";
+
+        if (error.message.includes("already registered")) {
+          errorMessage = "هذا البريد الإلكتروني مسجل مسبقاً";
+        } else if (error.message.includes("password")) {
+          errorMessage = "كلمة المرور ضعيفة جداً";
+        }
+
         toast({
           title: "خطأ في إنشاء الحساب",
-          description: error instanceof Error ? error.message : "حدث خطأ أثناء إنشاء الحساب",
+          description: errorMessage,
           variant: "destructive"
         });
       }
@@ -259,15 +195,23 @@ const Auth = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">جاري التحميل...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-background flex"
-    >
-      {/* القسم الأيسر - النموذج */}
+    <div className="min-h-screen bg-background flex">
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
-          {/* العودة إلى الصفحة الرئيسية */}
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => navigate("/")}
             className="mb-6"
           >
@@ -275,7 +219,6 @@ const Auth = () => {
             العودة إلى الصفحة الرئيسية
           </Button>
 
-          {/* العنوان الرئيسي */}
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-qoyod-text mb-4">
               مرحباً بك في قيود
@@ -285,7 +228,6 @@ const Auth = () => {
             </p>
           </div>
 
-          {/* نموذج تسجيل الدخول والتسجيل */}
           <Card className="border-qoyod-border shadow-card">
             <CardHeader>
               <CardTitle className="text-xl text-center">دخول النظام</CardTitle>
@@ -297,17 +239,8 @@ const Auth = () => {
                   <TabsTrigger value="signup">حساب جديد</TabsTrigger>
                 </TabsList>
 
-                {/* تسجيل الدخول */}
                 <TabsContent value="login">
                   <form onSubmit={handleLogin} className="space-y-4">
-                    <div className="space-y-2">
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                        <p className="text-sm text-blue-800 text-center font-medium">
-                          ليس لديك حساب؟ انتقل إلى تبويب "حساب جديد" لإنشاء حساب
-                        </p>
-                      </div>
-                    </div>
-
                     <div className="space-y-2">
                       <Label htmlFor="email" className="text-qoyod-text">
                         البريد الإلكتروني
@@ -322,6 +255,7 @@ const Auth = () => {
                           className="border-qoyod-border focus:border-primary pr-12"
                           dir="ltr"
                           required
+                          disabled={isLoading}
                         />
                         <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-qoyod-muted h-4 w-4" />
                       </div>
@@ -340,6 +274,7 @@ const Auth = () => {
                           onChange={(e) => setLoginData({...loginData, password: e.target.value})}
                           className="border-qoyod-border focus:border-primary pr-12"
                           required
+                          disabled={isLoading}
                         />
                         <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-qoyod-muted h-4 w-4" />
                       </div>
@@ -355,7 +290,6 @@ const Auth = () => {
                   </form>
                 </TabsContent>
 
-                {/* إنشاء حساب جديد */}
                 <TabsContent value="signup">
                   <form onSubmit={handleSignup} className="space-y-4">
                     <div className="space-y-2">
@@ -371,6 +305,8 @@ const Auth = () => {
                           onChange={(e) => setSignupData({...signupData, email: e.target.value})}
                           className="border-qoyod-border focus:border-primary pr-12"
                           dir="ltr"
+                          required
+                          disabled={isLoading}
                         />
                         <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-qoyod-muted h-4 w-4" />
                       </div>
@@ -388,6 +324,8 @@ const Auth = () => {
                           value={signupData.displayName}
                           onChange={(e) => setSignupData({...signupData, displayName: e.target.value})}
                           className="border-qoyod-border focus:border-primary pr-12"
+                          required
+                          disabled={isLoading}
                         />
                         <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-qoyod-muted h-4 w-4" />
                       </div>
@@ -405,6 +343,8 @@ const Auth = () => {
                           value={signupData.companyName}
                           onChange={(e) => setSignupData({...signupData, companyName: e.target.value})}
                           className="border-qoyod-border focus:border-primary pr-12"
+                          required
+                          disabled={isLoading}
                         />
                         <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-qoyod-muted h-4 w-4" />
                       </div>
@@ -419,6 +359,8 @@ const Auth = () => {
                         value={signupData.businessType}
                         onChange={(e) => setSignupData({...signupData, businessType: e.target.value})}
                         className="w-full p-3 border border-qoyod-border rounded-md focus:border-primary focus:ring-primary focus:ring-1 focus:outline-none"
+                        required
+                        disabled={isLoading}
                       >
                         <option value="">اختر نوع النشاط</option>
                         {businessTypes.map((type) => (
@@ -439,6 +381,8 @@ const Auth = () => {
                           value={signupData.password}
                           onChange={(e) => setSignupData({...signupData, password: e.target.value})}
                           className="border-qoyod-border focus:border-primary pr-12"
+                          required
+                          disabled={isLoading}
                         />
                         <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-qoyod-muted h-4 w-4" />
                       </div>
@@ -456,6 +400,8 @@ const Auth = () => {
                           value={signupData.confirmPassword}
                           onChange={(e) => setSignupData({...signupData, confirmPassword: e.target.value})}
                           className="border-qoyod-border focus:border-primary pr-12"
+                          required
+                          disabled={isLoading}
                         />
                         <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-qoyod-muted h-4 w-4" />
                       </div>
@@ -468,12 +414,6 @@ const Auth = () => {
                     >
                       {isLoading ? "جاري إنشاء الحساب..." : "إنشاء حساب جديد"}
                     </Button>
-
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-3">
-                      <p className="text-xs text-green-800 text-center">
-                        بعد إنشاء الحساب، يمكنك تسجيل الدخول مباشرة بنفس البريد الإلكتروني وكلمة المرور
-                      </p>
-                    </div>
                   </form>
                 </TabsContent>
               </Tabs>
@@ -482,7 +422,6 @@ const Auth = () => {
         </div>
       </div>
 
-      {/* القسم الأيمن - الخلفية المتحركة */}
       <EnhancedBackground />
     </div>
   );
