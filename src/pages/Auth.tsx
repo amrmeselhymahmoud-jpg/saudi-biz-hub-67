@@ -78,45 +78,60 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      const validatedData = loginSchema.parse(loginData);
+      // Validate input data
+      const validatedData = loginSchema.parse({
+        email: loginData.email.trim(),
+        password: loginData.password
+      });
 
       // Check localStorage for demo mode
       const storedUsers = localStorage.getItem('demo_users');
-      if (storedUsers) {
-        const users = JSON.parse(storedUsers);
-        const user = users.find((u: any) =>
-          u.email === validatedData.email && u.password === validatedData.password
-        );
 
-        if (user) {
-          // Store session in localStorage
-          const session = {
-            user: {
-              id: user.id,
-              email: user.email,
-              user_metadata: {
-                display_name: user.displayName,
-                company_name: user.companyName,
-                business_type: user.businessType
-              }
-            },
-            access_token: 'demo_token_' + Date.now(),
-            expires_at: Date.now() + 7 * 24 * 60 * 60 * 1000
-          };
-          localStorage.setItem('demo_session', JSON.stringify(session));
-
-          toast({
-            title: "تم تسجيل الدخول بنجاح",
-            description: "مرحباً بك في قيود"
-          });
-
-          await new Promise(resolve => setTimeout(resolve, 500));
-          navigate("/dashboard", { replace: true });
-          return;
-        }
+      if (!storedUsers) {
+        throw new Error("لا يوجد حسابات مسجلة. يرجى إنشاء حساب جديد أولاً");
       }
 
-      throw new Error("البريد الإلكتروني أو كلمة المرور غير صحيحة");
+      const users = JSON.parse(storedUsers);
+      const user = users.find((u: any) =>
+        u.email.toLowerCase() === validatedData.email.toLowerCase() &&
+        u.password === validatedData.password
+      );
+
+      if (!user) {
+        throw new Error("البريد الإلكتروني أو كلمة المرور غير صحيحة");
+      }
+
+      // Store session in localStorage
+      const session = {
+        user: {
+          id: user.id,
+          email: user.email,
+          user_metadata: {
+            display_name: user.displayName,
+            company_name: user.companyName,
+            business_type: user.businessType
+          }
+        },
+        access_token: 'demo_token_' + Date.now(),
+        expires_at: Date.now() + 7 * 24 * 60 * 60 * 1000
+      };
+
+      localStorage.setItem('demo_session', JSON.stringify(session));
+
+      toast({
+        title: "تم تسجيل الدخول بنجاح",
+        description: `مرحباً بك ${user.displayName}`
+      });
+
+      // Clear form
+      setLoginData({ email: "", password: "" });
+
+      // Navigate to dashboard
+      setTimeout(() => {
+        navigate("/dashboard", { replace: true });
+        window.location.reload();
+      }, 500);
+
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast({
@@ -142,27 +157,39 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      const validatedData = signupSchema.parse(signupData);
+      // Validate input data
+      const validatedData = signupSchema.parse({
+        email: signupData.email.trim(),
+        password: signupData.password,
+        confirmPassword: signupData.confirmPassword,
+        displayName: signupData.displayName.trim(),
+        companyName: signupData.companyName.trim(),
+        businessType: signupData.businessType
+      });
 
       // Use localStorage for demo mode
       const storedUsers = localStorage.getItem('demo_users');
       const users = storedUsers ? JSON.parse(storedUsers) : [];
 
-      // Check if email already exists
-      const existingUser = users.find((u: any) => u.email === validatedData.email);
+      // Check if email already exists (case insensitive)
+      const existingUser = users.find((u: any) =>
+        u.email.toLowerCase() === validatedData.email.toLowerCase()
+      );
+
       if (existingUser) {
         toast({
           title: "الحساب موجود مسبقاً",
           description: "هذا البريد الإلكتروني مسجل مسبقاً. يرجى تسجيل الدخول بدلاً من ذلك.",
           variant: "destructive"
         });
+        setIsLoading(false);
         return;
       }
 
       // Create new user
       const newUser = {
-        id: 'user_' + Date.now(),
-        email: validatedData.email,
+        id: 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+        email: validatedData.email.toLowerCase(),
         password: validatedData.password,
         displayName: validatedData.displayName,
         companyName: validatedData.companyName,
@@ -170,6 +197,7 @@ const Auth = () => {
         createdAt: new Date().toISOString()
       };
 
+      // Save user
       users.push(newUser);
       localStorage.setItem('demo_users', JSON.stringify(users));
 
@@ -187,15 +215,13 @@ const Auth = () => {
         access_token: 'demo_token_' + Date.now(),
         expires_at: Date.now() + 7 * 24 * 60 * 60 * 1000
       };
+
       localStorage.setItem('demo_session', JSON.stringify(session));
 
       toast({
         title: "تم إنشاء الحساب بنجاح",
-        description: "مرحباً بك في قيود"
+        description: `مرحباً بك ${newUser.displayName}! يتم الآن تحويلك إلى لوحة التحكم...`
       });
-
-      await new Promise(resolve => setTimeout(resolve, 500));
-      navigate("/dashboard", { replace: true });
 
       // Reset form
       setSignupData({
@@ -206,6 +232,13 @@ const Auth = () => {
         companyName: "",
         businessType: ""
       });
+
+      // Navigate to dashboard
+      setTimeout(() => {
+        navigate("/dashboard", { replace: true });
+        window.location.reload();
+      }, 500);
+
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast({
@@ -269,13 +302,8 @@ const Auth = () => {
                   <form onSubmit={handleLogin} className="space-y-4">
                     <div className="space-y-2">
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                        <p className="text-sm text-blue-800 text-center">
+                        <p className="text-sm text-blue-800 text-center font-medium">
                           ليس لديك حساب؟ انتقل إلى تبويب "حساب جديد" لإنشاء حساب
-                        </p>
-                      </div>
-                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                        <p className="text-xs text-amber-800 text-center font-medium">
-                          للتجربة السريعة: استخدم أي بريد إلكتروني وكلمة مرور بعد إنشاء حساب جديد
                         </p>
                       </div>
                     </div>

@@ -38,16 +38,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const storedSession = localStorage.getItem('demo_session');
 
         if (storedSession) {
-          const sessionData = JSON.parse(storedSession);
+          try {
+            const sessionData = JSON.parse(storedSession);
 
-          // Check if session is still valid
-          if (sessionData.expires_at > Date.now()) {
-            if (mounted) {
-              setSession(sessionData as Session);
-              setUser(sessionData.user as User);
+            // Validate session structure
+            if (sessionData && sessionData.user && sessionData.expires_at) {
+              // Check if session is still valid
+              if (sessionData.expires_at > Date.now()) {
+                if (mounted) {
+                  setSession(sessionData as Session);
+                  setUser(sessionData.user as User);
+                }
+              } else {
+                // Clear expired session
+                localStorage.removeItem('demo_session');
+                if (mounted) {
+                  setSession(null);
+                  setUser(null);
+                }
+              }
+            } else {
+              // Invalid session structure
+              localStorage.removeItem('demo_session');
             }
-          } else {
-            // Clear expired session
+          } catch (parseError) {
+            console.error('Error parsing session:', parseError);
             localStorage.removeItem('demo_session');
           }
         }
@@ -66,9 +81,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'demo_session') {
         if (e.newValue) {
-          const sessionData = JSON.parse(e.newValue);
-          setSession(sessionData as Session);
-          setUser(sessionData.user as User);
+          try {
+            const sessionData = JSON.parse(e.newValue);
+            if (sessionData && sessionData.user && sessionData.expires_at > Date.now()) {
+              setSession(sessionData as Session);
+              setUser(sessionData.user as User);
+            }
+          } catch (error) {
+            console.error('Error handling storage change:', error);
+          }
         } else {
           setSession(null);
           setUser(null);
