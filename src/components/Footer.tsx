@@ -13,7 +13,7 @@ const Footer = () => {
               <span className="text-xl font-bold">Finzo</span>
             </div>
             <p className="text-muted-foreground">
-              نظام إدارة مالي متكامل للشركات السعودية
+              نظام إدارة متكامل للشركات السعودية
             </p>
           </div>
 

@@ -13,7 +13,6 @@ const Header = () => {
             />
             <div>
               <h1 className="text-xl font-bold text-foreground">Finzo</h1>
-              <p className="text-sm text-muted-foreground">نظام إدارة مالي متكامل</p>
             </div>
           </div>
           

@@ -6,7 +6,7 @@ const IconGrid = () => {
         <div className="relative">
           {/* Main logo container */}
           <div className="w-20 h-20 bg-gradient-to-br from-white/20 to-white/5 rounded-full flex items-center justify-center backdrop-blur-xl border border-white/30 shadow-2xl z-10 relative">
-            <span className="text-2xl font-bold text-white drop-shadow-lg">ق</span>
+            <span className="text-2xl font-bold text-white drop-shadow-lg">F</span>
           </div>
           
           {/* Central pulse rings */}
@@ -30,7 +30,7 @@ const IconGrid = () => {
       {/* Platform label */}
       <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2">
         <div className="bg-white/5 rounded-full px-6 py-3 backdrop-blur-sm border border-white/10">
-          <span className="text-white/80 text-sm font-medium">منصة قيود المحاسبة</span>
+          <span className="text-white/80 text-sm font-medium">منصة Finzo</span>
         </div>
       </div>
     </div>

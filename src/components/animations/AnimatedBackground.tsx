@@ -28,9 +28,9 @@ const AnimatedBackground = () => {
       <div className="relative h-full flex items-center justify-center p-12 z-10">
         <div className="text-center text-white space-y-6 backdrop-blur-sm bg-white/10 rounded-3xl p-8 border border-white/20">
           <div className="w-32 h-32 bg-gradient-to-br from-white/30 to-white/10 rounded-full mx-auto flex items-center justify-center mb-8 shadow-2xl backdrop-blur-md border border-white/30">
-            <span className="text-4xl font-bold text-white drop-shadow-lg">ق</span>
+            <span className="text-4xl font-bold text-white drop-shadow-lg">F</span>
           </div>
-          <h2 className="text-3xl font-bold drop-shadow-lg">منصة قيود للمحاسبة</h2>
+          <h2 className="text-3xl font-bold drop-shadow-lg">منصة Finzo</h2>
           <p className="text-xl opacity-90 max-w-md drop-shadow-md">
             النظام الأول لإدارة الأعمال والمحاسبة في المملكة العربية السعودية
           </p>

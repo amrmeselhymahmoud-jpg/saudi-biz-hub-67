@@ -42,7 +42,7 @@ const EnhancedBackground = () => {
               
               {/* Main logo container */}
               <div className="relative w-full h-full bg-gradient-to-br from-white/20 to-white/5 rounded-full flex items-center justify-center backdrop-blur-xl border border-white/30 shadow-2xl">
-                <span className="text-6xl font-bold text-white drop-shadow-2xl">ق</span>
+                <span className="text-6xl font-bold text-white drop-shadow-2xl">F</span>
               </div>
               
               {/* Floating particles around logo */}

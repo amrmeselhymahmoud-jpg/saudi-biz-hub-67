@@ -42,7 +42,6 @@ const QoyodHeader = () => {
             />
             <div className="flex flex-col">
               <h1 className="text-xl font-bold text-white leading-tight">Finzo</h1>
-              <span className="text-xs text-blue-100/80 leading-none">نظام إدارة مالي</span>
             </div>
           </div>
 

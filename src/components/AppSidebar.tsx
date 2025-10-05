@@ -89,7 +89,7 @@ const mainMenuItems = [
       { title: "خدمة إدخال الأرصدة الافتتاحية", url: "/opening-balance-service", icon: DollarSign, badge: "متوفر الآن" },
       { title: "خدمة نقل الحسابات", url: "/account-transfer-service", icon: Repeat, badge: "متوفر الآن" },
       { title: "الخدمات الاستشارية", url: "/consulting-services", icon: HelpCircle, badge: "متوفر الآن" },
-      { title: "أكاديمية قيود", url: "/qoyod-academy", icon: BookOpen, badge: "قريبا" },
+      { title: "أكاديمية Finzo", url: "/qoyod-academy", icon: BookOpen, badge: "قريبا" },
     ]
   },
 ]
@@ -158,10 +158,10 @@ export function AppSidebar() {
           <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                <span className="text-white font-bold text-2xl">ق</span>
+                <span className="text-white font-bold text-2xl">F</span>
               </div>
               <div>
-                <h2 className="text-xl font-bold text-gray-900">قيود</h2>
+                <h2 className="text-xl font-bold text-gray-900">Finzo</h2>
                 <p className="text-xs text-gray-600">نظام المحاسبة السحابي</p>
               </div>
             </div>
