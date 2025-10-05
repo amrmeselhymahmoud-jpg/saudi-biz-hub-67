@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ClipboardList, Plus, Eye, CreditCard as Edit, Trash2, Filter } from "lucide-react";
+import { ClipboardList, Plus, Eye, CreditCard as Edit, Trash2, Filter, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,11 +26,17 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { exportToCSV, exportToJSON } from "@/utils/exportImport";
 
 interface PurchaseOrder {
   id: string;
@@ -105,16 +111,13 @@ const PurchaseOrders = () => {
 
   const fetchOrders = async () => {
     try {
-      const { data, error } = await supabase
-        .from("purchase_orders")
-        .select(`
-          *,
-          suppliers (name)
-        `)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setOrders(data || []);
+      // Demo mode: load from localStorage
+      const storedOrders = localStorage.getItem('demo_purchase_orders');
+      if (storedOrders) {
+        setOrders(JSON.parse(storedOrders));
+      } else {
+        setOrders([]);
+      }
     } catch (error: any) {
       toast({
         title: "خطأ",
@@ -127,20 +130,25 @@ const PurchaseOrders = () => {
   };
 
   const fetchSuppliers = async () => {
-    const { data } = await supabase
-      .from("suppliers")
-      .select("id, name")
-      .order("name");
-    setSuppliers(data || []);
+    // Demo mode: load from localStorage
+    const storedSuppliers = localStorage.getItem('demo_suppliers');
+    if (storedSuppliers) {
+      const suppliers = JSON.parse(storedSuppliers);
+      setSuppliers(suppliers);
+    } else {
+      setSuppliers([]);
+    }
   };
 
   const fetchProducts = async () => {
-    const { data } = await supabase
-      .from("products")
-      .select("id, name, cost_price, tax_rate")
-      .eq("is_active", true)
-      .order("name");
-    setProducts(data || []);
+    // Demo mode: load from localStorage
+    const storedProducts = localStorage.getItem('demo_products');
+    if (storedProducts) {
+      const products = JSON.parse(storedProducts);
+      setProducts(products);
+    } else {
+      setProducts([]);
+    }
   };
 
   const generateOrderNumber = () => {
@@ -230,7 +238,11 @@ const PurchaseOrders = () => {
     const totals = calculateTotals();
 
     try {
+      // Find supplier name
+      const supplier = suppliers.find(s => s.id === formData.supplier_id);
+
       const orderData = {
+        id: isEditing ? selectedOrder?.id : 'po_' + Date.now(),
         order_number: isEditing ? selectedOrder?.order_number : generateOrderNumber(),
         supplier_id: formData.supplier_id,
         order_date: formData.order_date,
@@ -241,24 +253,23 @@ const PurchaseOrders = () => {
         tax_amount: parseFloat(totals.tax),
         total_amount: parseFloat(totals.total),
         notes: formData.notes || null,
-        user_id: (await supabase.auth.getUser()).data.user?.id,
+        suppliers: { name: supplier?.name || '' },
+        created_at: isEditing ? selectedOrder?.created_at : new Date().toISOString(),
       };
 
-      let error;
+      // Demo mode: save to localStorage
+      const storedOrders = localStorage.getItem('demo_purchase_orders');
+      let ordersArray = storedOrders ? JSON.parse(storedOrders) : [];
+
       if (isEditing && selectedOrder) {
-        const result = await supabase
-          .from("purchase_orders")
-          .update(orderData)
-          .eq("id", selectedOrder.id);
-        error = result.error;
+        ordersArray = ordersArray.map((order: PurchaseOrder) =>
+          order.id === selectedOrder.id ? orderData : order
+        );
       } else {
-        const result = await supabase
-          .from("purchase_orders")
-          .insert([orderData]);
-        error = result.error;
+        ordersArray.unshift(orderData);
       }
 
-      if (error) throw error;
+      localStorage.setItem('demo_purchase_orders', JSON.stringify(ordersArray));
 
       toast({
         title: "تم بنجاح",
@@ -281,12 +292,13 @@ const PurchaseOrders = () => {
     if (!confirm("هل أنت متأكد من حذف أمر الشراء؟")) return;
 
     try {
-      const { error } = await supabase
-        .from("purchase_orders")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
+      // Demo mode: delete from localStorage
+      const storedOrders = localStorage.getItem('demo_purchase_orders');
+      if (storedOrders) {
+        const ordersArray = JSON.parse(storedOrders);
+        const updatedOrders = ordersArray.filter((order: PurchaseOrder) => order.id !== id);
+        localStorage.setItem('demo_purchase_orders', JSON.stringify(updatedOrders));
+      }
 
       toast({
         title: "تم الحذف",
@@ -301,6 +313,40 @@ const PurchaseOrders = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleExport = (format: 'csv' | 'json') => {
+    if (filteredOrders.length === 0) {
+      toast({
+        title: "تنبيه",
+        description: "لا توجد بيانات للتصدير",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const exportData = filteredOrders.map(order => ({
+      'رقم الأمر': order.order_number,
+      'المورد': order.suppliers?.name,
+      'تاريخ الأمر': format(new Date(order.order_date), "yyyy-MM-dd"),
+      'تاريخ التسليم': order.delivery_date ? format(new Date(order.delivery_date), "yyyy-MM-dd") : '-',
+      'الحالة': statusLabels[order.status],
+      'المبلغ الفرعي': order.subtotal,
+      'الضريبة': order.tax_amount,
+      'الإجمالي': order.total_amount,
+      'الملاحظات': order.notes || '-'
+    }));
+
+    if (format === 'csv') {
+      exportToCSV(exportData, 'purchase_orders');
+    } else {
+      exportToJSON(exportData, 'purchase_orders');
+    }
+
+    toast({
+      title: "تم التصدير",
+      description: `تم تصدير ${filteredOrders.length} أمر شراء بنجاح`,
+    });
   };
 
   const handleEdit = (order: PurchaseOrder) => {
@@ -353,10 +399,28 @@ const PurchaseOrders = () => {
           <ClipboardList className="h-8 w-8 text-primary" />
           <h1 className="text-3xl font-bold text-foreground">أوامر الشراء</h1>
         </div>
-        <Button onClick={() => { resetForm(); setDialogOpen(true); }}>
-          <Plus className="ml-2 h-4 w-4" />
-          أمر شراء جديد
-        </Button>
+        <div className="flex gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <Download className="ml-2 h-4 w-4" />
+                تصدير
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => handleExport('csv')}>
+                تصدير CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('json')}>
+                تصدير JSON
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button onClick={() => { resetForm(); setDialogOpen(true); }}>
+            <Plus className="ml-2 h-4 w-4" />
+            أمر شراء جديد
+          </Button>
+        </div>
       </div>
 
       <Card>
