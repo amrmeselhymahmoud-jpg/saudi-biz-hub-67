@@ -32,21 +32,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     let mounted = true;
 
-    const initializeAuth = async () => {
+    const initializeAuth = () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        // Check localStorage for demo session
+        const storedSession = localStorage.getItem('demo_session');
 
-        if (error) {
-          console.error('Error getting session:', error);
-        }
+        if (storedSession) {
+          const sessionData = JSON.parse(storedSession);
 
-        if (mounted) {
-          setSession(session);
-          setUser(session?.user ?? null);
-          setLoading(false);
+          // Check if session is still valid
+          if (sessionData.expires_at > Date.now()) {
+            if (mounted) {
+              setSession(sessionData as Session);
+              setUser(sessionData.user as User);
+            }
+          } else {
+            // Clear expired session
+            localStorage.removeItem('demo_session');
+          }
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
+      } finally {
         if (mounted) {
           setLoading(false);
         }
@@ -55,34 +62,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     initializeAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.email);
-
-        if (!mounted) return;
-
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          setSession(session);
-          setUser(session?.user ?? null);
-        } else if (event === 'SIGNED_OUT') {
+    // Listen for storage changes (for multi-tab support)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'demo_session') {
+        if (e.newValue) {
+          const sessionData = JSON.parse(e.newValue);
+          setSession(sessionData as Session);
+          setUser(sessionData.user as User);
+        } else {
           setSession(null);
           setUser(null);
-        } else if (event === 'USER_UPDATED') {
-          setSession(session);
-          setUser(session?.user ?? null);
         }
       }
-    );
+    };
+
+    window.addEventListener('storage', handleStorageChange);
 
     return () => {
       mounted = false;
-      subscription.unsubscribe();
+      window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
+    try {
+      // Clear demo session
+      localStorage.removeItem('demo_session');
+      setSession(null);
+      setUser(null);
+    } catch (error) {
       console.error('Error signing out:', error);
     }
   };

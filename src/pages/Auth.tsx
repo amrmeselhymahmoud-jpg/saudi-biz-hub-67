@@ -57,10 +57,17 @@ const Auth = () => {
 
   useEffect(() => {
     // Check if user is already logged in
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+    const checkUser = () => {
+      const session = localStorage.getItem('demo_session');
       if (session) {
-        navigate("/dashboard");
+        const sessionData = JSON.parse(session);
+        // Check if session is still valid
+        if (sessionData.expires_at > Date.now()) {
+          navigate("/dashboard");
+        } else {
+          // Clear expired session
+          localStorage.removeItem('demo_session');
+        }
       }
     };
     checkUser();
@@ -73,30 +80,43 @@ const Auth = () => {
     try {
       const validatedData = loginSchema.parse(loginData);
 
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: validatedData.email,
-        password: validatedData.password
-      });
+      // Check localStorage for demo mode
+      const storedUsers = localStorage.getItem('demo_users');
+      if (storedUsers) {
+        const users = JSON.parse(storedUsers);
+        const user = users.find((u: any) =>
+          u.email === validatedData.email && u.password === validatedData.password
+        );
 
-      if (error) {
-        if (error.message.includes("Invalid login credentials")) {
-          throw new Error("البريد الإلكتروني أو كلمة المرور غير صحيحة");
+        if (user) {
+          // Store session in localStorage
+          const session = {
+            user: {
+              id: user.id,
+              email: user.email,
+              user_metadata: {
+                display_name: user.displayName,
+                company_name: user.companyName,
+                business_type: user.businessType
+              }
+            },
+            access_token: 'demo_token_' + Date.now(),
+            expires_at: Date.now() + 7 * 24 * 60 * 60 * 1000
+          };
+          localStorage.setItem('demo_session', JSON.stringify(session));
+
+          toast({
+            title: "تم تسجيل الدخول بنجاح",
+            description: "مرحباً بك في قيود"
+          });
+
+          await new Promise(resolve => setTimeout(resolve, 500));
+          navigate("/dashboard", { replace: true });
+          return;
         }
-        throw error;
       }
 
-      if (!data.session) {
-        throw new Error("فشل في إنشاء الجلسة. يرجى المحاولة مرة أخرى");
-      }
-
-      toast({
-        title: "تم تسجيل الدخول بنجاح",
-        description: "مرحباً بك في قيود"
-      });
-
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      navigate("/dashboard", { replace: true });
+      throw new Error("البريد الإلكتروني أو كلمة المرور غير صحيحة");
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast({
@@ -123,48 +143,59 @@ const Auth = () => {
 
     try {
       const validatedData = signupSchema.parse(signupData);
-      
-      const redirectUrl = `${window.location.origin}/`;
-      
-      const { data, error } = await supabase.auth.signUp({
+
+      // Use localStorage for demo mode
+      const storedUsers = localStorage.getItem('demo_users');
+      const users = storedUsers ? JSON.parse(storedUsers) : [];
+
+      // Check if email already exists
+      const existingUser = users.find((u: any) => u.email === validatedData.email);
+      if (existingUser) {
+        toast({
+          title: "الحساب موجود مسبقاً",
+          description: "هذا البريد الإلكتروني مسجل مسبقاً. يرجى تسجيل الدخول بدلاً من ذلك.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Create new user
+      const newUser = {
+        id: 'user_' + Date.now(),
         email: validatedData.email,
         password: validatedData.password,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: {
-            display_name: validatedData.displayName,
-            company_name: validatedData.companyName,
-            business_type: validatedData.businessType
+        displayName: validatedData.displayName,
+        companyName: validatedData.companyName,
+        businessType: validatedData.businessType,
+        createdAt: new Date().toISOString()
+      };
+
+      users.push(newUser);
+      localStorage.setItem('demo_users', JSON.stringify(users));
+
+      // Create session
+      const session = {
+        user: {
+          id: newUser.id,
+          email: newUser.email,
+          user_metadata: {
+            display_name: newUser.displayName,
+            company_name: newUser.companyName,
+            business_type: newUser.businessType
           }
-        }
+        },
+        access_token: 'demo_token_' + Date.now(),
+        expires_at: Date.now() + 7 * 24 * 60 * 60 * 1000
+      };
+      localStorage.setItem('demo_session', JSON.stringify(session));
+
+      toast({
+        title: "تم إنشاء الحساب بنجاح",
+        description: "مرحباً بك في قيود"
       });
 
-      if (error) {
-        if (error.message.includes("User already registered") || error.message.includes("already been registered")) {
-          toast({
-            title: "الحساب موجود مسبقاً",
-            description: "هذا البريد الإلكتروني مسجل مسبقاً. يرجى تسجيل الدخول بدلاً من ذلك.",
-            variant: "destructive"
-          });
-          return;
-        }
-        throw error;
-      }
-
-      if (data.session) {
-        toast({
-          title: "تم إنشاء الحساب بنجاح",
-          description: "مرحباً بك في قيود"
-        });
-
-        await new Promise(resolve => setTimeout(resolve, 500));
-        navigate("/dashboard", { replace: true });
-      } else {
-        toast({
-          title: "تم إنشاء الحساب بنجاح",
-          description: "يرجى فحص بريدك الإلكتروني لتأكيد الحساب"
-        });
-      }
+      await new Promise(resolve => setTimeout(resolve, 500));
+      navigate("/dashboard", { replace: true });
 
       // Reset form
       setSignupData({
