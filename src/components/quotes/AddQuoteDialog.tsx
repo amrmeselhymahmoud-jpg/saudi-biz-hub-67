@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -41,9 +42,10 @@ interface QuoteItem {
 export function AddQuoteDialog({ open, onOpenChange }: AddQuoteDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const [formData, setFormData] = useState({
-    quote_number: "",
+    quote_number: `Q-${Date.now()}`,
     customer_id: "",
     quote_date: new Date().toISOString().split("T")[0],
     expiry_date: "",
@@ -65,13 +67,9 @@ export function AddQuoteDialog({ open, onOpenChange }: AddQuoteDialogProps) {
   const { data: customers = [] } = useQuery({
     queryKey: ["customers"],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("يجب تسجيل الدخول أولاً");
-
       const { data, error } = await supabase
         .from("customers")
         .select("id, customer_name, customer_code")
-        .eq("created_by", user.id)
         .order("customer_name");
 
       if (error) throw error;
@@ -139,26 +137,32 @@ export function AddQuoteDialog({ open, onOpenChange }: AddQuoteDialogProps) {
 
   const createQuoteMutation = useMutation({
     mutationFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("يجب تسجيل الدخول أولاً");
-
       const totals = calculateTotals();
+
+      const quoteData: any = {
+        quote_number: formData.quote_number,
+        customer_id: formData.customer_id || null,
+        quote_date: formData.quote_date,
+        expiry_date: formData.expiry_date || null,
+        notes: formData.notes || null,
+        status: 'draft',
+        ...totals,
+      };
+
+      if (user?.id) {
+        quoteData.created_by = user.id;
+      }
 
       const { data: quote, error: quoteError } = await supabase
         .from("quotes")
-        .insert({
-          quote_number: formData.quote_number,
-          customer_id: formData.customer_id || null,
-          quote_date: formData.quote_date,
-          expiry_date: formData.expiry_date || null,
-          notes: formData.notes || null,
-          created_by: user.id,
-          ...totals,
-        })
+        .insert(quoteData)
         .select()
         .single();
 
-      if (quoteError) throw quoteError;
+      if (quoteError) {
+        console.error("Error creating quote:", quoteError);
+        throw quoteError;
+      }
 
       const itemsToInsert = items.map((item) => ({
         quote_id: quote.id,
@@ -174,7 +178,10 @@ export function AddQuoteDialog({ open, onOpenChange }: AddQuoteDialogProps) {
         .from("quote_items")
         .insert(itemsToInsert);
 
-      if (itemsError) throw itemsError;
+      if (itemsError) {
+        console.error("Error creating quote items:", itemsError);
+        throw itemsError;
+      }
 
       return quote;
     },
@@ -186,7 +193,7 @@ export function AddQuoteDialog({ open, onOpenChange }: AddQuoteDialogProps) {
       });
       onOpenChange(false);
       setFormData({
-        quote_number: "",
+        quote_number: `Q-${Date.now()}`,
         customer_id: "",
         quote_date: new Date().toISOString().split("T")[0],
         expiry_date: "",
@@ -205,9 +212,10 @@ export function AddQuoteDialog({ open, onOpenChange }: AddQuoteDialogProps) {
       ]);
     },
     onError: (error: Error) => {
+      console.error("Mutation error:", error);
       toast({
-        title: "خطأ",
-        description: error.message,
+        title: "خطأ في إنشاء عرض السعر",
+        description: error.message || "حدث خطأ أثناء إنشاء عرض السعر",
         variant: "destructive",
       });
     },
@@ -424,7 +432,7 @@ export function AddQuoteDialog({ open, onOpenChange }: AddQuoteDialogProps) {
             ))}
           </div>
 
-          <Card className="p-4 bg-gray-50">
+          <Card className="p-4 bg-gradient-to-br from-gray-50 to-blue-50/30">
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">المجموع الفرعي:</span>
@@ -442,7 +450,7 @@ export function AddQuoteDialog({ open, onOpenChange }: AddQuoteDialogProps) {
               </div>
               <div className="flex justify-between text-lg font-bold pt-2 border-t">
                 <span>المجموع الإجمالي:</span>
-                <span className="text-primary">
+                <span className="text-cyan-600">
                   {totals.total_amount.toFixed(2)} ر.س
                 </span>
               </div>
