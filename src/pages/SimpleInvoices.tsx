@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FileText, Plus, Eye, CreditCard as Edit, Trash2, Printer } from "lucide-react";
+import { FileText, Plus, Eye, CreditCard as Edit, Trash2, Printer, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -26,11 +26,17 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { exportToCSV, exportToJSON } from "@/utils/exportImport";
 
 interface SimpleInvoice {
   id: string;
@@ -80,18 +86,65 @@ const SimpleInvoices = () => {
   };
 
   useEffect(() => {
+    initializeDemoData();
     fetchInvoices();
   }, []);
 
+  const initializeDemoData = () => {
+    // Initialize demo simple invoices if not exists
+    const storedInvoices = localStorage.getItem('demo_simple_invoices');
+    if (!storedInvoices) {
+      const demoInvoices = [
+        {
+          id: 'si_1',
+          invoice_number: 'SI-100001',
+          recipient_name: 'محمد أحمد',
+          recipient_phone: '0501234567',
+          invoice_date: new Date().toISOString().split('T')[0],
+          description: 'فاتورة خدمة استشارية',
+          amount: 500,
+          status: 'issued',
+          notes: null,
+          created_at: new Date().toISOString(),
+        },
+        {
+          id: 'si_2',
+          invoice_number: 'SI-100002',
+          recipient_name: 'فاطمة خالد',
+          recipient_phone: '0559876543',
+          invoice_date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          description: 'فاتورة صيانة أجهزة كمبيوتر',
+          amount: 750,
+          status: 'paid',
+          notes: 'تم الدفع نقداً',
+          created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+        },
+        {
+          id: 'si_3',
+          invoice_number: 'SI-100003',
+          recipient_name: 'خالد عبدالله',
+          recipient_phone: null,
+          invoice_date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          description: 'فاتورة تصميم موقع إلكتروني',
+          amount: 3000,
+          status: 'issued',
+          notes: null,
+          created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        },
+      ];
+      localStorage.setItem('demo_simple_invoices', JSON.stringify(demoInvoices));
+    }
+  };
+
   const fetchInvoices = async () => {
     try {
-      const { data, error } = await supabase
-        .from("simple_invoices")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setInvoices(data || []);
+      // Demo mode: load from localStorage
+      const storedInvoices = localStorage.getItem('demo_simple_invoices');
+      if (storedInvoices) {
+        setInvoices(JSON.parse(storedInvoices));
+      } else {
+        setInvoices([]);
+      }
     } catch (error: any) {
       toast({
         title: "خطأ",
@@ -132,32 +185,31 @@ const SimpleInvoices = () => {
 
     try {
       const invoiceData = {
+        id: isEditing ? selectedInvoice?.id : 'si_' + Date.now(),
         invoice_number: isEditing ? selectedInvoice?.invoice_number : generateInvoiceNumber(),
         recipient_name: formData.recipient_name,
         recipient_phone: formData.recipient_phone || null,
         invoice_date: formData.invoice_date,
         description: formData.description,
         amount: amount,
-        status: "issued",
+        status: isEditing ? selectedInvoice?.status || "issued" : "issued",
         notes: formData.notes || null,
-        user_id: (await supabase.auth.getUser()).data.user?.id,
+        created_at: isEditing ? selectedInvoice?.created_at : new Date().toISOString(),
       };
 
-      let error;
+      // Demo mode: save to localStorage
+      const storedInvoices = localStorage.getItem('demo_simple_invoices');
+      let invoicesArray = storedInvoices ? JSON.parse(storedInvoices) : [];
+
       if (isEditing && selectedInvoice) {
-        const result = await supabase
-          .from("simple_invoices")
-          .update(invoiceData)
-          .eq("id", selectedInvoice.id);
-        error = result.error;
+        invoicesArray = invoicesArray.map((invoice: SimpleInvoice) =>
+          invoice.id === selectedInvoice.id ? invoiceData : invoice
+        );
       } else {
-        const result = await supabase
-          .from("simple_invoices")
-          .insert([invoiceData]);
-        error = result.error;
+        invoicesArray.unshift(invoiceData);
       }
 
-      if (error) throw error;
+      localStorage.setItem('demo_simple_invoices', JSON.stringify(invoicesArray));
 
       toast({
         title: "تم بنجاح",
@@ -180,12 +232,13 @@ const SimpleInvoices = () => {
     if (!confirm("هل أنت متأكد من حذف الفاتورة؟")) return;
 
     try {
-      const { error } = await supabase
-        .from("simple_invoices")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
+      // Demo mode: delete from localStorage
+      const storedInvoices = localStorage.getItem('demo_simple_invoices');
+      if (storedInvoices) {
+        const invoicesArray = JSON.parse(storedInvoices);
+        const updatedInvoices = invoicesArray.filter((invoice: SimpleInvoice) => invoice.id !== id);
+        localStorage.setItem('demo_simple_invoices', JSON.stringify(updatedInvoices));
+      }
 
       toast({
         title: "تم الحذف",
@@ -223,12 +276,18 @@ const SimpleInvoices = () => {
 
   const handleStatusChange = async (id: string, newStatus: string) => {
     try {
-      const { error } = await supabase
-        .from("simple_invoices")
-        .update({ status: newStatus })
-        .eq("id", id);
-
-      if (error) throw error;
+      // Demo mode: update in localStorage
+      const storedInvoices = localStorage.getItem('demo_simple_invoices');
+      if (storedInvoices) {
+        const invoicesArray = JSON.parse(storedInvoices);
+        const updatedInvoices = invoicesArray.map((invoice: SimpleInvoice) => {
+          if (invoice.id === id) {
+            return { ...invoice, status: newStatus };
+          }
+          return invoice;
+        });
+        localStorage.setItem('demo_simple_invoices', JSON.stringify(updatedInvoices));
+      }
 
       toast({
         title: "تم التحديث",
@@ -243,6 +302,39 @@ const SimpleInvoices = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleExport = (format: 'csv' | 'json') => {
+    if (filteredInvoices.length === 0) {
+      toast({
+        title: "تنبيه",
+        description: "لا توجد بيانات للتصدير",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const exportData = filteredInvoices.map(invoice => ({
+      'رقم الفاتورة': invoice.invoice_number,
+      'اسم المستلم': invoice.recipient_name,
+      'رقم الهاتف': invoice.recipient_phone || '-',
+      'تاريخ الفاتورة': format(new Date(invoice.invoice_date), "yyyy-MM-dd"),
+      'الوصف': invoice.description,
+      'المبلغ': invoice.amount,
+      'الحالة': statusLabels[invoice.status],
+      'الملاحظات': invoice.notes || '-'
+    }));
+
+    if (format === 'csv') {
+      exportToCSV(exportData, 'simple_invoices');
+    } else {
+      exportToJSON(exportData, 'simple_invoices');
+    }
+
+    toast({
+      title: "تم التصدير",
+      description: `تم تصدير ${filteredInvoices.length} فاتورة بنجاح`,
+    });
   };
 
   const resetForm = () => {
@@ -419,10 +511,28 @@ const SimpleInvoices = () => {
           <FileText className="h-8 w-8 text-primary" />
           <h1 className="text-3xl font-bold text-foreground">فواتير بسيطة</h1>
         </div>
-        <Button onClick={() => { resetForm(); setDialogOpen(true); }}>
-          <Plus className="ml-2 h-4 w-4" />
-          فاتورة جديدة
-        </Button>
+        <div className="flex gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <Download className="ml-2 h-4 w-4" />
+                تصدير
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => handleExport('csv')}>
+                تصدير CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('json')}>
+                تصدير JSON
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button onClick={() => { resetForm(); setDialogOpen(true); }}>
+            <Plus className="ml-2 h-4 w-4" />
+            فاتورة جديدة
+          </Button>
+        </div>
       </div>
 
       <Card>
