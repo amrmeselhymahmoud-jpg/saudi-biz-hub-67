@@ -137,15 +137,24 @@ const Customers = () => {
   const totalCreditLimit = customers.reduce((sum, c) => sum + c.credit_limit, 0);
 
   const handleExport = () => {
+    if (customers.length === 0) {
+      toast({
+        title: "تنبيه",
+        description: "لا توجد بيانات للتصدير",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const exportData = customers.map(c => ({
-      customer_code: c.customer_code,
-      customer_name: c.customer_name,
-      email: c.email || '',
-      phone: c.phone || '',
-      city: c.city || '',
-      credit_limit: c.credit_limit,
-      payment_terms: c.payment_terms,
-      status: c.status === 'active' ? 'نشط' : 'غير نشط'
+      'كود العميل': c.customer_code,
+      'اسم العميل': c.customer_name,
+      'البريد الإلكتروني': c.email || '-',
+      'رقم الهاتف': c.phone || '-',
+      'المدينة': c.city || '-',
+      'حد الائتمان': c.credit_limit,
+      'شروط السداد': c.payment_terms,
+      'الحالة': c.status === 'active' ? 'نشط' : 'غير نشط'
     }));
 
     const csv = [
@@ -153,12 +162,18 @@ const Customers = () => {
       ...exportData.map(row => Object.values(row).join(','))
     ].join('\n');
 
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = `customers_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "تم التصدير",
+      description: `تم تصدير ${customers.length} عميل بنجاح`,
+    });
   };
 
   const handleImport = () => {

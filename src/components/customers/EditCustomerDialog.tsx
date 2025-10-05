@@ -33,13 +33,15 @@ import {
 import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
-  name: z.string().min(2, "يجب أن يكون الاسم حرفين على الأقل"),
+  customer_name: z.string().min(2, "يجب أن يكون الاسم حرفين على الأقل"),
   email: z.string().email("البريد الإلكتروني غير صحيح").optional().or(z.literal("")),
   phone: z.string().optional(),
   address: z.string().optional(),
+  city: z.string().optional(),
   tax_number: z.string().optional(),
-  customer_type: z.enum(["individual", "company"]),
   credit_limit: z.string().optional(),
+  payment_terms: z.string().optional(),
+  status: z.enum(["active", "inactive"]),
   notes: z.string().optional(),
 });
 
@@ -47,13 +49,16 @@ type FormValues = z.infer<typeof formSchema>;
 
 interface Customer {
   id: string;
-  name: string;
+  customer_code: string;
+  customer_name: string;
   email: string | null;
   phone: string | null;
   address: string | null;
+  city: string | null;
   tax_number: string | null;
-  customer_type: string;
   credit_limit: number;
+  payment_terms: number;
+  status: string;
   notes: string | null;
 }
 
@@ -74,13 +79,15 @@ export function EditCustomerDialog({
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: "",
+      customer_name: "",
       email: "",
       phone: "",
       address: "",
+      city: "",
       tax_number: "",
-      customer_type: "individual",
       credit_limit: "0",
+      payment_terms: "30",
+      status: "active",
       notes: "",
     },
   });
@@ -88,13 +95,15 @@ export function EditCustomerDialog({
   useEffect(() => {
     if (customer) {
       form.reset({
-        name: customer.name,
+        customer_name: customer.customer_name,
         email: customer.email || "",
         phone: customer.phone || "",
         address: customer.address || "",
+        city: customer.city || "",
         tax_number: customer.tax_number || "",
-        customer_type: customer.customer_type as "individual" | "company",
         credit_limit: customer.credit_limit.toString(),
+        payment_terms: customer.payment_terms.toString(),
+        status: customer.status as "active" | "inactive",
         notes: customer.notes || "",
       });
     }
@@ -107,13 +116,15 @@ export function EditCustomerDialog({
       const { data, error } = await supabase
         .from("customers")
         .update({
-          name: values.name,
+          customer_name: values.customer_name,
           email: values.email || null,
           phone: values.phone || null,
           address: values.address || null,
+          city: values.city || null,
           tax_number: values.tax_number || null,
-          customer_type: values.customer_type,
           credit_limit: parseFloat(values.credit_limit || "0"),
+          payment_terms: parseInt(values.payment_terms || "30"),
+          status: values.status,
           notes: values.notes || null,
         })
         .eq("id", customer.id)
@@ -158,7 +169,7 @@ export function EditCustomerDialog({
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
-              name="name"
+              name="customer_name"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>اسم العميل *</FormLabel>
@@ -172,19 +183,19 @@ export function EditCustomerDialog({
 
             <FormField
               control={form.control}
-              name="customer_type"
+              name="status"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>نوع العميل</FormLabel>
+                  <FormLabel>الحالة</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="اختر نوع العميل" />
+                        <SelectValue placeholder="اختر الحالة" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="individual">فرد</SelectItem>
-                      <SelectItem value="company">شركة</SelectItem>
+                      <SelectItem value="active">نشط</SelectItem>
+                      <SelectItem value="inactive">غير نشط</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -226,19 +237,35 @@ export function EditCustomerDialog({
               />
             </div>
 
-            <FormField
-              control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>العنوان</FormLabel>
-                  <FormControl>
-                    <Input placeholder="أدخل العنوان" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>العنوان</FormLabel>
+                    <FormControl>
+                      <Input placeholder="أدخل العنوان" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="city"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>المدينة</FormLabel>
+                    <FormControl>
+                      <Input placeholder="أدخل المدينة" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="grid grid-cols-2 gap-4">
               <FormField
@@ -257,14 +284,14 @@ export function EditCustomerDialog({
 
               <FormField
                 control={form.control}
-                name="credit_limit"
+                name="payment_terms"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>حد الائتمان (ر.س)</FormLabel>
+                    <FormLabel>شروط السداد (بالأيام)</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
-                        placeholder="0"
+                        placeholder="30"
                         {...field}
                       />
                     </FormControl>
@@ -273,6 +300,24 @@ export function EditCustomerDialog({
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="credit_limit"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>حد الائتمان (ر.س)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="0"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}

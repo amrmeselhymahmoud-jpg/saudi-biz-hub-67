@@ -94,6 +94,7 @@ export function AddCustomerDialog({ open, onOpenChange }: AddCustomerDialogProps
             tax_number: values.tax_number || null,
             credit_limit: parseFloat(values.credit_limit || "0"),
             payment_terms: parseInt(values.payment_terms || "30"),
+            status: "active",
             notes: values.notes || null,
             created_by: user.id,
           },
