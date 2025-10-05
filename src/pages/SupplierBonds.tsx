@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FileBox, Plus, Eye, CreditCard as Edit, Trash2 } from "lucide-react";
+import { FileBox, Plus, Eye, CreditCard as Edit, Trash2, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -26,11 +26,17 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { exportToCSV, exportToJSON } from "@/utils/exportImport";
 
 interface SupplierBond {
   id: string;
@@ -107,22 +113,97 @@ const SupplierBonds = () => {
   };
 
   useEffect(() => {
+    initializeDemoData();
     fetchBonds();
     fetchSuppliers();
   }, []);
 
+  const initializeDemoData = () => {
+    // Initialize demo suppliers if not exists
+    const storedSuppliers = localStorage.getItem('demo_suppliers');
+    if (!storedSuppliers) {
+      const demoSuppliers = [
+        { id: 'sup_1', name: 'شركة الأمانة للتوريدات' },
+        { id: 'sup_2', name: 'مؤسسة النجاح التجارية' },
+        { id: 'sup_3', name: 'شركة الجودة للمواد' },
+      ];
+      localStorage.setItem('demo_suppliers', JSON.stringify(demoSuppliers));
+    }
+
+    // Initialize demo supplier bonds if not exists
+    const storedBonds = localStorage.getItem('demo_supplier_bonds');
+    if (!storedBonds) {
+      const demoBonds = [
+        {
+          id: 'sb_1',
+          bond_number: 'SB-100001',
+          supplier_id: 'sup_1',
+          bond_type: 'payment',
+          bond_date: new Date().toISOString().split('T')[0],
+          amount: 5000,
+          payment_method: 'bank_transfer',
+          reference_number: 'TRN-2024-001',
+          description: 'دفع مستحقات فواتير شهر يناير',
+          status: 'cleared',
+          notes: 'تم الدفع عن طريق التحويل البنكي',
+          created_at: new Date().toISOString(),
+        },
+        {
+          id: 'sb_2',
+          bond_number: 'SB-100002',
+          supplier_id: 'sup_2',
+          bond_type: 'receipt',
+          bond_date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          amount: 2000,
+          payment_method: 'cash',
+          reference_number: null,
+          description: 'قبض دفعة مقدمة لشراء مواد',
+          status: 'issued',
+          notes: null,
+          created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+        },
+        {
+          id: 'sb_3',
+          bond_number: 'SB-100003',
+          supplier_id: 'sup_3',
+          bond_type: 'payment',
+          bond_date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          amount: 8500,
+          payment_method: 'check',
+          reference_number: 'CHK-789456',
+          description: 'دفع فاتورة مواد خام',
+          status: 'issued',
+          notes: 'شيك مؤجل لنهاية الشهر',
+          created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        },
+      ];
+      localStorage.setItem('demo_supplier_bonds', JSON.stringify(demoBonds));
+    }
+  };
+
   const fetchBonds = async () => {
     try {
-      const { data, error } = await supabase
-        .from("supplier_bonds")
-        .select(`
-          *,
-          suppliers (name)
-        `)
-        .order("created_at", { ascending: false });
+      // Demo mode: load from localStorage
+      const storedBonds = localStorage.getItem('demo_supplier_bonds');
+      const storedSuppliers = localStorage.getItem('demo_suppliers');
 
-      if (error) throw error;
-      setBonds(data || []);
+      if (storedBonds && storedSuppliers) {
+        const bondsArray = JSON.parse(storedBonds);
+        const suppliersArray = JSON.parse(storedSuppliers);
+
+        // Join bonds with suppliers
+        const bondsWithSuppliers = bondsArray.map((bond: SupplierBond) => {
+          const supplier = suppliersArray.find((s: Supplier) => s.id === bond.supplier_id);
+          return {
+            ...bond,
+            suppliers: supplier ? { name: supplier.name } : undefined,
+          };
+        });
+
+        setBonds(bondsWithSuppliers);
+      } else {
+        setBonds([]);
+      }
     } catch (error: any) {
       toast({
         title: "خطأ",
@@ -135,11 +216,13 @@ const SupplierBonds = () => {
   };
 
   const fetchSuppliers = async () => {
-    const { data } = await supabase
-      .from("suppliers")
-      .select("id, name")
-      .order("name");
-    setSuppliers(data || []);
+    // Demo mode: load from localStorage
+    const storedSuppliers = localStorage.getItem('demo_suppliers');
+    if (storedSuppliers) {
+      setSuppliers(JSON.parse(storedSuppliers));
+    } else {
+      setSuppliers([]);
+    }
   };
 
   const generateBondNumber = () => {
@@ -171,6 +254,7 @@ const SupplierBonds = () => {
 
     try {
       const bondData = {
+        id: isEditing ? selectedBond?.id : 'sb_' + Date.now(),
         bond_number: isEditing ? selectedBond?.bond_number : generateBondNumber(),
         supplier_id: formData.supplier_id,
         bond_type: formData.bond_type,
@@ -179,26 +263,24 @@ const SupplierBonds = () => {
         payment_method: formData.payment_method,
         reference_number: formData.reference_number || null,
         description: formData.description,
-        status: "issued",
+        status: isEditing ? selectedBond?.status || "issued" : "issued",
         notes: formData.notes || null,
-        user_id: (await supabase.auth.getUser()).data.user?.id,
+        created_at: isEditing ? selectedBond?.created_at : new Date().toISOString(),
       };
 
-      let error;
+      // Demo mode: save to localStorage
+      const storedBonds = localStorage.getItem('demo_supplier_bonds');
+      let bondsArray = storedBonds ? JSON.parse(storedBonds) : [];
+
       if (isEditing && selectedBond) {
-        const result = await supabase
-          .from("supplier_bonds")
-          .update(bondData)
-          .eq("id", selectedBond.id);
-        error = result.error;
+        bondsArray = bondsArray.map((bond: SupplierBond) =>
+          bond.id === selectedBond.id ? bondData : bond
+        );
       } else {
-        const result = await supabase
-          .from("supplier_bonds")
-          .insert([bondData]);
-        error = result.error;
+        bondsArray.unshift(bondData);
       }
 
-      if (error) throw error;
+      localStorage.setItem('demo_supplier_bonds', JSON.stringify(bondsArray));
 
       toast({
         title: "تم بنجاح",
@@ -221,12 +303,13 @@ const SupplierBonds = () => {
     if (!confirm("هل أنت متأكد من حذف السند؟")) return;
 
     try {
-      const { error } = await supabase
-        .from("supplier_bonds")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
+      // Demo mode: delete from localStorage
+      const storedBonds = localStorage.getItem('demo_supplier_bonds');
+      if (storedBonds) {
+        const bondsArray = JSON.parse(storedBonds);
+        const updatedBonds = bondsArray.filter((bond: SupplierBond) => bond.id !== id);
+        localStorage.setItem('demo_supplier_bonds', JSON.stringify(updatedBonds));
+      }
 
       toast({
         title: "تم الحذف",
@@ -266,12 +349,18 @@ const SupplierBonds = () => {
 
   const handleStatusChange = async (id: string, newStatus: string) => {
     try {
-      const { error } = await supabase
-        .from("supplier_bonds")
-        .update({ status: newStatus })
-        .eq("id", id);
-
-      if (error) throw error;
+      // Demo mode: update in localStorage
+      const storedBonds = localStorage.getItem('demo_supplier_bonds');
+      if (storedBonds) {
+        const bondsArray = JSON.parse(storedBonds);
+        const updatedBonds = bondsArray.map((bond: SupplierBond) => {
+          if (bond.id === id) {
+            return { ...bond, status: newStatus };
+          }
+          return bond;
+        });
+        localStorage.setItem('demo_supplier_bonds', JSON.stringify(updatedBonds));
+      }
 
       toast({
         title: "تم التحديث",
@@ -286,6 +375,41 @@ const SupplierBonds = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleExport = (format: 'csv' | 'json') => {
+    if (filteredBonds.length === 0) {
+      toast({
+        title: "تنبيه",
+        description: "لا توجد بيانات للتصدير",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const exportData = filteredBonds.map(bond => ({
+      'رقم السند': bond.bond_number,
+      'المورد': bond.suppliers?.name || '-',
+      'النوع': bondTypeLabels[bond.bond_type],
+      'تاريخ السند': format(new Date(bond.bond_date), "yyyy-MM-dd"),
+      'المبلغ': bond.amount,
+      'طريقة الدفع': paymentMethodLabels[bond.payment_method],
+      'رقم المرجع': bond.reference_number || '-',
+      'الوصف': bond.description,
+      'الحالة': statusLabels[bond.status],
+      'الملاحظات': bond.notes || '-'
+    }));
+
+    if (format === 'csv') {
+      exportToCSV(exportData, 'supplier_bonds');
+    } else {
+      exportToJSON(exportData, 'supplier_bonds');
+    }
+
+    toast({
+      title: "تم التصدير",
+      description: `تم تصدير ${filteredBonds.length} سند بنجاح`,
+    });
   };
 
   const resetForm = () => {
@@ -318,10 +442,28 @@ const SupplierBonds = () => {
           <FileBox className="h-8 w-8 text-primary" />
           <h1 className="text-3xl font-bold text-foreground">سندات الموردين</h1>
         </div>
-        <Button onClick={() => { resetForm(); setDialogOpen(true); }}>
-          <Plus className="ml-2 h-4 w-4" />
-          سند جديد
-        </Button>
+        <div className="flex gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <Download className="ml-2 h-4 w-4" />
+                تصدير
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => handleExport('csv')}>
+                تصدير CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('json')}>
+                تصدير JSON
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button onClick={() => { resetForm(); setDialogOpen(true); }}>
+            <Plus className="ml-2 h-4 w-4" />
+            سند جديد
+          </Button>
+        </div>
       </div>
 
       <Card>
