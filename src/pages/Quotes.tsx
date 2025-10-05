@@ -34,6 +34,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyTableMessage } from "@/components/EmptyTableMessage";
 import { exportToCSV } from "@/utils/exportImport";
+import { AddQuoteDialog } from "@/components/quotes/AddQuoteDialog";
 
 interface Quote {
   id: string;
@@ -49,7 +50,7 @@ interface Quote {
   notes: string | null;
   created_at: string;
   customers?: {
-    name: string;
+    customer_name: string;
   };
 }
 
@@ -57,6 +58,7 @@ const Quotes = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [quoteToDelete, setQuoteToDelete] = useState<string | null>(null);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -75,10 +77,10 @@ const Quotes = () => {
         .select(`
           *,
           customers (
-            name
+            customer_name
           )
         `)
-        .eq("user_id", user.id)
+        .eq("created_by", user.id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -145,7 +147,7 @@ const Quotes = () => {
 
   const filteredQuotes = quotes.filter((quote) =>
     quote.quote_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    quote.customers?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+    quote.customers?.customer_name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleDelete = (quoteId: string) => {
@@ -187,7 +189,7 @@ const Quotes = () => {
   const handleExport = () => {
     const exportData = quotes.map(quote => ({
       'رقم العرض': quote.quote_number,
-      'العميل': quote.customers?.name || '-',
+      'العميل': quote.customers?.customer_name || '-',
       'تاريخ العرض': new Date(quote.quote_date).toLocaleDateString('ar-SA'),
       'تاريخ الانتهاء': quote.expiry_date ? new Date(quote.expiry_date).toLocaleDateString('ar-SA') : '-',
       'المبلغ الإجمالي': quote.total_amount,
@@ -234,7 +236,10 @@ const Quotes = () => {
               <Upload className="h-4 w-4" />
               استيراد
             </Button>
-            <Button className="gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 shadow-md">
+            <Button
+              onClick={() => setAddDialogOpen(true)}
+              className="gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 shadow-md"
+            >
               <Plus className="h-4 w-4" />
               إنشاء عرض سعر جديد
             </Button>
@@ -326,7 +331,7 @@ const Quotes = () => {
               filteredQuotes.map((quote) => (
                 <TableRow key={quote.id}>
                   <TableCell className="font-medium">{quote.quote_number}</TableCell>
-                  <TableCell>{quote.customers?.name || "-"}</TableCell>
+                  <TableCell>{quote.customers?.customer_name || "-"}</TableCell>
                   <TableCell>{new Date(quote.quote_date).toLocaleDateString("ar-SA")}</TableCell>
                   <TableCell>
                     {quote.expiry_date
@@ -418,6 +423,8 @@ const Quotes = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
         </AlertDialog>
+
+        <AddQuoteDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
       </div>
     </div>
   );
