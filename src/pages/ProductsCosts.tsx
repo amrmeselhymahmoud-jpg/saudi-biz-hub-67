@@ -113,13 +113,17 @@ const ProductsCosts = () => {
 
   const addProductMutation = useMutation({
     mutationFn: async (productData: typeof formData) => {
+      if (!productData.product_name || productData.product_name.trim() === '') {
+        throw new Error('اسم المنتج مطلوب');
+      }
+
       const productCode = `PRD-${Date.now()}`;
 
-      const { error } = await supabase.from("products").insert({
+      const { data, error } = await supabase.from("products").insert({
         product_code: productCode,
-        product_name: productData.product_name,
-        description: productData.description || null,
-        category: productData.category || null,
+        product_name: productData.product_name.trim(),
+        description: productData.description?.trim() || null,
+        category: productData.category?.trim() || null,
         unit: productData.unit,
         cost_price: parseFloat(productData.cost_price) || 0,
         selling_price: parseFloat(productData.selling_price) || 0,
@@ -128,11 +132,16 @@ const ProductsCosts = () => {
         max_stock_level: parseInt(productData.max_stock_level) || 1000,
         current_stock: parseInt(productData.current_stock) || 0,
         reorder_point: parseInt(productData.reorder_point) || 10,
-        notes: productData.notes || null,
+        notes: productData.notes?.trim() || null,
         created_by: session?.user?.id || null,
-      });
+      }).select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error adding product:', error);
+        throw new Error(error.message || 'حدث خطأ أثناء إضافة المنتج');
+      }
+
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
@@ -252,6 +261,7 @@ const ProductsCosts = () => {
             value={formData.product_name}
             onChange={(e) => setFormData({ ...formData, product_name: e.target.value })}
             placeholder="أدخل اسم المنتج"
+            required
           />
         </div>
 
@@ -288,9 +298,11 @@ const ProductsCosts = () => {
             id="cost_price"
             type="number"
             step="0.01"
+            min="0"
             value={formData.cost_price}
             onChange={(e) => setFormData({ ...formData, cost_price: e.target.value })}
             placeholder="0.00"
+            required
           />
         </div>
 
@@ -300,9 +312,11 @@ const ProductsCosts = () => {
             id="selling_price"
             type="number"
             step="0.01"
+            min="0"
             value={formData.selling_price}
             onChange={(e) => setFormData({ ...formData, selling_price: e.target.value })}
             placeholder="0.00"
+            required
           />
         </div>
 
@@ -571,11 +585,22 @@ const ProductsCosts = () => {
                 إلغاء
               </Button>
               <Button
-                onClick={() => addProductMutation.mutate(formData)}
+                onClick={() => {
+                  if (!formData.product_name.trim()) {
+                    toast({
+                      title: 'خطأ',
+                      description: 'اسم المنتج مطلوب',
+                      variant: 'destructive'
+                    });
+                    return;
+                  }
+                  addProductMutation.mutate(formData);
+                }}
                 disabled={addProductMutation.isPending || !formData.product_name}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
               >
                 {addProductMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-                إضافة
+                إضافة المنتج
               </Button>
             </DialogFooter>
           </DialogContent>
