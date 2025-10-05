@@ -101,24 +101,18 @@ const ProductsCosts = () => {
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products"],
     queryFn: async () => {
-      if (!session?.user?.id) throw new Error("يجب تسجيل الدخول أولاً");
-
       const { data, error } = await supabase
         .from("products")
         .select("*")
-        .eq("created_by", session.user.id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
       return data as Product[];
     },
-    enabled: !!session?.user?.id,
   });
 
   const addProductMutation = useMutation({
     mutationFn: async (productData: typeof formData) => {
-      if (!session?.user?.id) throw new Error("يجب تسجيل الدخول أولاً");
-
       const productCode = `PRD-${Date.now()}`;
 
       const { error } = await supabase.from("products").insert({
@@ -135,7 +129,7 @@ const ProductsCosts = () => {
         current_stock: parseInt(productData.current_stock) || 0,
         reorder_point: parseInt(productData.reorder_point) || 10,
         notes: productData.notes || null,
-        created_by: session.user.id,
+        created_by: session?.user?.id || null,
       });
 
       if (error) throw error;
