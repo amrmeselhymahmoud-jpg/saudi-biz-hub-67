@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Receipt, Plus, Eye, CreditCard as Edit, Trash2, DollarSign } from "lucide-react";
+import { Receipt, Plus, Eye, CreditCard as Edit, Trash2, DollarSign, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -26,11 +26,17 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { exportToCSV, exportToJSON } from "@/utils/exportImport";
 
 interface PurchaseInvoice {
   id: string;
@@ -120,23 +126,95 @@ const PurchaseInvoices = () => {
   };
 
   useEffect(() => {
+    initializeDemoData();
     fetchInvoices();
     fetchSuppliers();
     fetchProducts();
   }, []);
 
+  const initializeDemoData = () => {
+    // Initialize demo suppliers if not exists
+    const storedSuppliers = localStorage.getItem('demo_suppliers');
+    if (!storedSuppliers) {
+      const demoSuppliers = [
+        { id: 'sup_1', name: 'شركة التوريدات المتقدمة' },
+        { id: 'sup_2', name: 'مؤسسة الإمداد التجاري' },
+        { id: 'sup_3', name: 'شركة النجاح للتوريد' },
+      ];
+      localStorage.setItem('demo_suppliers', JSON.stringify(demoSuppliers));
+    }
+
+    // Initialize demo products if not exists
+    const storedProducts = localStorage.getItem('demo_products');
+    if (!storedProducts) {
+      const demoProducts = [
+        { id: 'prod_1', name: 'منتج أ', cost_price: 100, tax_rate: 15 },
+        { id: 'prod_2', name: 'منتج ب', cost_price: 200, tax_rate: 15 },
+        { id: 'prod_3', name: 'منتج ج', cost_price: 150, tax_rate: 15 },
+      ];
+      localStorage.setItem('demo_products', JSON.stringify(demoProducts));
+    }
+
+    // Initialize demo purchase invoices if not exists
+    const storedInvoices = localStorage.getItem('demo_purchase_invoices');
+    if (!storedInvoices) {
+      const demoInvoices = [
+        {
+          id: 'pi_1',
+          invoice_number: 'PI-100001',
+          supplier_id: 'sup_1',
+          purchase_order_id: null,
+          invoice_date: new Date().toISOString().split('T')[0],
+          due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          status: 'pending',
+          payment_status: 'unpaid',
+          items: [
+            { product_id: 'prod_1', product_name: 'منتج أ', quantity: 10, unit_price: 100, tax_rate: 15, total: 1150 }
+          ],
+          subtotal: 1000,
+          tax_amount: 150,
+          discount_amount: 0,
+          total_amount: 1150,
+          paid_amount: 0,
+          notes: 'فاتورة تجريبية',
+          suppliers: { name: 'شركة التوريدات المتقدمة' },
+          created_at: new Date().toISOString(),
+        },
+        {
+          id: 'pi_2',
+          invoice_number: 'PI-100002',
+          supplier_id: 'sup_2',
+          purchase_order_id: null,
+          invoice_date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          due_date: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          status: 'pending',
+          payment_status: 'partial',
+          items: [
+            { product_id: 'prod_2', product_name: 'منتج ب', quantity: 5, unit_price: 200, tax_rate: 15, total: 1150 }
+          ],
+          subtotal: 1000,
+          tax_amount: 150,
+          discount_amount: 0,
+          total_amount: 1150,
+          paid_amount: 500,
+          notes: null,
+          suppliers: { name: 'مؤسسة الإمداد التجاري' },
+          created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+        },
+      ];
+      localStorage.setItem('demo_purchase_invoices', JSON.stringify(demoInvoices));
+    }
+  };
+
   const fetchInvoices = async () => {
     try {
-      const { data, error } = await supabase
-        .from("purchase_invoices")
-        .select(`
-          *,
-          suppliers (name)
-        `)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setInvoices(data || []);
+      // Demo mode: load from localStorage
+      const storedInvoices = localStorage.getItem('demo_purchase_invoices');
+      if (storedInvoices) {
+        setInvoices(JSON.parse(storedInvoices));
+      } else {
+        setInvoices([]);
+      }
     } catch (error: any) {
       toast({
         title: "خطأ",
@@ -149,20 +227,23 @@ const PurchaseInvoices = () => {
   };
 
   const fetchSuppliers = async () => {
-    const { data } = await supabase
-      .from("suppliers")
-      .select("id, name")
-      .order("name");
-    setSuppliers(data || []);
+    // Demo mode: load from localStorage
+    const storedSuppliers = localStorage.getItem('demo_suppliers');
+    if (storedSuppliers) {
+      setSuppliers(JSON.parse(storedSuppliers));
+    } else {
+      setSuppliers([]);
+    }
   };
 
   const fetchProducts = async () => {
-    const { data } = await supabase
-      .from("products")
-      .select("id, name, cost_price, tax_rate")
-      .eq("is_active", true)
-      .order("name");
-    setProducts(data || []);
+    // Demo mode: load from localStorage
+    const storedProducts = localStorage.getItem('demo_products');
+    if (storedProducts) {
+      setProducts(JSON.parse(storedProducts));
+    } else {
+      setProducts([]);
+    }
   };
 
   const generateInvoiceNumber = () => {
@@ -256,38 +337,42 @@ const PurchaseInvoices = () => {
     const totals = calculateTotals();
 
     try {
+      // Find supplier name
+      const supplier = suppliers.find(s => s.id === formData.supplier_id);
+
       const invoiceData = {
+        id: isEditing ? selectedInvoice?.id : 'pi_' + Date.now(),
         invoice_number: isEditing ? selectedInvoice?.invoice_number : generateInvoiceNumber(),
         supplier_id: formData.supplier_id,
+        purchase_order_id: null,
         invoice_date: formData.invoice_date,
         due_date: formData.due_date || null,
         status: "pending",
-        payment_status: "unpaid",
+        payment_status: isEditing ? selectedInvoice?.payment_status : "unpaid",
         items: validItems,
         subtotal: parseFloat(totals.subtotal),
         tax_amount: parseFloat(totals.tax),
         discount_amount: parseFloat(totals.discount),
         total_amount: parseFloat(totals.total),
-        paid_amount: 0,
+        paid_amount: isEditing ? selectedInvoice?.paid_amount || 0 : 0,
         notes: formData.notes || null,
-        user_id: (await supabase.auth.getUser()).data.user?.id,
+        suppliers: { name: supplier?.name || '' },
+        created_at: isEditing ? selectedInvoice?.created_at : new Date().toISOString(),
       };
 
-      let error;
+      // Demo mode: save to localStorage
+      const storedInvoices = localStorage.getItem('demo_purchase_invoices');
+      let invoicesArray = storedInvoices ? JSON.parse(storedInvoices) : [];
+
       if (isEditing && selectedInvoice) {
-        const result = await supabase
-          .from("purchase_invoices")
-          .update(invoiceData)
-          .eq("id", selectedInvoice.id);
-        error = result.error;
+        invoicesArray = invoicesArray.map((invoice: PurchaseInvoice) =>
+          invoice.id === selectedInvoice.id ? invoiceData : invoice
+        );
       } else {
-        const result = await supabase
-          .from("purchase_invoices")
-          .insert([invoiceData]);
-        error = result.error;
+        invoicesArray.unshift(invoiceData);
       }
 
-      if (error) throw error;
+      localStorage.setItem('demo_purchase_invoices', JSON.stringify(invoicesArray));
 
       toast({
         title: "تم بنجاح",
@@ -337,16 +422,23 @@ const PurchaseInvoices = () => {
     }
 
     try {
-      const { error } = await supabase
-        .from("purchase_invoices")
-        .update({
-          paid_amount: newPaidAmount,
-          payment_status: paymentStatus,
-          status: status,
-        })
-        .eq("id", selectedInvoice.id);
-
-      if (error) throw error;
+      // Demo mode: update in localStorage
+      const storedInvoices = localStorage.getItem('demo_purchase_invoices');
+      if (storedInvoices) {
+        const invoicesArray = JSON.parse(storedInvoices);
+        const updatedInvoices = invoicesArray.map((invoice: PurchaseInvoice) => {
+          if (invoice.id === selectedInvoice.id) {
+            return {
+              ...invoice,
+              paid_amount: newPaidAmount,
+              payment_status: paymentStatus,
+              status: status,
+            };
+          }
+          return invoice;
+        });
+        localStorage.setItem('demo_purchase_invoices', JSON.stringify(updatedInvoices));
+      }
 
       toast({
         title: "تم بنجاح",
@@ -369,12 +461,13 @@ const PurchaseInvoices = () => {
     if (!confirm("هل أنت متأكد من حذف الفاتورة؟")) return;
 
     try {
-      const { error } = await supabase
-        .from("purchase_invoices")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
+      // Demo mode: delete from localStorage
+      const storedInvoices = localStorage.getItem('demo_purchase_invoices');
+      if (storedInvoices) {
+        const invoicesArray = JSON.parse(storedInvoices);
+        const updatedInvoices = invoicesArray.filter((invoice: PurchaseInvoice) => invoice.id !== id);
+        localStorage.setItem('demo_purchase_invoices', JSON.stringify(updatedInvoices));
+      }
 
       toast({
         title: "تم الحذف",
@@ -389,6 +482,43 @@ const PurchaseInvoices = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleExport = (format: 'csv' | 'json') => {
+    if (filteredInvoices.length === 0) {
+      toast({
+        title: "تنبيه",
+        description: "لا توجد بيانات للتصدير",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const exportData = filteredInvoices.map(invoice => ({
+      'رقم الفاتورة': invoice.invoice_number,
+      'المورد': invoice.suppliers?.name,
+      'تاريخ الفاتورة': format(new Date(invoice.invoice_date), "yyyy-MM-dd"),
+      'تاريخ الاستحقاق': invoice.due_date ? format(new Date(invoice.due_date), "yyyy-MM-dd") : '-',
+      'حالة الدفع': paymentStatusLabels[invoice.payment_status],
+      'المبلغ الفرعي': invoice.subtotal,
+      'الضريبة': invoice.tax_amount,
+      'الخصم': invoice.discount_amount,
+      'الإجمالي': invoice.total_amount,
+      'المدفوع': invoice.paid_amount,
+      'المتبقي': invoice.total_amount - invoice.paid_amount,
+      'الملاحظات': invoice.notes || '-'
+    }));
+
+    if (format === 'csv') {
+      exportToCSV(exportData, 'purchase_invoices');
+    } else {
+      exportToJSON(exportData, 'purchase_invoices');
+    }
+
+    toast({
+      title: "تم التصدير",
+      description: `تم تصدير ${filteredInvoices.length} فاتورة بنجاح`,
+    });
   };
 
   const handleEdit = (invoice: PurchaseInvoice) => {
@@ -449,10 +579,28 @@ const PurchaseInvoices = () => {
           <Receipt className="h-8 w-8 text-primary" />
           <h1 className="text-3xl font-bold text-foreground">فواتير المشتريات</h1>
         </div>
-        <Button onClick={() => { resetForm(); setDialogOpen(true); }}>
-          <Plus className="ml-2 h-4 w-4" />
-          فاتورة جديدة
-        </Button>
+        <div className="flex gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <Download className="ml-2 h-4 w-4" />
+                تصدير
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => handleExport('csv')}>
+                تصدير CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('json')}>
+                تصدير JSON
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button onClick={() => { resetForm(); setDialogOpen(true); }}>
+            <Plus className="ml-2 h-4 w-4" />
+            فاتورة جديدة
+          </Button>
+        </div>
       </div>
 
       <Card>
