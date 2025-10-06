@@ -30,6 +30,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { exportToCSV } from "@/utils/exportImport";
@@ -125,6 +132,8 @@ const Quotes = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [quoteToDelete, setQuoteToDelete] = useState<string | null>(null);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [viewQuote, setViewQuote] = useState<Quote | null>(null);
+  const [editQuote, setEditQuote] = useState<Quote | null>(null);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -293,6 +302,48 @@ const Quotes = () => {
       return [];
     }
   }, [quotes, searchQuery]);
+
+  const handleView = (quote: Quote) => {
+    try {
+      if (!quote || !quote.id) {
+        console.error("Invalid quote for view");
+        return;
+      }
+      setViewQuote(quote);
+      toast({
+        title: "عرض تفاصيل عرض السعر",
+        description: `عرض السعر رقم: ${quote.quote_number}`,
+      });
+    } catch (error) {
+      console.error("Error in handleView:", error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء عرض التفاصيل",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEdit = (quote: Quote) => {
+    try {
+      if (!quote || !quote.id) {
+        console.error("Invalid quote for edit");
+        return;
+      }
+      setEditQuote(quote);
+      toast({
+        title: "تعديل عرض السعر",
+        description: `يتم تحضير عرض السعر رقم: ${quote.quote_number} للتعديل`,
+      });
+    } catch (error) {
+      console.error("Error in handleEdit:", error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء تحضير التعديل",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleDelete = (quoteId: string) => {
     try {
@@ -570,11 +621,17 @@ const Quotes = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem className="gap-2">
+                <DropdownMenuItem
+                  className="gap-2"
+                  onClick={() => handleView(quote)}
+                >
                   <Eye className="h-4 w-4" />
                   عرض
                 </DropdownMenuItem>
-                <DropdownMenuItem className="gap-2">
+                <DropdownMenuItem
+                  className="gap-2"
+                  onClick={() => handleEdit(quote)}
+                >
                   <Edit className="h-4 w-4" />
                   تعديل
                 </DropdownMenuItem>
@@ -769,6 +826,129 @@ const Quotes = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <Dialog open={!!viewQuote} onOpenChange={(open) => !open && setViewQuote(null)}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold">تفاصيل عرض السعر</DialogTitle>
+              <DialogDescription>
+                عرض تفاصيل عرض السعر رقم: {viewQuote?.quote_number}
+              </DialogDescription>
+            </DialogHeader>
+            {viewQuote && (
+              <div className="space-y-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-600">رقم العرض</label>
+                    <p className="text-base font-semibold">{viewQuote.quote_number}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-600">الحالة</label>
+                    <div>{getStatusBadge(viewQuote.status)}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-600">العميل</label>
+                    <p className="text-base">{viewQuote.customers?.customer_name || "غير محدد"}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-600">تاريخ العرض</label>
+                    <p className="text-base">{safeFormatDate(viewQuote.quote_date, "yyyy-MM-dd")}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-600">تاريخ الانتهاء</label>
+                    <p className="text-base">{safeFormatDate(viewQuote.expiry_date, "yyyy-MM-dd")}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-600">تاريخ الإنشاء</label>
+                    <p className="text-base">{safeFormatDate(viewQuote.created_at, "yyyy-MM-dd HH:mm")}</p>
+                  </div>
+                </div>
+                <div className="border-t pt-4 space-y-3">
+                  <h3 className="font-semibold text-lg">التفاصيل المالية</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">المبلغ الفرعي:</span>
+                      <span className="font-semibold">{formatCurrency(viewQuote.subtotal)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">الضريبة:</span>
+                      <span className="font-semibold">{formatCurrency(viewQuote.tax_amount)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">الخصم:</span>
+                      <span className="font-semibold text-red-600">-{formatCurrency(viewQuote.discount_amount)}</span>
+                    </div>
+                    <div className="flex justify-between border-t pt-2">
+                      <span className="text-gray-900 font-bold">المبلغ الإجمالي:</span>
+                      <span className="font-bold text-lg text-cyan-600">{formatCurrency(viewQuote.total_amount)}</span>
+                    </div>
+                  </div>
+                </div>
+                {viewQuote.notes && (
+                  <div className="border-t pt-4 space-y-2">
+                    <h3 className="font-semibold text-lg">ملاحظات</h3>
+                    <p className="text-gray-700 bg-gray-50 p-3 rounded">{viewQuote.notes}</p>
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="flex justify-end gap-2 pt-4 border-t">
+              <Button variant="outline" onClick={() => setViewQuote(null)}>
+                إغلاق
+              </Button>
+              <Button onClick={() => {
+                if (viewQuote) {
+                  setViewQuote(null);
+                  handleEdit(viewQuote);
+                }
+              }}>
+                <Edit className="h-4 w-4 ml-2" />
+                تعديل
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={!!editQuote} onOpenChange={(open) => !open && setEditQuote(null)}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold">تعديل عرض السعر</DialogTitle>
+              <DialogDescription>
+                تعديل عرض السعر رقم: {editQuote?.quote_number}
+              </DialogDescription>
+            </DialogHeader>
+            {editQuote && (
+              <div className="space-y-4 py-4">
+                <div className="text-center py-8">
+                  <Edit className="h-16 w-16 mx-auto mb-4 text-cyan-500" />
+                  <h3 className="text-lg font-semibold mb-2">صفحة التعديل قيد التطوير</h3>
+                  <p className="text-gray-600 mb-4">
+                    يمكنك حالياً عرض التفاصيل. سيتم إضافة إمكانية التعديل قريباً.
+                  </p>
+                  <div className="bg-gray-50 p-4 rounded-lg text-right">
+                    <p className="font-semibold mb-2">عرض السعر: {editQuote.quote_number}</p>
+                    <p className="text-sm text-gray-600">الحالة: {editQuote.status}</p>
+                    <p className="text-sm text-gray-600">المبلغ الإجمالي: {formatCurrency(editQuote.total_amount)}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className="flex justify-end gap-2 pt-4 border-t">
+              <Button variant="outline" onClick={() => setEditQuote(null)}>
+                إغلاق
+              </Button>
+              <Button onClick={() => {
+                if (editQuote) {
+                  setEditQuote(null);
+                  handleView(editQuote);
+                }
+              }}>
+                <Eye className="h-4 w-4 ml-2" />
+                عرض التفاصيل
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         <AddQuoteDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
       </div>
