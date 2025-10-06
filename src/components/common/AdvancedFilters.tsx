@@ -34,11 +34,12 @@ export function AdvancedFilters({
   filterOptions,
 }: AdvancedFiltersProps) {
   const activeFiltersCount = Object.keys(filters).filter(
-    (key) => filters[key] !== "" && filters[key] !== undefined
+    (key) => filters[key] !== "" && filters[key] !== undefined && filters[key] !== null
   ).length;
 
   const handleFilterChange = (key: string, value: any) => {
-    onFiltersChange({ ...filters, [key]: value });
+    const newFilters = { ...filters, [key]: value };
+    onFiltersChange(newFilters);
   };
 
   const clearFilters = () => {
@@ -56,7 +57,7 @@ export function AdvancedFilters({
           <Filter className="h-4 w-4" />
           تصفية متقدمة
           {activeFiltersCount > 0 && (
-            <span className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs">
+            <span className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
               {activeFiltersCount}
             </span>
           )}
@@ -65,7 +66,7 @@ export function AdvancedFilters({
       <PopoverContent className="w-96" align="end">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h4 className="font-semibold">تصفية متقدمة</h4>
+            <h4 className="font-semibold text-lg">تصفية متقدمة</h4>
             {activeFiltersCount > 0 && (
               <Button
                 variant="ghost"
@@ -82,7 +83,7 @@ export function AdvancedFilters({
           <div className="space-y-3 max-h-96 overflow-y-auto">
             {filterOptions.map((option) => (
               <div key={option.key} className="space-y-2">
-                <Label className="text-sm">{option.label}</Label>
+                <Label className="text-sm font-medium">{option.label}</Label>
                 {option.type === "text" && (
                   <Input
                     placeholder={`ابحث عن ${option.label}...`}
