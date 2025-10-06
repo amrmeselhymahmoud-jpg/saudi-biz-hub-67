@@ -1,4 +1,4 @@
-import { Users, Plus, Search, MoreHorizontal, Edit as EditIcon, Trash2, Loader2, DollarSign, Calendar, Activity } from "lucide-react";
+import { Users, Plus, Search, MoveHorizontal as MoreHorizontal, CreditCard as EditIcon, Trash2, Loader as Loader2, DollarSign, Calendar, Activity } from "lucide-react";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
