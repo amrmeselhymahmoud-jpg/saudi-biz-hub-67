@@ -1,4 +1,4 @@
-import { Receipt, Plus, Search, MoveHorizontal as MoreHorizontal, Eye, Trash2, Download, Loader as Loader2, DollarSign, FileText, CircleCheck as CheckCircle2, Clock, Circle as XCircle, Printer } from "lucide-react";
+import { Receipt, Plus, Search, MoveHorizontal as MoreHorizontal, Eye, Trash2, Download, Loader as Loader2, DollarSign, FileText, CircleCheck as CheckCircle2, Clock, Circle as XCircle, Printer, Edit } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -83,8 +83,9 @@ interface Product {
 }
 
 interface InvoiceItem {
+  id?: string;
   product_id: string;
-  product_name: string;
+  product_name?: string;
   quantity: number;
   unit_price: number;
   tax_rate: number;
@@ -148,6 +149,9 @@ const SalesInvoices = () => {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<SalesInvoice | null>(null);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editInvoice, setEditInvoice] = useState<SalesInvoice | null>(null);
+  const [invoiceItems, setInvoiceItems] = useState<InvoiceItem[]>([]);
 
   const [formData, setFormData] = useState({
     customer_id: "",
@@ -365,6 +369,43 @@ const SalesInvoices = () => {
     },
   });
 
+  const updateInvoiceMutation = useMutation({
+    mutationFn: async (data: { id: string; invoice_date: string; due_date: string; notes: string | null }) => {
+      try {
+        const { error } = await supabase
+          .from("sales_invoices")
+          .update({
+            invoice_date: data.invoice_date,
+            due_date: data.due_date,
+            notes: data.notes,
+          })
+          .eq("id", data.id);
+
+        if (error) throw error;
+      } catch (error) {
+        console.error('Update error:', error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      try {
+        queryClient.invalidateQueries({ queryKey: ["sales-invoices"] });
+        toast({ title: "تم بنجاح", description: "تم تحديث الفاتورة بنجاح" });
+        setEditDialogOpen(false);
+        setEditInvoice(null);
+      } catch (error) {
+        console.error('Error after update success:', error);
+      }
+    },
+    onError: (error: Error) => {
+      try {
+        toast({ title: "خطأ", description: error.message, variant: "destructive" });
+      } catch (e) {
+        console.error('Error showing toast:', e);
+      }
+    },
+  });
+
   const resetForm = () => {
     try {
       setFormData({
@@ -425,6 +466,38 @@ const SalesInvoices = () => {
       setItems(items.filter((_, i) => i !== index));
     } catch (error) {
       console.error('Error removing item:', error);
+    }
+  };
+
+  // Fetch invoice items
+  const fetchInvoiceItems = async (invoiceId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("sales_invoice_items")
+        .select(`
+          *,
+          products (
+            product_name
+          )
+        `)
+        .eq("invoice_id", invoiceId);
+
+      if (error) throw error;
+
+      return data?.map((item: any) => ({
+        id: item.id,
+        product_id: item.product_id,
+        product_name: item.products?.product_name || 'N/A',
+        quantity: parseFloat(item.quantity) || 0,
+        unit_price: parseFloat(item.unit_price) || 0,
+        tax_rate: parseFloat(item.tax_rate) || 0,
+        tax_amount: parseFloat(item.tax_amount) || 0,
+        discount: parseFloat(item.discount) || 0,
+        total: parseFloat(item.total) || 0,
+      })) || [];
+    } catch (error) {
+      console.error('Error fetching invoice items:', error);
+      return [];
     }
   };
 
@@ -536,7 +609,7 @@ const SalesInvoices = () => {
   const totals = calculateTotals();
 
   // Export to PDF with Arabic support
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     try {
       if (filteredInvoices.length === 0) {
         toast({
@@ -649,13 +722,16 @@ const SalesInvoices = () => {
     }
   };
 
-  // Print invoice
-  const handlePrint = (invoice: SalesInvoice) => {
+  // Print invoice with items
+  const handlePrint = async (invoice: SalesInvoice) => {
     try {
       if (!invoice || !invoice.id) {
         toast({ title: "خطأ", description: "فاتورة غير صالحة", variant: "destructive" });
         return;
       }
+
+      // Fetch invoice items
+      const items = await fetchInvoiceItems(invoice.id);
 
       const printWindow = window.open('', '_blank');
       if (!printWindow) {
@@ -664,6 +740,19 @@ const SalesInvoices = () => {
       }
 
       const customer = invoice.customers;
+
+      // Generate items table rows
+      const itemsRows = items.map((item, index) => `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${safeValue(item.product_name)}</td>
+          <td>${safeToLocaleString(item.quantity)}</td>
+          <td>${safeToLocaleString(item.unit_price)}</td>
+          <td>${safeToLocaleString(item.tax_rate)}%</td>
+          <td>${safeToLocaleString(item.discount)}</td>
+          <td>${safeToLocaleString(item.total)}</td>
+        </tr>
+      `).join('');
 
       printWindow.document.write(`
         <!DOCTYPE html>
@@ -677,12 +766,12 @@ const SalesInvoices = () => {
             .invoice-header { text-align: center; margin-bottom: 30px; border-bottom: 3px solid #10b981; padding-bottom: 20px; }
             .invoice-header h1 { color: #10b981; font-size: 32px; margin-bottom: 10px; }
             .invoice-info { display: flex; justify-content: space-between; margin: 30px 0; }
-            .info-box { flex: 1; padding: 15px; background: #f9fafb; border-radius: 8px; }
+            .info-box { flex: 1; padding: 15px; background: #f9fafb; border-radius: 8px; margin: 0 5px; }
             .info-box h3 { color: #374151; margin-bottom: 12px; font-size: 16px; }
             .info-box p { color: #6b7280; line-height: 1.8; font-size: 14px; }
             table { width: 100%; border-collapse: collapse; margin: 30px 0; }
             th { background: #10b981; color: white; padding: 15px; text-align: right; font-size: 14px; }
-            td { padding: 12px 15px; border-bottom: 1px solid #e5e7eb; font-size: 13px; }
+            td { padding: 12px 15px; border-bottom: 1px solid #e5e7eb; font-size: 13px; text-align: right; }
             tr:hover { background: #f9fafb; }
             .totals { margin-top: 30px; text-align: left; background: #f9fafb; padding: 20px; border-radius: 8px; }
             .totals div { padding: 10px 0; display: flex; justify-content: space-between; font-size: 14px; }
@@ -701,7 +790,7 @@ const SalesInvoices = () => {
           </div>
 
           <div class="invoice-info">
-            <div class="info-box" style="margin-left: 10px;">
+            <div class="info-box">
               <h3>بيانات العميل:</h3>
               <p><strong style="color: #111827; font-size: 15px;">${safeValue(customer?.customer_name, 'غير محدد')}</strong></p>
               ${customer?.email ? `<p><strong>البريد:</strong> ${safeValue(customer.email)}</p>` : ''}
@@ -720,6 +809,25 @@ const SalesInvoices = () => {
               }</p>
             </div>
           </div>
+
+          ${items.length > 0 ? `
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>المنتج</th>
+                  <th>الكمية</th>
+                  <th>السعر</th>
+                  <th>الضريبة</th>
+                  <th>الخصم</th>
+                  <th>الإجمالي</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${itemsRows}
+              </tbody>
+            </table>
+          ` : ''}
 
           <div class="totals">
             <div>
@@ -810,16 +918,57 @@ const SalesInvoices = () => {
   };
 
   // Handle view
-  const handleView = (invoice: SalesInvoice) => {
+  const handleView = async (invoice: SalesInvoice) => {
     try {
       if (!invoice || !invoice.id) {
         console.error("Invalid invoice");
         return;
       }
+
+      // Fetch items for this invoice
+      const items = await fetchInvoiceItems(invoice.id);
+      setInvoiceItems(items);
       setSelectedInvoice(invoice);
       setViewDialogOpen(true);
     } catch (error) {
       console.error('Error in handleView:', error);
+    }
+  };
+
+  // Handle edit
+  const handleEdit = (invoice: SalesInvoice) => {
+    try {
+      if (!invoice || !invoice.id) {
+        console.error("Invalid invoice");
+        return;
+      }
+      setEditInvoice(invoice);
+      setEditDialogOpen(true);
+    } catch (error) {
+      console.error('Error in handleEdit:', error);
+    }
+  };
+
+  // Handle update
+  const handleUpdate = (e: React.FormEvent<HTMLFormElement>) => {
+    try {
+      e.preventDefault();
+      if (!editInvoice) return;
+
+      const formData = new FormData(e.currentTarget);
+      updateInvoiceMutation.mutate({
+        id: editInvoice.id,
+        invoice_date: formData.get('invoice_date') as string,
+        due_date: formData.get('due_date') as string,
+        notes: formData.get('notes') as string || null,
+      });
+    } catch (error) {
+      console.error('Error in handleUpdate:', error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء التحديث",
+        variant: "destructive",
+      });
     }
   };
 
@@ -886,6 +1035,13 @@ const SalesInvoices = () => {
                 >
                   <Eye className="h-4 w-4" />
                   عرض
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="gap-2"
+                  onClick={() => handleEdit(invoice)}
+                >
+                  <Edit className="h-4 w-4" />
+                  تعديل
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className="gap-2"
@@ -1232,11 +1388,103 @@ const SalesInvoices = () => {
           </DialogContent>
         </Dialog>
 
+        {/* Edit Invoice Dialog */}
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>تعديل فاتورة المبيعات</DialogTitle>
+              <DialogDescription>
+                تعديل تفاصيل الفاتورة رقم: {editInvoice?.invoice_number}
+              </DialogDescription>
+            </DialogHeader>
+
+            {editInvoice && (
+              <form onSubmit={handleUpdate} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>رقم الفاتورة</Label>
+                    <Input value={editInvoice.invoice_number} disabled className="bg-gray-50" />
+                  </div>
+
+                  <div>
+                    <Label>العميل</Label>
+                    <Input value={editInvoice.customers?.customer_name || 'غير محدد'} disabled className="bg-gray-50" />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="edit-invoice_date">تاريخ الفاتورة *</Label>
+                    <Input
+                      id="edit-invoice_date"
+                      name="invoice_date"
+                      type="date"
+                      defaultValue={editInvoice.invoice_date?.split('T')[0]}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="edit-due_date">تاريخ الاستحقاق *</Label>
+                    <Input
+                      id="edit-due_date"
+                      name="due_date"
+                      type="date"
+                      defaultValue={editInvoice.due_date?.split('T')[0]}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label>المبلغ الإجمالي</Label>
+                    <Input value={formatCurrency(editInvoice.total_amount)} disabled className="bg-gray-50" />
+                  </div>
+
+                  <div>
+                    <Label>حالة الدفع</Label>
+                    <div className="flex items-center h-10 px-3 border rounded-md bg-gray-50">
+                      {getPaymentStatusBadge(editInvoice.payment_status)}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="edit-notes">ملاحظات</Label>
+                  <Textarea
+                    id="edit-notes"
+                    name="notes"
+                    defaultValue={editInvoice.notes || ''}
+                    placeholder="ملاحظات إضافية..."
+                    rows={3}
+                  />
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-sm text-blue-800">
+                    يمكنك تعديل التواريخ والملاحظات فقط. لتعديل المنتجات أو المبالغ، يرجى حذف الفاتورة وإنشاء واحدة جديدة.
+                  </p>
+                </div>
+
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>
+                    إلغاء
+                  </Button>
+                  <Button type="submit" disabled={updateInvoiceMutation.isPending}>
+                    {updateInvoiceMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                    حفظ التعديلات
+                  </Button>
+                </DialogFooter>
+              </form>
+            )}
+          </DialogContent>
+        </Dialog>
+
         {/* View Invoice Dialog */}
         <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>تفاصيل الفاتورة</DialogTitle>
+              <DialogDescription>
+                فاتورة رقم: {selectedInvoice?.invoice_number}
+              </DialogDescription>
             </DialogHeader>
             {selectedInvoice && (
               <div className="space-y-4">
@@ -1258,6 +1506,36 @@ const SalesInvoices = () => {
                     <p>{safeFormatDate(selectedInvoice.due_date, 'yyyy-MM-dd')}</p>
                   </div>
                 </div>
+
+                {invoiceItems.length > 0 && (
+                  <>
+                    <Separator />
+                    <div>
+                      <h3 className="font-semibold mb-3">بنود الفاتورة</h3>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>المنتج</TableHead>
+                            <TableHead>الكمية</TableHead>
+                            <TableHead>السعر</TableHead>
+                            <TableHead>الإجمالي</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {invoiceItems.map((item, index) => (
+                            <TableRow key={index}>
+                              <TableCell>{safeValue(item.product_name)}</TableCell>
+                              <TableCell>{safeToLocaleString(item.quantity)}</TableCell>
+                              <TableCell>{formatCurrency(item.unit_price)}</TableCell>
+                              <TableCell className="font-semibold">{formatCurrency(item.total)}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </>
+                )}
+
                 <Separator />
                 <div className="space-y-2">
                   <div className="flex justify-between">
