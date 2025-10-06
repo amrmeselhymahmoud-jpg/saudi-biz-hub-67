@@ -130,6 +130,12 @@ export function ExportButtons({ data, filename, columns }: ExportButtonsProps) {
             @media print {
               body { padding: 10px; }
               h1 { font-size: 20px; }
+              @page {
+                size: A4;
+                margin: 15mm;
+              }
+              table { page-break-inside: auto; }
+              tr { page-break-inside: avoid; page-break-after: auto; }
             }
           </style>
         </head>
@@ -175,15 +181,24 @@ export function ExportButtons({ data, filename, columns }: ExportButtonsProps) {
         printWindow.document.write(htmlContent);
         printWindow.document.close();
 
-        setTimeout(() => {
-          printWindow.print();
-        }, 250);
-      }
+        printWindow.onload = () => {
+          setTimeout(() => {
+            printWindow.focus();
+            printWindow.print();
 
-      toast({
-        title: "جاري التصدير إلى PDF",
-        description: "سيتم فتح نافذة الطباعة",
-      });
+            toast({
+              title: "تم فتح نافذة الطباعة",
+              description: "اختر 'حفظ كـ PDF' من خيارات الطابعة",
+            });
+          }, 500);
+        };
+      } else {
+        toast({
+          title: "تعذر فتح النافذة",
+          description: "الرجاء السماح للنوافذ المنبثقة",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       console.error("Export error:", error);
       toast({
