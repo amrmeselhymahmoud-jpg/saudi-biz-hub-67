@@ -316,8 +316,9 @@ const Customers = () => {
           />
           <ExportButtons
             data={filteredCustomers}
-            filename="العملاء"
+            filename="قائمة العملاء"
             columns={exportColumns}
+            totalAmount={totalCreditLimit}
           />
         </div>
 

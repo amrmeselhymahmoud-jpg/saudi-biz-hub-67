@@ -7,14 +7,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface ExportButtonsProps {
   data: any[];
   filename: string;
   columns: { key: string; label: string }[];
+  totalAmount?: number;
 }
 
-export function ExportButtons({ data, filename, columns }: ExportButtonsProps) {
+export function ExportButtons({ data, filename, columns, totalAmount }: ExportButtonsProps) {
   const { toast } = useToast();
 
   const getNestedValue = (obj: any, path: string) => {
@@ -89,234 +92,98 @@ export function ExportButtons({ data, filename, columns }: ExportButtonsProps) {
     }
 
     try {
-      toast({
-        title: "جاري التحضير للتصدير",
-        description: "يرجى الانتظار...",
+      const doc = new jsPDF({
+        orientation: "landscape",
+        unit: "mm",
+        format: "a4",
       });
 
-      const htmlContent = `
-        <!DOCTYPE html>
-        <html dir="rtl" lang="ar">
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>${filename}</title>
-          <style>
-            * {
-              margin: 0;
-              padding: 0;
-              box-sizing: border-box;
-            }
-            body {
-              font-family: 'Arial', 'Helvetica', sans-serif;
-              direction: rtl;
-              padding: 20px;
-              background: white;
-              color: #333;
-            }
-            .header {
-              text-align: center;
-              margin-bottom: 30px;
-              border-bottom: 3px solid #0d9488;
-              padding-bottom: 20px;
-            }
-            h1 {
-              color: #0d9488;
-              font-size: 28px;
-              margin-bottom: 15px;
-              font-weight: bold;
-            }
-            .meta {
-              color: #666;
-              font-size: 14px;
-              line-height: 1.6;
-            }
-            .meta p {
-              margin: 5px 0;
-            }
-            table {
-              width: 100%;
-              border-collapse: collapse;
-              margin: 20px 0;
-              font-size: 13px;
-              box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            }
-            th {
-              background-color: #0d9488;
-              color: white;
-              padding: 12px 8px;
-              text-align: right;
-              font-weight: bold;
-              border: 1px solid #0a7b6f;
-              white-space: nowrap;
-            }
-            td {
-              padding: 10px 8px;
-              text-align: right;
-              border: 1px solid #e2e8f0;
-              background-color: white;
-            }
-            tr:nth-child(even) td {
-              background-color: #f8fafc;
-            }
-            tr:hover td {
-              background-color: #f0fdfa;
-            }
-            .footer {
-              margin-top: 40px;
-              padding-top: 20px;
-              border-top: 2px solid #e2e8f0;
-              text-align: center;
-              color: #666;
-              font-size: 12px;
-            }
-            .footer p {
-              margin: 5px 0;
-            }
-            .logo {
-              font-weight: bold;
-              color: #0d9488;
-            }
+      // Add custom font for Arabic support (using default for now)
+      doc.setFont("helvetica");
+      doc.setLanguage("ar");
 
-            @media print {
-              body {
-                padding: 10mm;
-              }
-              h1 {
-                font-size: 22px;
-              }
-              table {
-                font-size: 11px;
-              }
-              th, td {
-                padding: 8px 6px;
-              }
-              @page {
-                size: A4 landscape;
-                margin: 10mm;
-              }
-              table {
-                page-break-inside: auto;
-              }
-              tr {
-                page-break-inside: avoid;
-                page-break-after: auto;
-              }
-              thead {
-                display: table-header-group;
-              }
-              tfoot {
-                display: table-footer-group;
-              }
-              .no-print {
-                display: none;
-              }
-            }
+      // Add title
+      doc.setFontSize(20);
+      doc.setTextColor(13, 148, 136); // Teal color
+      const title = filename || "Finzo Sales Report";
+      doc.text(title, doc.internal.pageSize.getWidth() / 2, 15, { align: "center" });
 
-            @media screen {
-              .print-button {
-                position: fixed;
-                top: 20px;
-                left: 20px;
-                background: #0d9488;
-                color: white;
-                border: none;
-                padding: 12px 24px;
-                border-radius: 6px;
-                cursor: pointer;
-                font-size: 14px;
-                font-weight: bold;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-                z-index: 1000;
-              }
-              .print-button:hover {
-                background: #0a7b6f;
-              }
-            }
-          </style>
-        </head>
-        <body>
-          <button class="print-button no-print" onclick="window.print()">
-            طباعة / حفظ PDF
-          </button>
+      // Add date and metadata
+      doc.setFontSize(10);
+      doc.setTextColor(102, 102, 102);
+      const currentDate = new Date().toLocaleDateString("ar-SA");
+      const currentTime = new Date().toLocaleTimeString("ar-SA");
+      doc.text(`Date: ${currentDate}`, 15, 25);
+      doc.text(`Time: ${currentTime}`, 15, 30);
+      doc.text(`Records: ${data.length}`, 15, 35);
 
-          <div class="header">
-            <h1>${filename}</h1>
-            <div class="meta">
-              <p><strong>تاريخ التصدير:</strong> ${new Date().toLocaleDateString("ar-SA")}</p>
-              <p><strong>عدد السجلات:</strong> ${data.length}</p>
-              <p><strong>الوقت:</strong> ${new Date().toLocaleTimeString("ar-SA")}</p>
-            </div>
-          </div>
+      // Add total amount if provided
+      if (totalAmount !== undefined) {
+        doc.setFontSize(12);
+        doc.setTextColor(13, 148, 136);
+        doc.text(`Total Sales: ${totalAmount.toLocaleString()} SAR`, doc.internal.pageSize.getWidth() - 15, 30, { align: "right" });
+      }
 
-          <table>
-            <thead>
-              <tr>
-                ${columns.map((col) => `<th>${col.label}</th>`).join("")}
-              </tr>
-            </thead>
-            <tbody>
-              ${data
-                .map(
-                  (row) => `
-                <tr>
-                  ${columns
-                    .map((col) => {
-                      const value = getNestedValue(row, col.key);
-                      const formattedValue = formatValue(value);
-                      return `<td>${formattedValue}</td>`;
-                    })
-                    .join("")}
-                </tr>
-              `
-                )
-                .join("")}
-            </tbody>
-          </table>
+      // Prepare table data
+      const headers = columns.map(col => col.label);
+      const tableData = data.map(row =>
+        columns.map(col => {
+          const value = getNestedValue(row, col.key);
+          return formatValue(value);
+        })
+      );
 
-          <div class="footer">
-            <p class="logo">⭐ نظام فينزو المحاسبي</p>
-            <p>تم إنشاء هذا التقرير تلقائياً من نظام فينزو لإدارة الحسابات</p>
-            <p>&copy; ${new Date().getFullYear()} - جميع الحقوق محفوظة</p>
-          </div>
+      // Add table using autoTable
+      autoTable(doc, {
+        startY: 45,
+        head: [headers],
+        body: tableData,
+        styles: {
+          font: "helvetica",
+          fontSize: 9,
+          cellPadding: 3,
+          overflow: "linebreak",
+          halign: "left",
+        },
+        headStyles: {
+          fillColor: [13, 148, 136], // Teal
+          textColor: [255, 255, 255],
+          fontStyle: "bold",
+          halign: "center",
+        },
+        alternateRowStyles: {
+          fillColor: [248, 250, 252], // Light gray
+        },
+        margin: { top: 45, left: 10, right: 10 },
+        theme: "grid",
+        tableLineColor: [226, 232, 240],
+        tableLineWidth: 0.1,
+      });
 
-          <script>
-            window.onload = function() {
-              setTimeout(function() {
-                window.print();
-              }, 500);
-            };
-          </script>
-        </body>
-        </html>
-      `;
+      // Add footer
+      const pageCount = (doc as any).internal.getNumberOfPages();
+      doc.setFontSize(8);
+      doc.setTextColor(102, 102, 102);
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.text(
+          `Finzo Accounting System - Page ${i} of ${pageCount}`,
+          doc.internal.pageSize.getWidth() / 2,
+          doc.internal.pageSize.getHeight() - 10,
+          { align: "center" }
+        );
+      }
 
-      setTimeout(() => {
-        const printWindow = window.open("", "_blank", "width=1200,height=800");
+      // Save the PDF
+      const fileName = `${filename.replace(/\s+/g, '-')}_${new Date().toISOString().split('T')[0]}.pdf`;
+      doc.save(fileName);
 
-        if (printWindow) {
-          printWindow.document.open();
-          printWindow.document.write(htmlContent);
-          printWindow.document.close();
-
-          printWindow.focus();
-
-          setTimeout(() => {
-            toast({
-              title: "تم فتح نافذة الطباعة",
-              description: "اختر 'حفظ كـ PDF' من خيارات الطابعة",
-            });
-          }, 1000);
-        } else {
-          toast({
-            title: "تعذر فتح النافذة",
-            description: "الرجاء السماح للنوافذ المنبثقة في المتصفح",
-            variant: "destructive",
-          });
-        }
-      }, 300);
+      toast({
+        title: "تم التصدير بنجاح",
+        description: `تم تصدير ${data.length} سجل إلى PDF`,
+      });
     } catch (error) {
-      console.error("Export error:", error);
+      console.error("PDF Export error:", error);
       toast({
         title: "خطأ في التصدير",
         description: "حدث خطأ أثناء تصدير البيانات إلى PDF",
