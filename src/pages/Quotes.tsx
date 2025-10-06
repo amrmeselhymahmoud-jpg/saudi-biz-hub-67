@@ -1,5 +1,5 @@
 import { FileText, Plus, Search, MoveHorizontal as MoreHorizontal, CreditCard as Edit, Trash2, Eye, Send, CircleCheck as CheckCircle, Circle as XCircle, Clock, Loader as Loader2, Download, Upload, Printer } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -32,9 +32,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { EmptyTableMessage } from "@/components/EmptyTableMessage";
 import { exportToCSV } from "@/utils/exportImport";
 import { AddQuoteDialog } from "@/components/quotes/AddQuoteDialog";
+import { safeFormatDate, formatCurrency, safeToLocaleString } from "@/utils/formatters";
 
 interface Quote {
   id: string;
@@ -51,8 +51,74 @@ interface Quote {
   created_at: string;
   customers?: {
     customer_name: string;
-  };
+  } | null;
 }
+
+// Safe property access helper
+const safeGet = <T,>(obj: any, path: string, defaultValue: T): T => {
+  try {
+    if (!obj) return defaultValue;
+    const keys = path.split('.');
+    let result = obj;
+    for (const key of keys) {
+      if (result === null || result === undefined) return defaultValue;
+      result = result[key];
+    }
+    return result !== undefined && result !== null ? result : defaultValue;
+  } catch {
+    return defaultValue;
+  }
+};
+
+// Normalize quote data with all safeguards
+const normalizeQuote = (quote: any): Quote => {
+  try {
+    return {
+      id: safeGet(quote, 'id', ''),
+      quote_number: safeGet(quote, 'quote_number', 'N/A'),
+      customer_id: safeGet(quote, 'customer_id', null),
+      quote_date: safeGet(quote, 'quote_date', new Date().toISOString()),
+      expiry_date: safeGet(quote, 'expiry_date', null),
+      status: safeGet(quote, 'status', 'draft'),
+      subtotal: typeof quote?.subtotal === 'number' ? quote.subtotal : 0,
+      tax_amount: typeof quote?.tax_amount === 'number' ? quote.tax_amount : 0,
+      discount_amount: typeof quote?.discount_amount === 'number' ? quote.discount_amount : 0,
+      total_amount: typeof quote?.total_amount === 'number' ? quote.total_amount : 0,
+      notes: safeGet(quote, 'notes', null),
+      created_at: safeGet(quote, 'created_at', new Date().toISOString()),
+      customers: quote?.customers ? {
+        customer_name: safeGet(quote.customers, 'customer_name', 'غير محدد')
+      } : null,
+    };
+  } catch (error) {
+    console.error('Error normalizing quote:', error);
+    return {
+      id: quote?.id || '',
+      quote_number: 'N/A',
+      customer_id: null,
+      quote_date: new Date().toISOString(),
+      expiry_date: null,
+      status: 'draft',
+      subtotal: 0,
+      tax_amount: 0,
+      discount_amount: 0,
+      total_amount: 0,
+      notes: null,
+      created_at: new Date().toISOString(),
+      customers: null,
+    };
+  }
+};
+
+// Safe array operations
+const safeArray = <T,>(data: any): T[] => {
+  try {
+    if (Array.isArray(data)) return data;
+    return [];
+  } catch {
+    return [];
+  }
+};
 
 const Quotes = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -63,24 +129,47 @@ const Quotes = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: quotes = [], isLoading, error: queryError } = useQuery({
+  // Query with comprehensive error handling and fallback
+  const { data: quotesData = [], isLoading, error: queryError } = useQuery({
     queryKey: ["quotes"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("quotes")
-        .select(`
-          *,
-          customers (
-            customer_name
-          )
-        `)
-        .order("created_at", { ascending: false });
+      try {
+        const { data, error } = await supabase
+          .from("quotes")
+          .select(`
+            *,
+            customers (
+              customer_name
+            )
+          `)
+          .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      return data as Quote[];
+        if (error) {
+          console.error("Supabase error:", error);
+          throw error;
+        }
+
+        const safeData = safeArray<any>(data);
+        return safeData.map(normalizeQuote);
+      } catch (error) {
+        console.error("Error fetching quotes:", error);
+        return [];
+      }
     },
-    retry: false,
+    retry: 3,
+    retryDelay: 1000,
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
   });
+
+  // Memoize quotes array with safety
+  const quotes = useMemo(() => {
+    try {
+      return safeArray<Quote>(quotesData);
+    } catch {
+      return [];
+    }
+  }, [quotesData]);
 
   if (queryError) {
     console.error('Error loading quotes:', queryError);
@@ -88,202 +177,450 @@ const Quotes = () => {
 
   const deleteQuoteMutation = useMutation({
     mutationFn: async (quoteId: string) => {
-      const { error } = await supabase
-        .from("quotes")
-        .delete()
-        .eq("id", quoteId);
+      try {
+        if (!quoteId) {
+          throw new Error("Invalid quote ID");
+        }
 
-      if (error) throw error;
+        const { error } = await supabase
+          .from("quotes")
+          .delete()
+          .eq("id", quoteId);
+
+        if (error) throw error;
+      } catch (error) {
+        console.error("Delete mutation error:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["quotes"] });
-      toast({
-        title: "تم بنجاح",
-        description: "تم حذف عرض السعر بنجاح",
-      });
-      setDeleteDialogOpen(false);
-      setQuoteToDelete(null);
+      try {
+        queryClient.invalidateQueries({ queryKey: ["quotes"] });
+        toast({
+          title: "تم بنجاح",
+          description: "تم حذف عرض السعر بنجاح",
+        });
+        setDeleteDialogOpen(false);
+        setQuoteToDelete(null);
+      } catch (error) {
+        console.error("Error after delete success:", error);
+      }
     },
     onError: (error: Error) => {
-      toast({
-        title: "خطأ",
-        description: error.message,
-        variant: "destructive",
-      });
+      try {
+        toast({
+          title: "خطأ",
+          description: error?.message || "حدث خطأ غير متوقع",
+          variant: "destructive",
+        });
+      } catch (e) {
+        console.error("Error showing toast:", e);
+      }
     },
   });
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const { error } = await supabase
-        .from("quotes")
-        .update({ status })
-        .eq("id", id);
+      try {
+        if (!id || !status) {
+          throw new Error("Invalid parameters");
+        }
 
-      if (error) throw error;
+        const { error } = await supabase
+          .from("quotes")
+          .update({ status })
+          .eq("id", id);
+
+        if (error) throw error;
+      } catch (error) {
+        console.error("Update status mutation error:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["quotes"] });
-      toast({
-        title: "تم بنجاح",
-        description: "تم تحديث حالة عرض السعر بنجاح",
-      });
+      try {
+        queryClient.invalidateQueries({ queryKey: ["quotes"] });
+        toast({
+          title: "تم بنجاح",
+          description: "تم تحديث حالة عرض السعر بنجاح",
+        });
+      } catch (error) {
+        console.error("Error after update success:", error);
+      }
     },
     onError: (error: Error) => {
-      toast({
-        title: "خطأ",
-        description: error.message,
-        variant: "destructive",
-      });
+      try {
+        toast({
+          title: "خطأ",
+          description: error?.message || "حدث خطأ غير متوقع",
+          variant: "destructive",
+        });
+      } catch (e) {
+        console.error("Error showing toast:", e);
+      }
     },
   });
 
-  const filteredQuotes = quotes.filter((quote) =>
-    quote.quote_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    quote.customers?.customer_name?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Safe filtering with comprehensive checks
+  const filteredQuotes = useMemo(() => {
+    try {
+      if (!Array.isArray(quotes)) return [];
+
+      return quotes.filter((quote) => {
+        try {
+          const safeStringIncludes = (haystack: any, needle: string): boolean => {
+            try {
+              if (!needle) return true;
+              if (!haystack) return false;
+              const str = String(haystack).toLowerCase();
+              return str.includes(needle.toLowerCase());
+            } catch {
+              return false;
+            }
+          };
+
+          const matchesQuoteNumber = safeStringIncludes(quote.quote_number, searchQuery);
+          const matchesCustomerName = safeStringIncludes(quote.customers?.customer_name, searchQuery);
+
+          return matchesQuoteNumber || matchesCustomerName;
+        } catch (error) {
+          console.error("Error filtering quote:", error);
+          return false;
+        }
+      });
+    } catch (error) {
+      console.error("Error in filteredQuotes:", error);
+      return [];
+    }
+  }, [quotes, searchQuery]);
 
   const handleDelete = (quoteId: string) => {
-    setQuoteToDelete(quoteId);
-    setDeleteDialogOpen(true);
+    try {
+      if (!quoteId) {
+        console.error("Invalid quote ID for delete");
+        return;
+      }
+      setQuoteToDelete(quoteId);
+      setDeleteDialogOpen(true);
+    } catch (error) {
+      console.error("Error in handleDelete:", error);
+    }
   };
 
   const confirmDelete = () => {
-    if (quoteToDelete) {
-      deleteQuoteMutation.mutate(quoteToDelete);
+    try {
+      if (quoteToDelete) {
+        deleteQuoteMutation.mutate(quoteToDelete);
+      }
+    } catch (error) {
+      console.error("Error in confirmDelete:", error);
     }
   };
 
   const getStatusBadge = (status: string) => {
-    const statusMap = {
-      draft: { label: "مسودة", variant: "secondary" as const, icon: Edit },
-      sent: { label: "مرسل", variant: "default" as const, icon: Send },
-      accepted: { label: "مقبول", variant: "default" as const, icon: CheckCircle, className: "bg-green-500" },
-      rejected: { label: "مرفوض", variant: "destructive" as const, icon: XCircle },
-      expired: { label: "منتهي", variant: "outline" as const, icon: Clock },
-    };
+    try {
+      const statusMap = {
+        draft: { label: "مسودة", variant: "secondary" as const, icon: Edit },
+        sent: { label: "مرسل", variant: "default" as const, icon: Send },
+        accepted: { label: "مقبول", variant: "default" as const, icon: CheckCircle, className: "bg-green-500" },
+        rejected: { label: "مرفوض", variant: "destructive" as const, icon: XCircle },
+        expired: { label: "منتهي", variant: "outline" as const, icon: Clock },
+      };
 
-    const statusInfo = statusMap[status as keyof typeof statusMap] || statusMap.draft;
-    const Icon = statusInfo.icon;
+      const statusInfo = statusMap[status as keyof typeof statusMap] || statusMap.draft;
+      const Icon = statusInfo.icon;
 
-    return (
-      <Badge variant={statusInfo.variant} className={statusInfo.className}>
-        <Icon className="h-3 w-3 ml-1" />
-        {statusInfo.label}
-      </Badge>
-    );
+      return (
+        <Badge variant={statusInfo.variant} className={statusInfo.className}>
+          <Icon className="h-3 w-3 ml-1" />
+          {statusInfo.label}
+        </Badge>
+      );
+    } catch (error) {
+      console.error("Error in getStatusBadge:", error);
+      return <Badge variant="secondary">غير محدد</Badge>;
+    }
   };
 
-  const totalValue = quotes.reduce((sum, q) => sum + q.total_amount, 0);
-  const acceptedValue = quotes
-    .filter((q) => q.status === "accepted")
-    .reduce((sum, q) => sum + q.total_amount, 0);
+  // Safe calculations with memoization
+  const totalValue = useMemo(() => {
+    try {
+      if (!Array.isArray(quotes)) return 0;
+      return quotes.reduce((sum, q) => {
+        try {
+          const amount = typeof q?.total_amount === 'number' ? q.total_amount : 0;
+          return sum + amount;
+        } catch {
+          return sum;
+        }
+      }, 0);
+    } catch {
+      return 0;
+    }
+  }, [quotes]);
+
+  const acceptedValue = useMemo(() => {
+    try {
+      if (!Array.isArray(quotes)) return 0;
+      return quotes
+        .filter((q) => {
+          try {
+            return q?.status === "accepted";
+          } catch {
+            return false;
+          }
+        })
+        .reduce((sum, q) => {
+          try {
+            const amount = typeof q?.total_amount === 'number' ? q.total_amount : 0;
+            return sum + amount;
+          } catch {
+            return sum;
+          }
+        }, 0);
+    } catch {
+      return 0;
+    }
+  }, [quotes]);
+
+  const acceptedCount = useMemo(() => {
+    try {
+      if (!Array.isArray(quotes)) return 0;
+      return quotes.filter((q) => {
+        try {
+          return q?.status === "accepted";
+        } catch {
+          return false;
+        }
+      }).length;
+    } catch {
+      return 0;
+    }
+  }, [quotes]);
 
   const handleExport = () => {
-    if (filteredQuotes.length === 0) {
+    try {
+      if (filteredQuotes.length === 0) {
+        toast({
+          title: "تنبيه",
+          description: "لا توجد بيانات للتصدير",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const exportData = filteredQuotes.map(quote => {
+        try {
+          return {
+            'رقم العرض': quote.quote_number || '-',
+            'العميل': quote.customers?.customer_name || '-',
+            'تاريخ العرض': safeFormatDate(quote.quote_date, 'yyyy-MM-dd'),
+            'تاريخ الانتهاء': safeFormatDate(quote.expiry_date, 'yyyy-MM-dd'),
+            'المبلغ الإجمالي': safeToLocaleString(quote.total_amount),
+            'الحالة': quote.status || '-'
+          };
+        } catch (error) {
+          console.error("Error mapping quote for export:", error);
+          return {
+            'رقم العرض': '-',
+            'العميل': '-',
+            'تاريخ العرض': '-',
+            'تاريخ الانتهاء': '-',
+            'المبلغ الإجمالي': '0',
+            'الحالة': '-'
+          };
+        }
+      });
+
+      exportToCSV(exportData, 'quotes');
       toast({
-        title: "تنبيه",
-        description: "لا توجد بيانات للتصدير",
+        title: "تم التصدير بنجاح",
+        description: `تم تصدير ${filteredQuotes.length} عرض سعر بنجاح`,
+      });
+    } catch (error) {
+      console.error("Error in handleExport:", error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء التصدير",
         variant: "destructive",
       });
-      return;
     }
-
-    const exportData = filteredQuotes.map(quote => ({
-      'رقم العرض': quote.quote_number,
-      'العميل': quote.customers?.customer_name || '-',
-      'تاريخ العرض': new Date(quote.quote_date).toLocaleDateString('ar-SA'),
-      'تاريخ الانتهاء': quote.expiry_date ? new Date(quote.expiry_date).toLocaleDateString('ar-SA') : '-',
-      'المبلغ الإجمالي': quote.total_amount,
-      'الحالة': quote.status
-    }));
-    exportToCSV(exportData, 'quotes');
-    toast({
-      title: "تم التصدير بنجاح",
-      description: `تم تصدير ${filteredQuotes.length} عرض سعر بنجاح`,
-    });
   };
 
   const handleImport = () => {
-    toast({
-      title: "قريباً",
-      description: "ميزة الاستيراد ستكون متاحة قريباً",
-    });
+    try {
+      toast({
+        title: "قريباً",
+        description: "ميزة الاستيراد ستكون متاحة قريباً",
+      });
+    } catch (error) {
+      console.error("Error in handleImport:", error);
+    }
   };
 
   const handlePrint = () => {
-    const statusLabels: Record<string, string> = {
-      draft: 'مسودة',
-      sent: 'مرسل',
-      accepted: 'مقبول',
-      rejected: 'مرفوض',
-      expired: 'منتهي',
-    };
+    try {
+      const statusLabels: Record<string, string> = {
+        draft: 'مسودة',
+        sent: 'مرسل',
+        accepted: 'مقبول',
+        rejected: 'مرفوض',
+        expired: 'منتهي',
+      };
 
-    const printContent = filteredQuotes.map(q => `
-      <tr>
-        <td style="border: 1px solid #ddd; padding: 8px;">${q.quote_number}</td>
-        <td style="border: 1px solid #ddd; padding: 8px;">${q.customers?.customer_name || '-'}</td>
-        <td style="border: 1px solid #ddd; padding: 8px;">${new Date(q.quote_date).toLocaleDateString('ar-SA')}</td>
-        <td style="border: 1px solid #ddd; padding: 8px;">${q.expiry_date ? new Date(q.expiry_date).toLocaleDateString('ar-SA') : '-'}</td>
-        <td style="border: 1px solid #ddd; padding: 8px;">${q.total_amount.toLocaleString()} ر.س</td>
-        <td style="border: 1px solid #ddd; padding: 8px;">${statusLabels[q.status] || q.status}</td>
-      </tr>
-    `).join('');
+      const printContent = filteredQuotes.map(q => {
+        try {
+          return `
+            <tr>
+              <td style="border: 1px solid #ddd; padding: 8px;">${q.quote_number || '-'}</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">${q.customers?.customer_name || '-'}</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">${safeFormatDate(q.quote_date, 'yyyy-MM-dd')}</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">${safeFormatDate(q.expiry_date, 'yyyy-MM-dd')}</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">${safeToLocaleString(q.total_amount)} ر.س</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">${statusLabels[q.status] || q.status}</td>
+            </tr>
+          `;
+        } catch (error) {
+          console.error("Error creating print row:", error);
+          return '';
+        }
+      }).join('');
 
-    const printWindow = window.open('', '', 'width=800,height=600');
-    if (printWindow) {
-      printWindow.document.write(`
-        <html dir="rtl">
-          <head>
-            <title>قائمة عروض الأسعار</title>
-            <style>
-              body { font-family: Arial, sans-serif; direction: rtl; padding: 20px; }
-              h1 { text-align: center; color: #0891b2; }
-              table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-              th { background-color: #0891b2; color: white; padding: 12px; border: 1px solid #ddd; }
-              td { padding: 8px; border: 1px solid #ddd; }
-              .summary { margin-top: 20px; padding: 15px; background-color: #f0f9ff; border-radius: 8px; }
-              .footer { margin-top: 20px; text-align: center; color: #666; font-size: 12px; }
-            </style>
-          </head>
-          <body>
-            <h1>قائمة عروض الأسعار</h1>
-            <p>التاريخ: ${new Date().toLocaleDateString('ar-SA')}</p>
-            <div class="summary">
-              <p><strong>إجمالي العروض:</strong> ${filteredQuotes.length}</p>
-              <p><strong>قيمة العروض الكلية:</strong> ${totalValue.toLocaleString()} ر.س</p>
-              <p><strong>قيمة العروض المقبولة:</strong> ${acceptedValue.toLocaleString()} ر.س</p>
-            </div>
-            <table>
-              <thead>
-                <tr>
-                  <th>رقم العرض</th>
-                  <th>العميل</th>
-                  <th>تاريخ العرض</th>
-                  <th>تاريخ الانتهاء</th>
-                  <th>المبلغ الإجمالي</th>
-                  <th>الحالة</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${printContent}
-              </tbody>
-            </table>
-            <div class="footer">
-              <p>تم الطباعة في: ${new Date().toLocaleString('ar-SA')}</p>
-            </div>
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-      printWindow.print();
+      const printWindow = window.open('', '', 'width=800,height=600');
+      if (printWindow) {
+        printWindow.document.write(`
+          <html dir="rtl">
+            <head>
+              <title>قائمة عروض الأسعار</title>
+              <style>
+                body { font-family: Arial, sans-serif; direction: rtl; padding: 20px; }
+                h1 { text-align: center; color: #0891b2; }
+                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                th { background-color: #0891b2; color: white; padding: 12px; border: 1px solid #ddd; }
+                td { padding: 8px; border: 1px solid #ddd; }
+                .summary { margin-top: 20px; padding: 15px; background-color: #f0f9ff; border-radius: 8px; }
+                .footer { margin-top: 20px; text-align: center; color: #666; font-size: 12px; }
+              </style>
+            </head>
+            <body>
+              <h1>قائمة عروض الأسعار</h1>
+              <p>التاريخ: ${safeFormatDate(new Date().toISOString(), 'yyyy-MM-dd')}</p>
+              <div class="summary">
+                <p><strong>إجمالي العروض:</strong> ${filteredQuotes.length}</p>
+                <p><strong>قيمة العروض الكلية:</strong> ${safeToLocaleString(totalValue)} ر.س</p>
+                <p><strong>قيمة العروض المقبولة:</strong> ${safeToLocaleString(acceptedValue)} ر.س</p>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>رقم العرض</th>
+                    <th>العميل</th>
+                    <th>تاريخ العرض</th>
+                    <th>تاريخ الانتهاء</th>
+                    <th>المبلغ الإجمالي</th>
+                    <th>الحالة</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${printContent}
+                </tbody>
+              </table>
+              <div class="footer">
+                <p>تم الطباعة في: ${safeFormatDate(new Date().toISOString(), 'yyyy-MM-dd HH:mm:ss')}</p>
+              </div>
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
+        printWindow.print();
+      }
+
+      toast({
+        title: "جاهز للطباعة",
+        description: "تم فتح نافذة الطباعة",
+      });
+    } catch (error) {
+      console.error("Error in handlePrint:", error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء التحضير للطباعة",
+        variant: "destructive",
+      });
     }
+  };
 
-    toast({
-      title: "جاهز للطباعة",
-      description: "تم فتح نافذة الطباعة",
-    });
+  // Safe rendering helper
+  const renderQuoteRow = (quote: Quote) => {
+    try {
+      if (!quote || !quote.id) return null;
+
+      return (
+        <TableRow key={quote.id}>
+          <TableCell className="font-medium">{quote.quote_number || 'N/A'}</TableCell>
+          <TableCell>{quote.customers?.customer_name || "-"}</TableCell>
+          <TableCell>{safeFormatDate(quote.quote_date, "yyyy-MM-dd")}</TableCell>
+          <TableCell>{safeFormatDate(quote.expiry_date, "yyyy-MM-dd")}</TableCell>
+          <TableCell>{formatCurrency(quote.total_amount)}</TableCell>
+          <TableCell>{getStatusBadge(quote.status)}</TableCell>
+          <TableCell>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem className="gap-2">
+                  <Eye className="h-4 w-4" />
+                  عرض
+                </DropdownMenuItem>
+                <DropdownMenuItem className="gap-2">
+                  <Edit className="h-4 w-4" />
+                  تعديل
+                </DropdownMenuItem>
+                {quote.status === "draft" && (
+                  <DropdownMenuItem
+                    className="gap-2"
+                    onClick={() => updateStatusMutation.mutate({ id: quote.id, status: "sent" })}
+                  >
+                    <Send className="h-4 w-4" />
+                    إرسال
+                  </DropdownMenuItem>
+                )}
+                {quote.status === "sent" && (
+                  <>
+                    <DropdownMenuItem
+                      className="gap-2 text-green-600"
+                      onClick={() => updateStatusMutation.mutate({ id: quote.id, status: "accepted" })}
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                      قبول
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="gap-2 text-destructive"
+                      onClick={() => updateStatusMutation.mutate({ id: quote.id, status: "rejected" })}
+                    >
+                      <XCircle className="h-4 w-4" />
+                      رفض
+                    </DropdownMenuItem>
+                  </>
+                )}
+                <DropdownMenuItem
+                  className="gap-2 text-destructive"
+                  onClick={() => handleDelete(quote.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  حذف
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </TableCell>
+        </TableRow>
+      );
+    } catch (error) {
+      console.error("Error rendering quote row:", error, quote);
+      return null;
+    }
   };
 
   return (
@@ -341,31 +678,19 @@ const Quotes = () => {
           <Card className="p-6 bg-white/80 backdrop-blur-sm border-gray-200/50 shadow-sm hover:shadow-md transition-all">
             <div className="text-sm text-gray-600 font-medium">عروض مقبولة</div>
             <div className="text-2xl font-bold mt-2 bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-              {isLoading ? (
-                <Skeleton className="h-8 w-16" />
-              ) : (
-                quotes.filter((q) => q.status === "accepted").length
-              )}
+              {isLoading ? <Skeleton className="h-8 w-16" /> : acceptedCount}
             </div>
           </Card>
           <Card className="p-6 bg-white/80 backdrop-blur-sm border-gray-200/50 shadow-sm hover:shadow-md transition-all">
             <div className="text-sm text-gray-600 font-medium">قيمة العروض الكلية</div>
             <div className="text-2xl font-bold mt-2 bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
-              {isLoading ? (
-                <Skeleton className="h-8 w-24" />
-              ) : (
-                `${totalValue.toLocaleString()} ر.س`
-              )}
+              {isLoading ? <Skeleton className="h-8 w-24" /> : formatCurrency(totalValue)}
             </div>
           </Card>
           <Card className="p-6 bg-white/80 backdrop-blur-sm border-gray-200/50 shadow-sm hover:shadow-md transition-all">
             <div className="text-sm text-gray-600 font-medium">قيمة العروض المقبولة</div>
             <div className="text-2xl font-bold mt-2 bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text text-transparent">
-              {isLoading ? (
-                <Skeleton className="h-8 w-24" />
-              ) : (
-                `${acceptedValue.toLocaleString()} ر.س`
-              )}
+              {isLoading ? <Skeleton className="h-8 w-24" /> : formatCurrency(acceptedValue)}
             </div>
           </Card>
         </div>
@@ -381,132 +706,68 @@ const Quotes = () => {
         </div>
 
         <Card className="bg-white/80 backdrop-blur-sm border-gray-200/50 shadow-md">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-right">رقم العرض</TableHead>
-              <TableHead className="text-right">العميل</TableHead>
-              <TableHead className="text-right">تاريخ العرض</TableHead>
-              <TableHead className="text-right">تاريخ الانتهاء</TableHead>
-              <TableHead className="text-right">المبلغ الإجمالي</TableHead>
-              <TableHead className="text-right">الحالة</TableHead>
-              <TableHead className="text-right">الإجراءات</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-6 w-20" /></TableCell>
-                  <TableCell><Skeleton className="h-8 w-8" /></TableCell>
-                </TableRow>
-              ))
-            ) : filteredQuotes.length === 0 ? (
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                  {searchQuery ? "لا توجد نتائج" : "لا توجد عروض أسعار. ابدأ بإنشاء عرض سعر جديد!"}
-                </TableCell>
+                <TableHead className="text-right">رقم العرض</TableHead>
+                <TableHead className="text-right">العميل</TableHead>
+                <TableHead className="text-right">تاريخ العرض</TableHead>
+                <TableHead className="text-right">تاريخ الانتهاء</TableHead>
+                <TableHead className="text-right">المبلغ الإجمالي</TableHead>
+                <TableHead className="text-right">الحالة</TableHead>
+                <TableHead className="text-right">الإجراءات</TableHead>
               </TableRow>
-            ) : (
-              filteredQuotes.map((quote) => (
-                <TableRow key={quote.id}>
-                  <TableCell className="font-medium">{quote.quote_number}</TableCell>
-                  <TableCell>{quote.customers?.customer_name || "-"}</TableCell>
-                  <TableCell>{new Date(quote.quote_date).toLocaleDateString("ar-SA")}</TableCell>
-                  <TableCell>
-                    {quote.expiry_date
-                      ? new Date(quote.expiry_date).toLocaleDateString("ar-SA")
-                      : "-"
-                    }
-                  </TableCell>
-                  <TableCell>{quote.total_amount.toLocaleString()} ر.س</TableCell>
-                  <TableCell>{getStatusBadge(quote.status)}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem className="gap-2">
-                          <Eye className="h-4 w-4" />
-                          عرض
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="gap-2">
-                          <Edit className="h-4 w-4" />
-                          تعديل
-                        </DropdownMenuItem>
-                        {quote.status === "draft" && (
-                          <DropdownMenuItem
-                            className="gap-2"
-                            onClick={() => updateStatusMutation.mutate({ id: quote.id, status: "sent" })}
-                          >
-                            <Send className="h-4 w-4" />
-                            إرسال
-                          </DropdownMenuItem>
-                        )}
-                        {quote.status === "sent" && (
-                          <>
-                            <DropdownMenuItem
-                              className="gap-2 text-green-600"
-                              onClick={() => updateStatusMutation.mutate({ id: quote.id, status: "accepted" })}
-                            >
-                              <CheckCircle className="h-4 w-4" />
-                              قبول
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="gap-2 text-destructive"
-                              onClick={() => updateStatusMutation.mutate({ id: quote.id, status: "rejected" })}
-                            >
-                              <XCircle className="h-4 w-4" />
-                              رفض
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                        <DropdownMenuItem
-                          className="gap-2 text-destructive"
-                          onClick={() => handleDelete(quote.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          حذف
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-8 w-8" /></TableCell>
+                  </TableRow>
+                ))
+              ) : filteredQuotes.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-12">
+                    <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500 text-lg font-medium">
+                      {searchQuery ? "لا توجد نتائج" : "لا توجد عروض أسعار. ابدأ بإنشاء عرض سعر جديد!"}
+                    </p>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                filteredQuotes.map(renderQuoteRow).filter(Boolean)
+              )}
+            </TableBody>
+          </Table>
         </Card>
 
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
-            <AlertDialogDescription>
-              هذا الإجراء لا يمكن التراجع عنه. سيتم حذف عرض السعر نهائياً من قاعدة البيانات.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>إلغاء</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {deleteQuoteMutation.isPending && (
-                <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-              )}
-              حذف
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
+              <AlertDialogDescription>
+                هذا الإجراء لا يمكن التراجع عنه. سيتم حذف عرض السعر نهائياً من قاعدة البيانات.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>إلغاء</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmDelete}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleteQuoteMutation.isPending && (
+                  <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                )}
+                حذف
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
         </AlertDialog>
 
         <AddQuoteDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
