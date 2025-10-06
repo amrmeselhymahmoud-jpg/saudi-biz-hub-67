@@ -80,18 +80,14 @@ const Auth = () => {
         throw error;
       }
 
-      if (data.user && data.session) {
+      if (data.user) {
         toast({
           title: "تم تسجيل الدخول بنجاح",
-          description: `مرحباً بك ${data.user.email}`
+          description: "مرحباً بك في قيود"
         });
 
         setLoginData({ email: "", password: "" });
-
-        // انتظر قليلاً لتحديث الجلسة
-        setTimeout(() => {
-          navigate("/dashboard");
-        }, 100);
+        navigate("/dashboard");
       }
     } catch (error: any) {
       if (error instanceof z.ZodError) {
@@ -104,7 +100,7 @@ const Auth = () => {
         console.error("Login error:", error);
         let errorMessage = "حدث خطأ أثناء تسجيل الدخول";
 
-        if (error.message === "Invalid login credentials" || error.message.includes("Invalid")) {
+        if (error.message === "Invalid login credentials") {
           errorMessage = "البريد الإلكتروني أو كلمة المرور غير صحيحة";
         } else if (error.message.includes("Email not confirmed")) {
           errorMessage = "يرجى تأكيد بريدك الإلكتروني أولاً";
@@ -153,13 +149,9 @@ const Auth = () => {
       }
 
       if (data.user) {
-        const hasSession = !!data.session;
-
         toast({
           title: "تم إنشاء الحساب بنجاح",
-          description: hasSession
-            ? `مرحباً بك ${validatedData.displayName}!`
-            : `تم إنشاء الحساب بنجاح. يمكنك الآن تسجيل الدخول`
+          description: `مرحباً بك ${validatedData.displayName}! يمكنك الآن تسجيل الدخول`
         });
 
         setSignupData({
@@ -171,11 +163,8 @@ const Auth = () => {
           businessType: ""
         });
 
-        if (hasSession) {
-          // انتظر قليلاً لتحديث الجلسة
-          setTimeout(() => {
-            navigate("/dashboard");
-          }, 100);
+        if (data.session) {
+          navigate("/dashboard");
         }
       }
     } catch (error: any) {
@@ -189,8 +178,8 @@ const Auth = () => {
         console.error("Signup error:", error);
         let errorMessage = "حدث خطأ أثناء إنشاء الحساب";
 
-        if (error.message.includes("already registered") || error.message.includes("already been registered") || error.message.includes("User already registered")) {
-          errorMessage = "هذا البريد الإلكتروني مسجل مسبقاً. حاول تسجيل الدخول";
+        if (error.message.includes("already registered")) {
+          errorMessage = "هذا البريد الإلكتروني مسجل مسبقاً";
         } else if (error.message.includes("password")) {
           errorMessage = "كلمة المرور ضعيفة جداً";
         }

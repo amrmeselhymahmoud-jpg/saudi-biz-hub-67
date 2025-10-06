@@ -58,28 +58,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
-        // استخدم async block داخل callback لتجنب deadlock
-        (async () => {
-          console.log('Auth state changed:', event);
+      async (event, currentSession) => {
+        console.log('Auth state changed:', event);
 
-          if (mounted) {
-            setSession(currentSession);
-            setUser(currentSession?.user ?? null);
-            setLoading(false);
-
-            // تحديث الجلسة في localStorage
-            if (currentSession) {
-              localStorage.setItem('qoyod-session', JSON.stringify({
-                access_token: currentSession.access_token,
-                refresh_token: currentSession.refresh_token,
-                expires_at: currentSession.expires_at
-              }));
-            } else {
-              localStorage.removeItem('qoyod-session');
-            }
-          }
-        })();
+        if (mounted) {
+          setSession(currentSession);
+          setUser(currentSession?.user ?? null);
+          setLoading(false);
+        }
       }
     );
 
