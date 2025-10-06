@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { exportToCSV } from "@/utils/exportImport";
 import { AddQuoteDialog } from "@/components/quotes/AddQuoteDialog";
 import { safeFormatDate, formatCurrency, safeToLocaleString } from "@/utils/formatters";
@@ -910,7 +911,7 @@ const Quotes = () => {
         </Dialog>
 
         <Dialog open={!!editQuote} onOpenChange={(open) => !open && setEditQuote(null)}>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-2xl font-bold">تعديل عرض السعر</DialogTitle>
               <DialogDescription>
@@ -918,35 +919,204 @@ const Quotes = () => {
               </DialogDescription>
             </DialogHeader>
             {editQuote && (
-              <div className="space-y-4 py-4">
-                <div className="text-center py-8">
-                  <Edit className="h-16 w-16 mx-auto mb-4 text-cyan-500" />
-                  <h3 className="text-lg font-semibold mb-2">صفحة التعديل قيد التطوير</h3>
-                  <p className="text-gray-600 mb-4">
-                    يمكنك حالياً عرض التفاصيل. سيتم إضافة إمكانية التعديل قريباً.
-                  </p>
-                  <div className="bg-gray-50 p-4 rounded-lg text-right">
-                    <p className="font-semibold mb-2">عرض السعر: {editQuote.quote_number}</p>
-                    <p className="text-sm text-gray-600">الحالة: {editQuote.status}</p>
-                    <p className="text-sm text-gray-600">المبلغ الإجمالي: {formatCurrency(editQuote.total_amount)}</p>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  try {
+                    const formData = new FormData(e.currentTarget);
+                    const updatedData = {
+                      quote_date: formData.get('quote_date') as string,
+                      expiry_date: formData.get('expiry_date') as string || null,
+                      notes: formData.get('notes') as string || null,
+                    };
+
+                    supabase
+                      .from('quotes')
+                      .update(updatedData)
+                      .eq('id', editQuote.id)
+                      .then(({ error }) => {
+                        if (error) {
+                          console.error('Update error:', error);
+                          toast({
+                            title: 'خطأ',
+                            description: error.message,
+                            variant: 'destructive',
+                          });
+                        } else {
+                          queryClient.invalidateQueries({ queryKey: ['quotes'] });
+                          toast({
+                            title: 'تم بنجاح',
+                            description: 'تم تحديث عرض السعر بنجاح',
+                          });
+                          setEditQuote(null);
+                        }
+                      });
+                  } catch (error) {
+                    console.error('Form error:', error);
+                    toast({
+                      title: 'خطأ',
+                      description: 'حدث خطأ أثناء التحديث',
+                      variant: 'destructive',
+                    });
+                  }
+                }}
+                className="space-y-6 py-4"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">رقم العرض</label>
+                    <Input
+                      value={editQuote.quote_number}
+                      disabled
+                      className="bg-gray-50"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">الحالة</label>
+                    <div className="flex items-center h-10 px-3 border rounded-md bg-gray-50">
+                      {getStatusBadge(editQuote.status)}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">العميل</label>
+                    <Input
+                      value={editQuote.customers?.customer_name || 'غير محدد'}
+                      disabled
+                      className="bg-gray-50"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="edit-quote_date" className="text-sm font-medium">
+                      تاريخ العرض *
+                    </label>
+                    <Input
+                      id="edit-quote_date"
+                      name="quote_date"
+                      type="date"
+                      defaultValue={editQuote.quote_date?.split('T')[0]}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="edit-expiry_date" className="text-sm font-medium">
+                      تاريخ الانتهاء
+                    </label>
+                    <Input
+                      id="edit-expiry_date"
+                      name="expiry_date"
+                      type="date"
+                      defaultValue={editQuote.expiry_date?.split('T')[0] || ''}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">تاريخ الإنشاء</label>
+                    <Input
+                      value={safeFormatDate(editQuote.created_at, 'yyyy-MM-dd HH:mm')}
+                      disabled
+                      className="bg-gray-50"
+                    />
                   </div>
                 </div>
-              </div>
+
+                <div className="border rounded-lg p-4 bg-gradient-to-br from-gray-50 to-blue-50/30 space-y-3">
+                  <h3 className="font-semibold text-lg">التفاصيل المالية</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm text-gray-600">المبلغ الفرعي</label>
+                      <Input
+                        value={formatCurrency(editQuote.subtotal)}
+                        disabled
+                        className="bg-white"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm text-gray-600">الضريبة</label>
+                      <Input
+                        value={formatCurrency(editQuote.tax_amount)}
+                        disabled
+                        className="bg-white"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm text-gray-600">الخصم</label>
+                      <Input
+                        value={formatCurrency(editQuote.discount_amount)}
+                        disabled
+                        className="bg-white text-red-600"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm text-gray-900 font-bold">المبلغ الإجمالي</label>
+                      <Input
+                        value={formatCurrency(editQuote.total_amount)}
+                        disabled
+                        className="bg-white font-bold text-cyan-600"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="edit-notes" className="text-sm font-medium">
+                    ملاحظات
+                  </label>
+                  <Textarea
+                    id="edit-notes"
+                    name="notes"
+                    defaultValue={editQuote.notes || ''}
+                    placeholder="أي ملاحظات إضافية..."
+                    rows={4}
+                    className="resize-none"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="text-blue-600">
+                    <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <p className="text-sm text-blue-800">
+                    يمكنك تعديل التواريخ والملاحظات فقط. لتعديل التفاصيل المالية، يرجى حذف العرض وإنشاء عرض جديد.
+                  </p>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-4 border-t">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setEditQuote(null)}
+                  >
+                    إلغاء
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      if (editQuote) {
+                        setEditQuote(null);
+                        handleView(editQuote);
+                      }
+                    }}
+                  >
+                    <Eye className="h-4 w-4 ml-2" />
+                    عرض التفاصيل
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700"
+                  >
+                    <Edit className="h-4 w-4 ml-2" />
+                    حفظ التعديلات
+                  </Button>
+                </div>
+              </form>
             )}
-            <div className="flex justify-end gap-2 pt-4 border-t">
-              <Button variant="outline" onClick={() => setEditQuote(null)}>
-                إغلاق
-              </Button>
-              <Button onClick={() => {
-                if (editQuote) {
-                  setEditQuote(null);
-                  handleView(editQuote);
-                }
-              }}>
-                <Eye className="h-4 w-4 ml-2" />
-                عرض التفاصيل
-              </Button>
-            </div>
           </DialogContent>
         </Dialog>
 
