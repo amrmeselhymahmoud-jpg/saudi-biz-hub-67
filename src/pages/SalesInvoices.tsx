@@ -52,9 +52,6 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { safeFormatDate, formatCurrency, safeToLocaleString } from "@/utils/formatters";
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
-import { amiriRegularBase64 } from '@/utils/arabicFont';
 
 // Safe value helper
 const safeValue = (value: any, fallback: string = 'N/A'): string => {
@@ -610,6 +607,13 @@ const SalesInvoices = () => {
 
   // Export to PDF with Arabic support
   const handleExportPDF = async () => {
+    toast({
+      title: "قريباً",
+      description: "ميزة تصدير PDF ستكون متاحة قريباً",
+    });
+    return;
+
+    /* Temporarily disabled - PDF export
     try {
       if (filteredInvoices.length === 0) {
         toast({
@@ -720,6 +724,7 @@ const SalesInvoices = () => {
         variant: "destructive",
       });
     }
+    */
   };
 
   // Print invoice with items

@@ -74,7 +74,6 @@ const safeGet = <T,>(obj: any, path: string, defaultValue: T): T => {
     }
     return result !== undefined && result !== null ? result : defaultValue;
   } catch {
-        .eq("user_id", user.id)
     return defaultValue;
   }
 };
