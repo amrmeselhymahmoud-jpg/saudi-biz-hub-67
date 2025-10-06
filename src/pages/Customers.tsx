@@ -38,6 +38,7 @@ import { AdvancedFilters } from "@/components/common/AdvancedFilters";
 import { ExportButtons } from "@/components/common/ExportButtons";
 import { InlineEdit } from "@/components/common/InlineEdit";
 import { format } from "date-fns";
+import { safeToLocaleString, formatCurrency } from "@/utils/formatters";
 
 interface Customer {
   id: string;
@@ -172,7 +173,7 @@ const Customers = () => {
     }
   };
 
-  const totalCreditLimit = customers.reduce((sum, c) => sum + c.credit_limit, 0);
+  const totalCreditLimit = customers.reduce((sum, c) => sum + (c.credit_limit || 0), 0);
   const activeCustomers = customers.filter((c) => c.status === "active").length;
 
   const filterOptions = [
@@ -273,7 +274,7 @@ const Customers = () => {
               <div>
                 <div className="text-sm font-medium text-gray-500">حدود الائتمان</div>
                 <div className="text-3xl font-bold text-orange-600 mt-2">
-                  {isLoading ? <Skeleton className="h-10 w-24" /> : `${totalCreditLimit.toLocaleString()}`}
+                  {isLoading ? <Skeleton className="h-10 w-24" /> : safeToLocaleString(totalCreditLimit)}
                 </div>
                 <p className="text-xs text-gray-500 mt-1">ريال سعودي</p>
               </div>
@@ -393,7 +394,7 @@ const Customers = () => {
                         />
                       </TableCell>
                       <TableCell className="font-bold text-orange-600">
-                        {customer.credit_limit.toLocaleString()} ر.س
+                        {formatCurrency(customer.credit_limit)}
                       </TableCell>
                       <TableCell>
                         <Badge variant={customer.status === "active" ? "default" : "secondary"}>

@@ -26,11 +26,19 @@ export function ExportButtons({ data, filename, columns, totalAmount }: ExportBu
   };
 
   const formatValue = (value: any): string => {
-    if (value === null || value === undefined) return "-";
+    if (value === null || value === undefined || value === '') return "-";
+
     if (typeof value === "object") {
-      if (value instanceof Date) return value.toLocaleDateString("ar-SA");
+      if (value instanceof Date) {
+        try {
+          return value.toLocaleDateString("ar-SA");
+        } catch {
+          return "-";
+        }
+      }
       return JSON.stringify(value);
     }
+
     return String(value);
   };
 
@@ -136,10 +144,10 @@ export function ExportButtons({ data, filename, columns, totalAmount }: ExportBu
                   <strong>الوقت:</strong> ${currentTime}<br>
                   <strong>عدد السجلات:</strong> ${data.length}
                 </div>
-                ${totalAmount !== undefined ? `
+                ${totalAmount !== undefined && totalAmount !== null ? `
                   <div style="text-align: left; background: #F0FDFA; padding: 15px; border-radius: 8px; border: 2px solid #0D9488;">
                     <strong style="color: #0D9488; font-size: 18px;">إجمالي المبيعات</strong><br>
-                    <span style="font-size: 24px; font-weight: bold; color: #0D9488;">${totalAmount.toLocaleString()} SAR</span>
+                    <span style="font-size: 24px; font-weight: bold; color: #0D9488;">${(totalAmount || 0).toLocaleString()} SAR</span>
                   </div>
                 ` : ''}
               </div>
