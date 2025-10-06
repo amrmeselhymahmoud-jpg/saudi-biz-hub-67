@@ -37,8 +37,7 @@ import { EditCustomerDialog } from "@/components/customers/EditCustomerDialog";
 import { AdvancedFilters } from "@/components/common/AdvancedFilters";
 import { ExportButtons } from "@/components/common/ExportButtons";
 import { InlineEdit } from "@/components/common/InlineEdit";
-import { format } from "date-fns";
-import { safeToLocaleString, formatCurrency } from "@/utils/formatters";
+import { safeToLocaleString, formatCurrency, safeFormatDate } from "@/utils/formatters";
 
 interface Customer {
   id: string;
@@ -402,7 +401,7 @@ const Customers = () => {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm text-gray-600">
-                        {format(new Date(customer.created_at), "yyyy-MM-dd")}
+                        {safeFormatDate(customer.created_at, "yyyy-MM-dd")}
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
