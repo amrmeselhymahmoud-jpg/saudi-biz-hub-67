@@ -7,9 +7,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import html2canvas from "html2canvas";
 
 interface ExportButtonsProps {
   data: any[];
@@ -96,6 +93,13 @@ export function ExportButtons({ data, filename, columns, totalAmount }: ExportBu
   };
 
   const exportToPDF = async () => {
+    toast({
+      title: "قريباً",
+      description: "ميزة تصدير PDF ستكون متاحة قريباً",
+    });
+    return;
+
+    /* Temporarily disabled - PDF export
     if (data.length === 0) {
       toast({
         title: "لا توجد بيانات للتصدير",
@@ -295,6 +299,7 @@ export function ExportButtons({ data, filename, columns, totalAmount }: ExportBu
         variant: "destructive",
       });
     }
+    */
   };
 
   const exportToJSON = () => {
