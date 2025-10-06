@@ -9,6 +9,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import html2canvas from "html2canvas";
 
 interface ExportButtonsProps {
   data: any[];
@@ -31,6 +32,11 @@ export function ExportButtons({ data, filename, columns, totalAmount }: ExportBu
       return JSON.stringify(value);
     }
     return String(value);
+  };
+
+  const hasArabicText = (text: string): boolean => {
+    const arabicRegex = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+    return arabicRegex.test(text);
   };
 
   const exportToCSV = () => {
@@ -81,7 +87,7 @@ export function ExportButtons({ data, filename, columns, totalAmount }: ExportBu
     }
   };
 
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
     if (data.length === 0) {
       toast({
         title: "لا توجد بيانات للتصدير",
@@ -92,91 +98,182 @@ export function ExportButtons({ data, filename, columns, totalAmount }: ExportBu
     }
 
     try {
-      const doc = new jsPDF({
-        orientation: "landscape",
-        unit: "mm",
-        format: "a4",
+      toast({
+        title: "جاري إنشاء PDF",
+        description: "الرجاء الانتظار...",
       });
 
-      // Add custom font for Arabic support (using default for now)
-      doc.setFont("helvetica");
-      doc.setLanguage("ar");
+      // Create a temporary container for the content
+      const container = document.createElement('div');
+      container.style.cssText = `
+        position: absolute;
+        left: -9999px;
+        width: 1000px;
+        padding: 40px;
+        background: white;
+        font-family: 'Cairo', 'Segoe UI', 'Tahoma', Arial, sans-serif;
+      `;
 
-      // Add title
-      doc.setFontSize(20);
-      doc.setTextColor(13, 148, 136); // Teal color
-      const title = filename || "Finzo Sales Report";
-      doc.text(title, doc.internal.pageSize.getWidth() / 2, 15, { align: "center" });
-
-      // Add date and metadata
-      doc.setFontSize(10);
-      doc.setTextColor(102, 102, 102);
+      // Build HTML content with proper RTL support
       const currentDate = new Date().toLocaleDateString("ar-SA");
       const currentTime = new Date().toLocaleTimeString("ar-SA");
-      doc.text(`Date: ${currentDate}`, 15, 25);
-      doc.text(`Time: ${currentTime}`, 15, 30);
-      doc.text(`Records: ${data.length}`, 15, 35);
 
-      // Add total amount if provided
-      if (totalAmount !== undefined) {
-        doc.setFontSize(12);
-        doc.setTextColor(13, 148, 136);
-        doc.text(`Total Sales: ${totalAmount.toLocaleString()} SAR`, doc.internal.pageSize.getWidth() - 15, 30, { align: "right" });
-      }
+      const hasArabicContent = columns.some(col => hasArabicText(col.label)) ||
+                               data.some(row => columns.some(col => hasArabicText(String(getNestedValue(row, col.key) || ''))));
 
-      // Prepare table data
-      const headers = columns.map(col => col.label);
-      const tableData = data.map(row =>
-        columns.map(col => {
-          const value = getNestedValue(row, col.key);
-          return formatValue(value);
-        })
-      );
+      container.innerHTML = `
+        <div style="direction: ${hasArabicContent ? 'rtl' : 'ltr'}; text-align: ${hasArabicContent ? 'right' : 'left'};">
+          <!-- Header Section -->
+          <div style="text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #0D9488;">
+            <h1 style="color: #0D9488; font-size: 32px; margin: 0 0 15px 0; font-weight: bold;">
+              ${filename}
+            </h1>
+            ${filename !== 'Finzo Sales Report' ? '<h2 style="color: #0D9488; font-size: 24px; margin: 10px 0;">Finzo Sales Report</h2>' : ''}
+            <div style="color: #666; font-size: 14px; margin-top: 15px; line-height: 1.8;">
+              <div style="display: flex; justify-content: space-between; max-width: 800px; margin: 0 auto;">
+                <div style="text-align: ${hasArabicContent ? 'right' : 'left'};">
+                  <strong>التاريخ:</strong> ${currentDate}<br>
+                  <strong>الوقت:</strong> ${currentTime}<br>
+                  <strong>عدد السجلات:</strong> ${data.length}
+                </div>
+                ${totalAmount !== undefined ? `
+                  <div style="text-align: left; background: #F0FDFA; padding: 15px; border-radius: 8px; border: 2px solid #0D9488;">
+                    <strong style="color: #0D9488; font-size: 18px;">إجمالي المبيعات</strong><br>
+                    <span style="font-size: 24px; font-weight: bold; color: #0D9488;">${totalAmount.toLocaleString()} SAR</span>
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+          </div>
 
-      // Add table using autoTable
-      autoTable(doc, {
-        startY: 45,
-        head: [headers],
-        body: tableData,
-        styles: {
-          font: "helvetica",
-          fontSize: 9,
-          cellPadding: 3,
-          overflow: "linebreak",
-          halign: "left",
-        },
-        headStyles: {
-          fillColor: [13, 148, 136], // Teal
-          textColor: [255, 255, 255],
-          fontStyle: "bold",
-          halign: "center",
-        },
-        alternateRowStyles: {
-          fillColor: [248, 250, 252], // Light gray
-        },
-        margin: { top: 45, left: 10, right: 10 },
-        theme: "grid",
-        tableLineColor: [226, 232, 240],
-        tableLineWidth: 0.1,
+          <!-- Table Section -->
+          <table style="
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            direction: ${hasArabicContent ? 'rtl' : 'ltr'};
+          ">
+            <thead>
+              <tr style="background: #0D9488; color: white;">
+                ${columns.map(col => `
+                  <th style="
+                    padding: 14px 12px;
+                    text-align: ${hasArabicText(col.label) ? 'right' : 'center'};
+                    font-weight: bold;
+                    border: 1px solid #0A7B6F;
+                    font-size: 14px;
+                    white-space: nowrap;
+                  ">${col.label}</th>
+                `).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${data.map((row, index) => `
+                <tr style="background: ${index % 2 === 0 ? 'white' : '#F8FAFC'};">
+                  ${columns.map(col => {
+                    const value = getNestedValue(row, col.key);
+                    const formattedValue = formatValue(value);
+                    const isArabic = hasArabicText(formattedValue);
+                    const isNumber = !isNaN(Number(formattedValue)) && formattedValue !== '-';
+
+                    return `
+                      <td style="
+                        padding: 12px;
+                        text-align: ${isArabic ? 'right' : isNumber ? 'center' : 'left'};
+                        border: 1px solid #E2E8F0;
+                        font-size: 13px;
+                        direction: ${isArabic ? 'rtl' : 'ltr'};
+                        unicode-bidi: ${isArabic ? 'embed' : 'normal'};
+                      ">${formattedValue}</td>
+                    `;
+                  }).join('')}
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <!-- Footer Section -->
+          <div style="
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #E2E8F0;
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+          ">
+            <p style="margin: 5px 0; font-weight: bold; color: #0D9488; font-size: 14px;">
+              ⭐ نظام فينزو المحاسبي - Finzo Accounting System
+            </p>
+            <p style="margin: 5px 0;">
+              تم إنشاء هذا التقرير تلقائياً في ${currentDate} - ${currentTime}
+            </p>
+            <p style="margin: 5px 0;">
+              © ${new Date().getFullYear()} - جميع الحقوق محفوظة - All Rights Reserved
+            </p>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(container);
+
+      // Wait for fonts to load
+      await document.fonts.ready;
+
+      // Capture the content with html2canvas
+      const canvas = await html2canvas(container, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        logging: false,
       });
 
-      // Add footer
-      const pageCount = (doc as any).internal.getNumberOfPages();
-      doc.setFontSize(8);
-      doc.setTextColor(102, 102, 102);
-      for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.text(
-          `Finzo Accounting System - Page ${i} of ${pageCount}`,
-          doc.internal.pageSize.getWidth() / 2,
-          doc.internal.pageSize.getHeight() - 10,
-          { align: "center" }
-        );
+      // Remove the temporary container
+      document.body.removeChild(container);
+
+      // Create PDF with the canvas
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: canvas.width > canvas.height ? 'landscape' : 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pageWidth / imgWidth, pageHeight / imgHeight);
+      const imgX = (pageWidth - imgWidth * ratio) / 2;
+      const imgY = 10;
+
+      pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
+
+      // Add page numbers if content spans multiple pages
+      const totalPages = Math.ceil((imgHeight * ratio) / (pageHeight - 20));
+      if (totalPages > 1) {
+        for (let i = 1; i <= totalPages; i++) {
+          if (i > 1) {
+            pdf.addPage();
+            const yOffset = -(i - 1) * (pageHeight - 20);
+            pdf.addImage(imgData, 'PNG', imgX, imgY + yOffset, imgWidth * ratio, imgHeight * ratio);
+          }
+          pdf.setPage(i);
+          pdf.setFontSize(8);
+          pdf.setTextColor(102, 102, 102);
+          pdf.text(
+            `Page ${i} of ${totalPages}`,
+            pageWidth / 2,
+            pageHeight - 5,
+            { align: 'center' }
+          );
+        }
       }
 
       // Save the PDF
       const fileName = `${filename.replace(/\s+/g, '-')}_${new Date().toISOString().split('T')[0]}.pdf`;
-      doc.save(fileName);
+      pdf.save(fileName);
 
       toast({
         title: "تم التصدير بنجاح",
