@@ -64,7 +64,7 @@ const Customers = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState<string | null>(null);
   const [filters, setFilters] = useState<Record<string, any>>({
-    status: "",
+    status: "all",
     city: "",
     minCreditLimit: "",
     maxCreditLimit: "",
@@ -144,7 +144,7 @@ const Customers = () => {
       customer.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       customer.customer_code?.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesStatus = !filters.status || customer.status === filters.status;
+    const matchesStatus = !filters.status || filters.status === "all" || customer.status === filters.status;
     const matchesCity = !filters.city || customer.city?.toLowerCase().includes(filters.city.toLowerCase());
     const matchesMinCredit = !filters.minCreditLimit || customer.credit_limit >= Number(filters.minCreditLimit);
     const matchesMaxCredit = !filters.maxCreditLimit || customer.credit_limit <= Number(filters.maxCreditLimit);

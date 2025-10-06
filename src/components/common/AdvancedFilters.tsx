@@ -34,7 +34,11 @@ export function AdvancedFilters({
   filterOptions,
 }: AdvancedFiltersProps) {
   const activeFiltersCount = Object.keys(filters).filter(
-    (key) => filters[key] !== "" && filters[key] !== undefined && filters[key] !== null
+    (key) =>
+      filters[key] !== "" &&
+      filters[key] !== undefined &&
+      filters[key] !== null &&
+      filters[key] !== "all"
   ).length;
 
   const handleFilterChange = (key: string, value: any) => {
@@ -45,7 +49,7 @@ export function AdvancedFilters({
   const clearFilters = () => {
     const clearedFilters: Record<string, any> = {};
     filterOptions.forEach((option) => {
-      clearedFilters[option.key] = "";
+      clearedFilters[option.key] = option.type === "select" ? "all" : "";
     });
     onFiltersChange(clearedFilters);
   };
@@ -117,16 +121,16 @@ export function AdvancedFilters({
                 )}
                 {option.type === "select" && option.options && (
                   <Select
-                    value={filters[option.key] || ""}
+                    value={filters[option.key] || "all"}
                     onValueChange={(value) =>
-                      handleFilterChange(option.key, value)
+                      handleFilterChange(option.key, value === "all" ? "" : value)
                     }
                   >
                     <SelectTrigger className="h-9">
                       <SelectValue placeholder={`اختر ${option.label}`} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">الكل</SelectItem>
+                      <SelectItem value="all">الكل</SelectItem>
                       {option.options.map((opt) => (
                         <SelectItem key={opt.value} value={opt.value}>
                           {opt.label}
