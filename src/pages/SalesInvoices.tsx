@@ -875,16 +875,32 @@ const SalesInvoices = () => {
       console.log('Opening print window...');
 
       // Open window and write content
-      const printWindow = window.open('', '_blank', 'width=800,height=600');
-      if (!printWindow) {
-        toast({ title: "خطأ", description: "فشل فتح نافذة الطباعة. يرجى السماح بالنوافذ المنبثقة", variant: "destructive" });
+      const printWindow = window.open('', '_blank');
+      if (!printWindow || printWindow.closed || typeof printWindow.closed === 'undefined') {
+        console.error('Failed to open print window - popup blocked?');
+        toast({
+          title: "تنبيه",
+          description: "يرجى السماح بالنوافذ المنبثقة لهذا الموقع ثم المحاولة مرة أخرى",
+          variant: "destructive"
+        });
         return;
       }
 
-      printWindow.document.write(htmlContent);
-      printWindow.document.close();
-
-      console.log('Print window content written');
+      try {
+        printWindow.document.open();
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
+        console.log('Print window content written successfully');
+      } catch (writeError) {
+        console.error('Error writing to print window:', writeError);
+        printWindow.close();
+        toast({
+          title: "خطأ",
+          description: "فشل في كتابة محتوى الطباعة",
+          variant: "destructive",
+        });
+        return;
+      }
     } catch (error) {
       console.error('Error printing invoice:', error);
       toast({
