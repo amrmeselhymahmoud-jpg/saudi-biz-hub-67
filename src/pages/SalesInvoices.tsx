@@ -605,15 +605,7 @@ const SalesInvoices = () => {
 
   const totals = calculateTotals();
 
-  // Export to PDF with Arabic support
   const handleExportPDF = async () => {
-    toast({
-      title: "قريباً",
-      description: "ميزة تصدير PDF ستكون متاحة قريباً",
-    });
-    return;
-
-    /* Temporarily disabled - PDF export
     try {
       if (filteredInvoices.length === 0) {
         toast({
@@ -626,16 +618,13 @@ const SalesInvoices = () => {
 
       const doc = new jsPDF();
 
-      // Add Arabic font
       doc.addFileToVFS('Amiri-Regular.ttf', amiriRegularBase64);
       doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal');
       doc.setFont('Amiri');
 
-      // Title
       doc.setFontSize(18);
       doc.text('فواتير المبيعات', 105, 20, { align: 'center' });
 
-      // Date
       doc.setFontSize(10);
       const currentDate = new Date().toLocaleDateString('ar-SA', {
         year: 'numeric',
@@ -646,7 +635,6 @@ const SalesInvoices = () => {
       });
       doc.text(`تاريخ التصدير: ${currentDate}`, 105, 30, { align: 'center' });
 
-      // Stats
       doc.setFontSize(10);
       let yPos = 40;
       doc.text(`إجمالي الفواتير: ${stats.totalInvoices}`, 20, yPos);
@@ -655,7 +643,6 @@ const SalesInvoices = () => {
       yPos += 10;
       doc.text(`إجمالي الإيرادات: ${safeToLocaleString(stats.totalRevenue)} ر.س`, 20, yPos);
 
-      // Table data
       const tableData = filteredInvoices.map((invoice, index) => {
         try {
           return [
@@ -674,7 +661,6 @@ const SalesInvoices = () => {
         }
       });
 
-      // Add table
       (doc as any).autoTable({
         startY: yPos + 10,
         head: [['#', 'رقم الفاتورة', 'العميل', 'البريد', 'التاريخ', 'الإجمالي', 'الحالة']],
@@ -696,7 +682,6 @@ const SalesInvoices = () => {
         margin: { top: 10, right: 10, bottom: 10, left: 10 },
       });
 
-      // Footer
       const pageCount = (doc as any).internal.getNumberOfPages();
       for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
@@ -709,7 +694,6 @@ const SalesInvoices = () => {
         );
       }
 
-      // Save
       doc.save(`sales-invoices-${Date.now()}.pdf`);
 
       toast({
@@ -724,7 +708,6 @@ const SalesInvoices = () => {
         variant: "destructive",
       });
     }
-    */
   };
 
   // Print invoice with items
@@ -735,16 +718,14 @@ const SalesInvoices = () => {
         return;
       }
 
+      console.log('Starting print for invoice:', invoice.invoice_number);
+
       // Fetch invoice items
       const items = await fetchInvoiceItems(invoice.id);
-
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) {
-        toast({ title: "خطأ", description: "فشل فتح نافذة الطباعة", variant: "destructive" });
-        return;
-      }
+      console.log('Fetched items:', items.length);
 
       const customer = invoice.customers;
+      console.log('Customer:', customer?.customer_name);
 
       // Generate items table rows
       const itemsRows = items.map((item, index) => `
@@ -759,7 +740,10 @@ const SalesInvoices = () => {
         </tr>
       `).join('');
 
-      printWindow.document.write(`
+      console.log('Generated HTML rows');
+
+      // Generate full HTML content
+      const htmlContent = `
         <!DOCTYPE html>
         <html dir="rtl">
         <head>
@@ -875,6 +859,7 @@ const SalesInvoices = () => {
 
           <script>
             window.onload = function() {
+              console.log('Print window loaded');
               setTimeout(function() {
                 window.print();
               }, 500);
@@ -885,9 +870,21 @@ const SalesInvoices = () => {
           </script>
         </body>
         </html>
-      `);
+      `;
 
+      console.log('Opening print window...');
+
+      // Open window and write content
+      const printWindow = window.open('', '_blank', 'width=800,height=600');
+      if (!printWindow) {
+        toast({ title: "خطأ", description: "فشل فتح نافذة الطباعة. يرجى السماح بالنوافذ المنبثقة", variant: "destructive" });
+        return;
+      }
+
+      printWindow.document.write(htmlContent);
       printWindow.document.close();
+
+      console.log('Print window content written');
     } catch (error) {
       console.error('Error printing invoice:', error);
       toast({
