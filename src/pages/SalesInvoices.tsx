@@ -712,8 +712,11 @@ const SalesInvoices = () => {
 
   // Print invoice with items
   const handlePrint = async (invoice: SalesInvoice) => {
+    console.log('=== handlePrint CALLED ===', invoice);
+
     try {
       if (!invoice || !invoice.id) {
+        console.error('Invalid invoice:', invoice);
         toast({ title: "خطأ", description: "فاتورة غير صالحة", variant: "destructive" });
         return;
       }
@@ -1597,7 +1600,15 @@ const SalesInvoices = () => {
               <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
                 إغلاق
               </Button>
-              <Button onClick={() => selectedInvoice && handlePrint(selectedInvoice)}>
+              <Button onClick={() => {
+                console.log('Print button clicked in view dialog');
+                console.log('Selected invoice:', selectedInvoice);
+                if (selectedInvoice) {
+                  handlePrint(selectedInvoice);
+                } else {
+                  console.error('No selected invoice!');
+                }
+              }}>
                 <Printer className="h-4 w-4 ml-2" />
                 طباعة
               </Button>
