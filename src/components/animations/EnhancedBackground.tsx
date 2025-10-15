@@ -1,7 +1,3 @@
-import NetworkGrid from './NetworkGrid';
-import FloatingElements from './FloatingElements';
-import IconGrid from './IconGrid';
-
 const EnhancedBackground = () => {
   return (
     <div className="hidden lg:block flex-1 relative overflow-hidden">
@@ -15,20 +11,29 @@ const EnhancedBackground = () => {
 
       {/* Animated mesh overlay */}
       <div className="absolute inset-0 opacity-30">
-        <div className="absolute inset-0 animate-pulse" style={{ 
+        <div className="absolute inset-0 animate-pulse" style={{
           background: 'linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.05) 50%, transparent 70%)',
           animation: 'mesh-flow 8s ease-in-out infinite'
         }}></div>
       </div>
 
-      {/* Floating elements layer */}
-      <FloatingElements />
-      
-      {/* Network grid layer */}
-      <NetworkGrid />
-
-      {/* Organized icon grid system */}
-      <IconGrid />
+      {/* Animated geometric shapes */}
+      <div className="absolute inset-0">
+        {[...Array(15)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute rounded-full bg-white/5 animate-float"
+            style={{
+              width: `${20 + i * 15}px`,
+              height: `${20 + i * 15}px`,
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animationDelay: `${i * 0.5}s`,
+              animationDuration: `${15 + i * 2}s`
+            }}
+          />
+        ))}
+      </div>
 
       {/* Content overlay with enhanced styling */}
       <div className="relative h-full flex items-center justify-center p-12 z-10">
@@ -111,6 +116,13 @@ const EnhancedBackground = () => {
         @keyframes mesh-flow {
           0%, 100% { transform: translateX(-100%) translateY(-100%) rotate(0deg); }
           50% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+        @keyframes float {
+          0%, 100% { transform: translateY(0px) translateX(0px); opacity: 0.3; }
+          50% { transform: translateY(-20px) translateX(10px); opacity: 0.6; }
+        }
+        .animate-float {
+          animation: float linear infinite;
         }
       `}</style>
     </div>
