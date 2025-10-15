@@ -83,6 +83,9 @@ export default function NewSalesInvoice() {
 
   useEffect(() => {
     generateInvoiceNumber();
+    if (items.length === 0) {
+      addItem();
+    }
   }, []);
 
   const generateInvoiceNumber = () => {

@@ -57,6 +57,14 @@ export function InvoiceItemsTable({
       onUpdateItem(itemId, "product_name", product.product_name);
       onUpdateItem(itemId, "unit_price", product.selling_price);
       onUpdateItem(itemId, "tax_rate", product.tax_rate);
+
+      const quantity = items.find((i) => i.id === itemId)?.quantity || 1;
+      const subtotal = quantity * product.selling_price;
+      const taxAmount = (subtotal * product.tax_rate) / 100;
+      const total = subtotal + taxAmount;
+
+      onUpdateItem(itemId, "tax_amount", taxAmount);
+      onUpdateItem(itemId, "total", total);
     }
   };
 
@@ -96,18 +104,24 @@ export function InvoiceItemsTable({
                   <TableRow key={item.id}>
                     <TableCell>
                       <Select
-                        value={item.product_id}
+                        value={item.product_id || undefined}
                         onValueChange={(value) => handleProductSelect(item.id, value)}
                       >
                         <SelectTrigger className="text-right" dir="rtl">
                           <SelectValue placeholder="اختر منتج" />
                         </SelectTrigger>
-                        <SelectContent dir="rtl">
-                          {products.map((product) => (
-                            <SelectItem key={product.id} value={product.id}>
-                              {product.product_name}
-                            </SelectItem>
-                          ))}
+                        <SelectContent dir="rtl" className="max-h-[300px]">
+                          {products.length === 0 ? (
+                            <div className="p-2 text-center text-sm text-muted-foreground">
+                              لا توجد منتجات نشطة
+                            </div>
+                          ) : (
+                            products.map((product) => (
+                              <SelectItem key={product.id} value={product.id}>
+                                {product.product_name}
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
                     </TableCell>
