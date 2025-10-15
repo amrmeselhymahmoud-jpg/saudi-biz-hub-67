@@ -178,9 +178,7 @@ export default function NewSalesInvoice() {
           tax_amount: taxAmount,
           discount,
           total_amount: total,
-          paid_amount: 0,
-          remaining_amount: total,
-          payment_status: "unpaid",
+          payment_method: paymentMethod,
           status: "draft",
           notes,
         })

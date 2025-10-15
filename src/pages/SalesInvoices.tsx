@@ -105,16 +105,28 @@ interface SalesInvoice {
   paid_amount: number;
   remaining_amount: number;
   payment_status: string;
+  payment_method: string;
   notes: string | null;
   status: string;
   created_at: string;
   customers?: Customer;
 }
 
+// Calculate payment status based on payment method
+const getPaymentStatusFromMethod = (paymentMethod: string): string => {
+  if (paymentMethod === 'credit') {
+    return 'unpaid';
+  }
+  return 'paid';
+};
+
 // Normalize invoice data with safety checks
 const normalizeInvoice = (invoice: any): SalesInvoice | null => {
   try {
     if (!invoice || !invoice.id) return null;
+
+    const paymentMethod = invoice.payment_method || 'credit';
+    const calculatedPaymentStatus = getPaymentStatusFromMethod(paymentMethod);
 
     return {
       id: invoice.id || '',
@@ -128,7 +140,8 @@ const normalizeInvoice = (invoice: any): SalesInvoice | null => {
       total_amount: parseFloat(invoice.total_amount) || 0,
       paid_amount: parseFloat(invoice.paid_amount) || 0,
       remaining_amount: parseFloat(invoice.remaining_amount) || 0,
-      payment_status: invoice.payment_status || 'unpaid',
+      payment_status: calculatedPaymentStatus,
+      payment_method: paymentMethod,
       notes: invoice.notes || null,
       status: invoice.status || 'draft',
       created_at: invoice.created_at || new Date().toISOString(),
@@ -369,15 +382,21 @@ const SalesInvoices = () => {
   });
 
   const updateInvoiceMutation = useMutation({
-    mutationFn: async (data: { id: string; invoice_date: string; due_date: string; notes: string | null }) => {
+    mutationFn: async (data: { id: string; invoice_date: string; due_date: string; notes: string | null; payment_method?: string }) => {
       try {
+        const updateData: any = {
+          invoice_date: data.invoice_date,
+          due_date: data.due_date,
+          notes: data.notes,
+        };
+
+        if (data.payment_method) {
+          updateData.payment_method = data.payment_method;
+        }
+
         const { error } = await supabase
           .from("sales_invoices")
-          .update({
-            invoice_date: data.invoice_date,
-            due_date: data.due_date,
-            notes: data.notes,
-          })
+          .update(updateData)
           .eq("id", data.id);
 
         if (error) throw error;
@@ -984,6 +1003,7 @@ const SalesInvoices = () => {
         invoice_date: formData.get('invoice_date') as string,
         due_date: formData.get('due_date') as string,
         notes: formData.get('notes') as string || null,
+        payment_method: formData.get('payment_method') as string,
       });
     } catch (error) {
       console.error('Error in handleUpdate:', error);
@@ -1462,9 +1482,25 @@ const SalesInvoices = () => {
                   </div>
 
                   <div>
+                    <Label>طريقة الدفع</Label>
+                    <Select name="payment_method" defaultValue={editInvoice.payment_method || 'credit'}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cash">نقداً</SelectItem>
+                        <SelectItem value="transfer">تحويل بنكي</SelectItem>
+                        <SelectItem value="card">بطاقة</SelectItem>
+                        <SelectItem value="credit">آجل</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
                     <Label>حالة الدفع</Label>
                     <div className="flex items-center h-10 px-3 border rounded-md bg-gray-50">
                       {getPaymentStatusBadge(editInvoice.payment_status)}
+                      <span className="mr-2 text-xs text-muted-foreground">(تلقائي)</span>
                     </div>
                   </div>
                 </div>
