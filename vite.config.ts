@@ -23,9 +23,12 @@ export default defineConfig(({ mode }) => ({
           'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select'],
           'query-vendor': ['@tanstack/react-query'],
           'supabase-vendor': ['@supabase/supabase-js'],
+          'format-vendor': ['date-fns'],
+          'schemas': ['zod', '@hookform/resolvers'],
         },
       },
     },
     chunkSizeWarningLimit: 1000,
+    minify: 'esbuild',
   },
 }));
