@@ -66,6 +66,11 @@ interface Product {
   max_stock_level: number;
   current_stock: number;
   reorder_point: number;
+  shipping_cost: number;
+  additional_costs: number;
+  total_cost: number;
+  profit_margin: number;
+  suggested_selling_price: number;
   notes: string | null;
   status: string;
   created_by: string;
@@ -78,7 +83,13 @@ const ProductsCosts = () => {
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [costDialogOpen, setCostDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [costFormData, setCostFormData] = useState({
+    shipping_cost: "",
+    additional_costs: "",
+  });
 
   const [formData, setFormData] = useState({
     product_name: "",
@@ -92,6 +103,8 @@ const ProductsCosts = () => {
     max_stock_level: "1000",
     current_stock: "0",
     reorder_point: "10",
+    shipping_cost: "0",
+    additional_costs: "0",
     notes: "",
   });
 
@@ -133,6 +146,8 @@ const ProductsCosts = () => {
         max_stock_level: parseInt(productData.max_stock_level) || 1000,
         current_stock: parseInt(productData.current_stock) || 0,
         reorder_point: parseInt(productData.reorder_point) || 10,
+        shipping_cost: parseFloat(productData.shipping_cost) || 0,
+        additional_costs: parseFloat(productData.additional_costs) || 0,
         notes: productData.notes?.trim() || null,
         created_by: session?.user?.id || null,
       }).select();
@@ -171,6 +186,8 @@ const ProductsCosts = () => {
           max_stock_level: parseInt(data.max_stock_level) || 1000,
           current_stock: parseInt(data.current_stock) || 0,
           reorder_point: parseInt(data.reorder_point) || 10,
+          shipping_cost: parseFloat(data.shipping_cost) || 0,
+          additional_costs: parseFloat(data.additional_costs) || 0,
           notes: data.notes || null,
         })
         .eq("id", id);
@@ -224,6 +241,8 @@ const ProductsCosts = () => {
       max_stock_level: "1000",
       current_stock: "0",
       reorder_point: "10",
+      shipping_cost: "0",
+      additional_costs: "0",
       notes: "",
     });
   };
@@ -242,10 +261,49 @@ const ProductsCosts = () => {
       max_stock_level: product.max_stock_level.toString(),
       current_stock: product.current_stock.toString(),
       reorder_point: product.reorder_point.toString(),
+      shipping_cost: product.shipping_cost?.toString() || "0",
+      additional_costs: product.additional_costs?.toString() || "0",
       notes: product.notes || "",
     });
     setEditDialogOpen(true);
   };
+
+  const handleViewDetails = (product: Product) => {
+    setSelectedProduct(product);
+    setViewDialogOpen(true);
+  };
+
+  const handleAddCosts = (product: Product) => {
+    setSelectedProduct(product);
+    setCostFormData({
+      shipping_cost: product.shipping_cost?.toString() || "0",
+      additional_costs: product.additional_costs?.toString() || "0",
+    });
+    setCostDialogOpen(true);
+  };
+
+  const updateCostsMutation = useMutation({
+    mutationFn: async ({ id, costs }: { id: string; costs: typeof costFormData }) => {
+      const { error } = await supabase
+        .from("products")
+        .update({
+          shipping_cost: parseFloat(costs.shipping_cost) || 0,
+          additional_costs: parseFloat(costs.additional_costs) || 0,
+        })
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      toast({ title: "تم بنجاح", description: "تم تحديث التكاليف بنجاح" });
+      setCostDialogOpen(false);
+      setSelectedProduct(null);
+    },
+    onError: (error: Error) => {
+      toast({ title: "خطأ", description: error.message, variant: "destructive" });
+    },
+  });
 
   const totalProducts = products.length;
   const activeProducts = products.filter(p => p.status === 'active').length;
@@ -684,9 +742,17 @@ const ProductsCosts = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem className="gap-2 hover:bg-blue-50 hover:text-blue-600" onClick={() => handleEdit(product)}>
+                          <DropdownMenuItem className="gap-2 hover:bg-blue-50 hover:text-blue-600" onClick={() => handleViewDetails(product)}>
+                            <Eye className="h-4 w-4" />
+                            عرض التفاصيل
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="gap-2 hover:bg-green-50 hover:text-green-600" onClick={() => handleEdit(product)}>
                             <Edit className="h-4 w-4" />
                             تعديل
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="gap-2 hover:bg-purple-50 hover:text-purple-600" onClick={() => handleAddCosts(product)}>
+                            <Package className="h-4 w-4" />
+                            إضافة تكاليف
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
@@ -794,6 +860,198 @@ const ProductsCosts = () => {
               >
                 {updateProductMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
                 تحديث المنتج
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* View Details Dialog */}
+        <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+          <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold">تفاصيل المنتج</DialogTitle>
+            </DialogHeader>
+            {selectedProduct && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="text-sm text-gray-500">كود المنتج</p>
+                    <p className="font-semibold">{selectedProduct.product_code}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">اسم المنتج</p>
+                    <p className="font-semibold">{selectedProduct.product_name}</p>
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <h3 className="font-semibold mb-3">الأسعار والتكاليف</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-3 bg-blue-50 rounded">
+                      <p className="text-sm text-gray-600">سعر التكلفة</p>
+                      <p className="text-xl font-bold text-blue-600">{selectedProduct.cost_price.toFixed(2)} ر.س</p>
+                    </div>
+                    <div className="p-3 bg-green-50 rounded">
+                      <p className="text-sm text-gray-600">سعر البيع</p>
+                      <p className="text-xl font-bold text-green-600">{selectedProduct.selling_price.toFixed(2)} ر.س</p>
+                    </div>
+                    <div className="p-3 bg-purple-50 rounded">
+                      <p className="text-sm text-gray-600">تكلفة الشحن</p>
+                      <p className="text-xl font-bold text-purple-600">{(selectedProduct.shipping_cost || 0).toFixed(2)} ر.س</p>
+                    </div>
+                    <div className="p-3 bg-orange-50 rounded">
+                      <p className="text-sm text-gray-600">تكاليف إضافية</p>
+                      <p className="text-xl font-bold text-orange-600">{(selectedProduct.additional_costs || 0).toFixed(2)} ر.س</p>
+                    </div>
+                    <div className="p-3 bg-gray-100 rounded col-span-2">
+                      <p className="text-sm text-gray-600">إجمالي التكلفة</p>
+                      <p className="text-2xl font-bold text-gray-900">{(selectedProduct.total_cost || 0).toFixed(2)} ر.س</p>
+                    </div>
+                    <div className="p-3 bg-green-100 rounded">
+                      <p className="text-sm text-gray-600">هامش الربح</p>
+                      <p className="text-xl font-bold text-green-700">{(selectedProduct.profit_margin || 0).toFixed(2)} ر.س</p>
+                    </div>
+                    <div className="p-3 bg-blue-100 rounded">
+                      <p className="text-sm text-gray-600">سعر البيع المقترح</p>
+                      <p className="text-xl font-bold text-blue-700">{(selectedProduct.suggested_selling_price || 0).toFixed(2)} ر.س</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <h3 className="font-semibold mb-3">المخزون</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-500">المخزون الحالي</p>
+                      <p className="font-semibold">{selectedProduct.current_stock}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">نقطة إعادة الطلب</p>
+                      <p className="font-semibold">{selectedProduct.reorder_point}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">الحد الأدنى</p>
+                      <p className="font-semibold">{selectedProduct.min_stock_level}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">الحد الأقصى</p>
+                      <p className="font-semibold">{selectedProduct.max_stock_level}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {selectedProduct.description && (
+                  <div className="border-t pt-4">
+                    <h3 className="font-semibold mb-2">الوصف</h3>
+                    <p className="text-gray-700">{selectedProduct.description}</p>
+                  </div>
+                )}
+              </div>
+            )}
+            <DialogFooter>
+              <Button onClick={() => setViewDialogOpen(false)}>إغلاق</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Add/Edit Costs Dialog */}
+        <Dialog open={costDialogOpen} onOpenChange={setCostDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold">إضافة تكاليف المنتج</DialogTitle>
+              <DialogDescription className="text-base">
+                أدخل التكاليف الإضافية للمنتج لحساب السعر النهائي
+              </DialogDescription>
+            </DialogHeader>
+            {selectedProduct && (
+              <div className="space-y-6">
+                <div className="p-4 bg-blue-50 rounded-lg">
+                  <p className="text-sm text-gray-600">المنتج</p>
+                  <p className="text-lg font-bold">{selectedProduct.product_name}</p>
+                  <p className="text-sm text-gray-600 mt-2">سعر التكلفة الأساسي: <span className="font-semibold">{selectedProduct.cost_price.toFixed(2)} ر.س</span></p>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="shipping_cost" className="text-base font-semibold">
+                      تكلفة الشحن (ر.س)
+                    </Label>
+                    <Input
+                      id="shipping_cost"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={costFormData.shipping_cost}
+                      onChange={(e) => setCostFormData({ ...costFormData, shipping_cost: e.target.value })}
+                      placeholder="0.00"
+                      className="text-base"
+                      dir="ltr"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="additional_costs" className="text-base font-semibold">
+                      تكاليف إضافية (ر.س)
+                    </Label>
+                    <Input
+                      id="additional_costs"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={costFormData.additional_costs}
+                      onChange={(e) => setCostFormData({ ...costFormData, additional_costs: e.target.value })}
+                      placeholder="0.00"
+                      className="text-base"
+                      dir="ltr"
+                    />
+                    <p className="text-xs text-gray-500">مثال: رسوم جمركية، تخليص، تأمين، إلخ</p>
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <h3 className="font-semibold mb-3">الحسابات التلقائية</h3>
+                  <div className="space-y-2 p-4 bg-gray-50 rounded-lg">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">سعر التكلفة:</span>
+                      <span className="font-semibold">{selectedProduct.cost_price.toFixed(2)} ر.س</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">تكلفة الشحن:</span>
+                      <span className="font-semibold">{parseFloat(costFormData.shipping_cost || "0").toFixed(2)} ر.س</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">تكاليف إضافية:</span>
+                      <span className="font-semibold">{parseFloat(costFormData.additional_costs || "0").toFixed(2)} ر.س</span>
+                    </div>
+                    <div className="border-t pt-2 mt-2">
+                      <div className="flex justify-between text-lg">
+                        <span className="font-bold">إجمالي التكلفة:</span>
+                        <span className="font-bold text-blue-600">
+                          {(selectedProduct.cost_price + parseFloat(costFormData.shipping_cost || "0") + parseFloat(costFormData.additional_costs || "0")).toFixed(2)} ر.س
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex justify-between text-lg text-green-600">
+                      <span className="font-bold">سعر البيع المقترح (+30%):</span>
+                      <span className="font-bold">
+                        {((selectedProduct.cost_price + parseFloat(costFormData.shipping_cost || "0") + parseFloat(costFormData.additional_costs || "0")) * 1.3).toFixed(2)} ر.س
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button variant="outline" onClick={() => setCostDialogOpen(false)}>
+                إلغاء
+              </Button>
+              <Button
+                onClick={() => selectedProduct && updateCostsMutation.mutate({ id: selectedProduct.id, costs: costFormData })}
+                disabled={updateCostsMutation.isPending}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              >
+                {updateCostsMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                حفظ التكاليف
               </Button>
             </DialogFooter>
           </DialogContent>
