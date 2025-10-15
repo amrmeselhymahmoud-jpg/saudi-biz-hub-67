@@ -113,7 +113,7 @@ const FreeTrial = () => {
         businessType: "",
         agreeToTerms: false,
       });
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof z.ZodError) {
         const firstError = error.issues[0];
         toast({
@@ -122,10 +122,19 @@ const FreeTrial = () => {
           variant: "destructive",
         });
       } else {
-        console.error('Error submitting trial request:', error);
+        let errorMessage = "حدث خطأ أثناء إنشاء الحساب. يرجى المحاولة مرة أخرى";
+
+        if (error?.message) {
+          if (error.message.includes("duplicate") || error.message.includes("already exists")) {
+            errorMessage = "هذا البريد الإلكتروني مسجل مسبقاً. يرجى استخدام بريد آخر";
+          } else if (error.message.includes("network") || error.message.includes("fetch")) {
+            errorMessage = "خطأ في الاتصال بالإنترنت. يرجى التحقق من الاتصال والمحاولة مرة أخرى";
+          }
+        }
+
         toast({
           title: "خطأ في التسجيل",
-          description: "حدث خطأ أثناء إنشاء الحساب. يرجى المحاولة مرة أخرى",
+          description: errorMessage,
           variant: "destructive",
         });
       }
