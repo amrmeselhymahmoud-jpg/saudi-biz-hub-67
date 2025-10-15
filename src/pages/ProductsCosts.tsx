@@ -1,4 +1,4 @@
-import { Package, Plus, Search, MoveHorizontal as MoreHorizontal, Eye, Pencil as Edit, Trash2, Loader as Loader2, CircleAlert as AlertCircle, TrendingUp, TrendingDown, Download, Upload } from "lucide-react";
+import { Package, Plus, Search, MoreHorizontal, Eye, Pencil, Trash2, Loader2, DollarSign, TrendingUp, Download, Upload } from "lucide-react";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -51,6 +51,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { EmptyTableMessage } from "@/components/EmptyTableMessage";
 
 interface Product {
   id: string;
@@ -73,7 +74,7 @@ interface Product {
   suggested_selling_price: number;
   notes: string | null;
   status: string;
-  created_by: string;
+  created_by: string | null;
   created_at: string;
 }
 
@@ -86,12 +87,8 @@ const ProductsCosts = () => {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [costDialogOpen, setCostDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [costFormData, setCostFormData] = useState({
-    shipping_cost: "",
-    additional_costs: "",
-  });
 
-  const [formData, setFormData] = useState({
+  const initialFormData = {
     product_name: "",
     description: "",
     category: "",
@@ -106,6 +103,12 @@ const ProductsCosts = () => {
     shipping_cost: "0",
     additional_costs: "0",
     notes: "",
+  };
+
+  const [formData, setFormData] = useState(initialFormData);
+  const [costFormData, setCostFormData] = useState({
+    shipping_cost: "",
+    additional_costs: "",
   });
 
   const { toast } = useToast();
@@ -125,18 +128,22 @@ const ProductsCosts = () => {
     },
   });
 
+  const resetForm = () => {
+    setFormData(initialFormData);
+  };
+
   const addProductMutation = useMutation({
     mutationFn: async (productData: typeof formData) => {
-      if (!productData.product_name || productData.product_name.trim() === '') {
+      if (!productData.product_name?.trim()) {
         throw new Error('اسم المنتج مطلوب');
       }
 
       if (!productData.cost_price || parseFloat(productData.cost_price) <= 0) {
-        throw new Error('سعر التكلفة يجب أن يكون أكبر من صفر');
+        throw new Error('سعر التكلفة مطلوب ويجب أن يكون أكبر من صفر');
       }
 
       if (!productData.selling_price || parseFloat(productData.selling_price) <= 0) {
-        throw new Error('سعر البيع يجب أن يكون أكبر من صفر');
+        throw new Error('سعر البيع مطلوب ويجب أن يكون أكبر من صفر');
       }
 
       const productCode = `PRD-${Date.now()}`;
@@ -146,7 +153,7 @@ const ProductsCosts = () => {
         product_name: productData.product_name.trim(),
         description: productData.description?.trim() || null,
         category: productData.category?.trim() || null,
-        unit: productData.unit,
+        unit: productData.unit || 'قطعة',
         cost_price: parseFloat(productData.cost_price) || 0,
         selling_price: parseFloat(productData.selling_price) || 0,
         tax_rate: parseFloat(productData.tax_rate) || 15,
@@ -171,8 +178,8 @@ const ProductsCosts = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       toast({
-        title: "✅ تم بنجاح",
-        description: "تم إضافة المنتج بنجاح وسيظهر في القائمة",
+        title: "تم بنجاح",
+        description: "تم إضافة المنتج بنجاح",
         duration: 3000,
       });
       setAddDialogOpen(false);
@@ -180,7 +187,7 @@ const ProductsCosts = () => {
     },
     onError: (error: Error) => {
       toast({
-        title: "❌ خطأ",
+        title: "خطأ",
         description: error.message,
         variant: "destructive",
         duration: 4000,
@@ -190,24 +197,16 @@ const ProductsCosts = () => {
 
   const updateProductMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: typeof formData }) => {
-      if (!data.product_name || data.product_name.trim() === '') {
+      if (!data.product_name?.trim()) {
         throw new Error('اسم المنتج مطلوب');
-      }
-
-      if (!data.cost_price || parseFloat(data.cost_price) <= 0) {
-        throw new Error('سعر التكلفة يجب أن يكون أكبر من صفر');
-      }
-
-      if (!data.selling_price || parseFloat(data.selling_price) <= 0) {
-        throw new Error('سعر البيع يجب أن يكون أكبر من صفر');
       }
 
       const { error } = await supabase
         .from("products")
         .update({
-          product_name: data.product_name,
-          description: data.description || null,
-          category: data.category || null,
+          product_name: data.product_name.trim(),
+          description: data.description?.trim() || null,
+          category: data.category?.trim() || null,
           unit: data.unit,
           cost_price: parseFloat(data.cost_price) || 0,
           selling_price: parseFloat(data.selling_price) || 0,
@@ -218,7 +217,7 @@ const ProductsCosts = () => {
           reorder_point: parseInt(data.reorder_point) || 10,
           shipping_cost: parseFloat(data.shipping_cost) || 0,
           additional_costs: parseFloat(data.additional_costs) || 0,
-          notes: data.notes || null,
+          notes: data.notes?.trim() || null,
         })
         .eq("id", id);
 
@@ -227,7 +226,7 @@ const ProductsCosts = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       toast({
-        title: "✅ تم بنجاح",
+        title: "تم بنجاح",
         description: "تم تحديث المنتج بنجاح",
         duration: 3000,
       });
@@ -237,7 +236,7 @@ const ProductsCosts = () => {
     },
     onError: (error: Error) => {
       toast({
-        title: "❌ خطأ",
+        title: "خطأ",
         description: error.message,
         variant: "destructive",
         duration: 4000,
@@ -253,7 +252,7 @@ const ProductsCosts = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       toast({
-        title: "✅ تم بنجاح",
+        title: "تم بنجاح",
         description: "تم حذف المنتج بنجاح",
         duration: 3000,
       });
@@ -262,7 +261,7 @@ const ProductsCosts = () => {
     },
     onError: (error: Error) => {
       toast({
-        title: "❌ خطأ",
+        title: "خطأ",
         description: error.message,
         variant: "destructive",
         duration: 4000,
@@ -270,30 +269,37 @@ const ProductsCosts = () => {
     },
   });
 
-  const filteredProducts = products.filter((product) =>
-    product.product_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    product.product_code?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    product.category?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const updateCostsMutation = useMutation({
+    mutationFn: async ({ id, costs }: { id: string; costs: typeof costFormData }) => {
+      const { error } = await supabase
+        .from("products")
+        .update({
+          shipping_cost: parseFloat(costs.shipping_cost) || 0,
+          additional_costs: parseFloat(costs.additional_costs) || 0,
+        })
+        .eq("id", id);
 
-  const resetForm = () => {
-    setFormData({
-      product_name: "",
-      description: "",
-      category: "",
-      unit: "قطعة",
-      cost_price: "",
-      selling_price: "",
-      tax_rate: "15",
-      min_stock_level: "0",
-      max_stock_level: "1000",
-      current_stock: "0",
-      reorder_point: "10",
-      shipping_cost: "0",
-      additional_costs: "0",
-      notes: "",
-    });
-  };
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      toast({
+        title: "تم بنجاح",
+        description: "تم تحديث التكاليف بنجاح",
+        duration: 3000,
+      });
+      setCostDialogOpen(false);
+      setSelectedProduct(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "خطأ",
+        description: error.message,
+        variant: "destructive",
+        duration: 4000,
+      });
+    },
+  });
 
   const handleEdit = (product: Product) => {
     setSelectedProduct(product);
@@ -330,44 +336,19 @@ const ProductsCosts = () => {
     setCostDialogOpen(true);
   };
 
-  const updateCostsMutation = useMutation({
-    mutationFn: async ({ id, costs }: { id: string; costs: typeof costFormData }) => {
-      const { error } = await supabase
-        .from("products")
-        .update({
-          shipping_cost: parseFloat(costs.shipping_cost) || 0,
-          additional_costs: parseFloat(costs.additional_costs) || 0,
-        })
-        .eq("id", id);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["products"] });
-      toast({
-        title: "✅ تم بنجاح",
-        description: "تم تحديث التكاليف والأسعار بنجاح",
-        duration: 3000,
-      });
-      setCostDialogOpen(false);
-      setSelectedProduct(null);
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "❌ خطأ",
-        description: error.message,
-        variant: "destructive",
-        duration: 4000,
-      });
-    },
-  });
+  const filteredProducts = products.filter(
+    (product) =>
+      product.product_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.product_code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (product.category && product.category.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
   const totalProducts = products.length;
   const activeProducts = products.filter(p => p.status === 'active').length;
   const lowStockProducts = products.filter(p => p.current_stock <= p.reorder_point).length;
   const totalValue = products.reduce((sum, p) => sum + (p.current_stock * p.cost_price), 0);
 
-  const ProductForm = ({ isEdit = false }: { isEdit?: boolean }) => (
+  const ProductForm = () => (
     <div className="space-y-6">
       <div className="space-y-4">
         <div className="space-y-2">
@@ -383,8 +364,6 @@ const ProductsCosts = () => {
             placeholder="مثال: كمبيوتر محمول Dell"
             className="text-base text-right"
             dir="rtl"
-            autoComplete="off"
-            style={{ textAlign: 'right', direction: 'rtl' }}
           />
         </div>
 
@@ -402,8 +381,6 @@ const ProductsCosts = () => {
               placeholder="مثال: إلكترونيات"
               className="text-base text-right"
               dir="rtl"
-              autoComplete="off"
-              style={{ textAlign: 'right', direction: 'rtl' }}
             />
           </div>
 
@@ -434,7 +411,7 @@ const ProductsCosts = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="cost_price" className="text-base font-semibold">
+            <Label htmlFor="cost_price" className="text-base font-semibold text-right block">
               سعر التكلفة (ر.س) <span className="text-red-500">*</span>
             </Label>
             <Input
@@ -447,12 +424,11 @@ const ProductsCosts = () => {
               onChange={(e) => setFormData({ ...formData, cost_price: e.target.value })}
               placeholder="0.00"
               className="text-base"
-              dir="ltr"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="selling_price" className="text-base font-semibold">
+            <Label htmlFor="selling_price" className="text-base font-semibold text-right block">
               سعر البيع (ر.س) <span className="text-red-500">*</span>
             </Label>
             <Input
@@ -465,13 +441,12 @@ const ProductsCosts = () => {
               onChange={(e) => setFormData({ ...formData, selling_price: e.target.value })}
               placeholder="0.00"
               className="text-base"
-              dir="ltr"
             />
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="tax_rate" className="text-base font-semibold">
+          <Label htmlFor="tax_rate" className="text-base font-semibold text-right block">
             نسبة الضريبة (%)
           </Label>
           <Input
@@ -485,16 +460,15 @@ const ProductsCosts = () => {
             onChange={(e) => setFormData({ ...formData, tax_rate: e.target.value })}
             placeholder="15"
             className="text-base"
-            dir="ltr"
           />
         </div>
 
         <div className="border-t pt-4 mt-4">
-          <h3 className="text-lg font-semibold mb-4">إدارة المخزون</h3>
+          <h3 className="text-lg font-semibold mb-4 text-right">إدارة المخزون</h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="current_stock" className="text-base font-semibold">
+              <Label htmlFor="current_stock" className="text-base font-semibold text-right block">
                 المخزون الحالي
               </Label>
               <Input
@@ -506,12 +480,11 @@ const ProductsCosts = () => {
                 onChange={(e) => setFormData({ ...formData, current_stock: e.target.value })}
                 placeholder="0"
                 className="text-base"
-                dir="ltr"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="reorder_point" className="text-base font-semibold">
+              <Label htmlFor="reorder_point" className="text-base font-semibold text-right block">
                 نقطة إعادة الطلب
               </Label>
               <Input
@@ -523,12 +496,11 @@ const ProductsCosts = () => {
                 onChange={(e) => setFormData({ ...formData, reorder_point: e.target.value })}
                 placeholder="10"
                 className="text-base"
-                dir="ltr"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="min_stock_level" className="text-base font-semibold">
+              <Label htmlFor="min_stock_level" className="text-base font-semibold text-right block">
                 الحد الأدنى للمخزون
               </Label>
               <Input
@@ -540,12 +512,11 @@ const ProductsCosts = () => {
                 onChange={(e) => setFormData({ ...formData, min_stock_level: e.target.value })}
                 placeholder="0"
                 className="text-base"
-                dir="ltr"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="max_stock_level" className="text-base font-semibold">
+              <Label htmlFor="max_stock_level" className="text-base font-semibold text-right block">
                 الحد الأقصى للمخزون
               </Label>
               <Input
@@ -557,14 +528,13 @@ const ProductsCosts = () => {
                 onChange={(e) => setFormData({ ...formData, max_stock_level: e.target.value })}
                 placeholder="1000"
                 className="text-base"
-                dir="ltr"
               />
             </div>
           </div>
         </div>
 
         <div className="border-t pt-4 mt-4">
-          <h3 className="text-lg font-semibold mb-4">معلومات إضافية</h3>
+          <h3 className="text-lg font-semibold mb-4 text-right">معلومات إضافية</h3>
 
           <div className="space-y-4">
             <div className="space-y-2">
@@ -580,8 +550,6 @@ const ProductsCosts = () => {
                 rows={3}
                 className="text-base resize-none text-right"
                 dir="rtl"
-                autoComplete="off"
-                style={{ textAlign: 'right', direction: 'rtl' }}
               />
             </div>
 
@@ -598,8 +566,6 @@ const ProductsCosts = () => {
                 rows={2}
                 className="text-base resize-none text-right"
                 dir="rtl"
-                autoComplete="off"
-                style={{ textAlign: 'right', direction: 'rtl' }}
               />
             </div>
           </div>
@@ -609,154 +575,105 @@ const ProductsCosts = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/20 to-purple-50/30">
-      <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="h-14 w-14 bg-gradient-to-br from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center shadow-lg">
-              <Package className="h-7 w-7 text-white" />
-            </div>
+    <div className="flex flex-col gap-6 p-6" dir="rtl">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            <Package className="h-8 w-8" />
+            المنتجات والتكاليف
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            إدارة المنتجات وتتبع التكاليف والأسعار
+          </p>
+        </div>
+        <Button onClick={() => setAddDialogOpen(true)} className="gap-2">
+          <Plus className="h-4 w-4" />
+          إضافة منتج جديد
+        </Button>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card className="p-4">
+          <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900">المنتجات والمخزون</h1>
-              <p className="text-gray-600 mt-1">إدارة المنتجات والأسعار ومراقبة المخزون</p>
+              <p className="text-sm text-muted-foreground">إجمالي المنتجات</p>
+              <p className="text-2xl font-bold">{totalProducts}</p>
             </div>
+            <Package className="h-8 w-8 text-blue-500" />
           </div>
-          <div className="flex gap-3">
-            <Button
-              variant="outline"
-              size="lg"
-              className="h-12 px-6 border-2 gap-2 hover:bg-gray-50"
-              onClick={() => {
-                const headers = ['كود المنتج', 'اسم المنتج', 'التصنيف', 'الوحدة', 'سعر التكلفة', 'سعر البيع', 'نسبة الضريبة', 'المخزون الحالي', 'نقطة إعادة الطلب', 'الحد الأدنى', 'الحد الأقصى', 'الحالة'];
-                const data = products.map(p => [
-                  p.product_code,
-                  p.product_name,
-                  p.category || '',
-                  p.unit,
-                  p.cost_price,
-                  p.selling_price,
-                  p.tax_rate,
-                  p.current_stock,
-                  p.reorder_point,
-                  p.min_stock_level,
-                  p.max_stock_level,
-                  p.status === 'active' ? 'نشط' : 'غير نشط'
-                ]);
-                exportToExcel(headers, data, 'المنتجات');
-                toast({ title: 'تم التصدير بنجاح', description: 'تم تصدير البيانات إلى ملف Excel' });
-              }}
-            >
-              <Download className="h-5 w-5" />
-              تصدير
-            </Button>
-            <Button
-              size="lg"
-              className="h-12 px-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all gap-2"
-              onClick={() => setAddDialogOpen(true)}
-            >
-              <Plus className="h-5 w-5" />
-              إضافة منتج جديد
-            </Button>
+        </Card>
+
+        <Card className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">المنتجات النشطة</p>
+              <p className="text-2xl font-bold">{activeProducts}</p>
+            </div>
+            <TrendingUp className="h-8 w-8 text-green-500" />
           </div>
-        </div>
+        </Card>
 
-        <div className="grid gap-6 md:grid-cols-4">
-          <Card className="bg-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm font-medium text-gray-500">إجمالي المنتجات</div>
-                <div className="text-4xl font-bold text-gray-900 mt-2">{totalProducts}</div>
-                <p className="text-xs text-gray-500 mt-1">منتج</p>
-              </div>
-              <div className="h-16 w-16 bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl flex items-center justify-center">
-                <Package className="h-8 w-8 text-blue-600" />
-              </div>
+        <Card className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">مخزون منخفض</p>
+              <p className="text-2xl font-bold text-orange-500">{lowStockProducts}</p>
             </div>
-          </Card>
+            <Package className="h-8 w-8 text-orange-500" />
+          </div>
+        </Card>
 
-          <Card className="bg-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm font-medium text-gray-500">المنتجات النشطة</div>
-                <div className="text-4xl font-bold text-green-600 mt-2">{activeProducts}</div>
-                <p className="text-xs text-gray-500 mt-1">منتج نشط</p>
-              </div>
-              <div className="h-16 w-16 bg-gradient-to-br from-green-100 to-green-200 rounded-2xl flex items-center justify-center">
-                <TrendingUp className="h-8 w-8 text-green-600" />
-              </div>
+        <Card className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">القيمة الإجمالية</p>
+              <p className="text-2xl font-bold">{totalValue.toFixed(2)} ر.س</p>
             </div>
-          </Card>
+            <DollarSign className="h-8 w-8 text-purple-500" />
+          </div>
+        </Card>
+      </div>
 
-          <Card className="bg-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm font-medium text-gray-500">مخزون منخفض</div>
-                <div className="text-4xl font-bold text-orange-600 mt-2">{lowStockProducts}</div>
-                <p className="text-xs text-gray-500 mt-1">منتج</p>
-              </div>
-              <div className="h-16 w-16 bg-gradient-to-br from-orange-100 to-orange-200 rounded-2xl flex items-center justify-center">
-                <AlertCircle className="h-8 w-8 text-orange-600" />
-              </div>
-            </div>
-          </Card>
-
-          <Card className="bg-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm font-medium text-gray-500">قيمة المخزون</div>
-                <div className="text-3xl font-bold text-purple-600 mt-2">
-                  {totalValue.toLocaleString()}
-                </div>
-                <p className="text-xs text-gray-500 mt-1">ريال سعودي</p>
-              </div>
-              <div className="h-16 w-16 bg-gradient-to-br from-purple-100 to-purple-200 rounded-2xl flex items-center justify-center">
-                <TrendingDown className="h-8 w-8 text-purple-600" />
-              </div>
-            </div>
-          </Card>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <Card className="p-6">
+        <div className="flex flex-col md:flex-row gap-4 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
-              placeholder="بحث عن منتج..."
+              type="text"
+              placeholder="ابحث عن منتج..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pr-10"
             />
           </div>
-          <Button
-            variant="outline"
-            size="lg"
-            className="h-10 px-4 border-2 gap-2 hover:bg-gray-50"
-            onClick={() => {
-              const input = document.createElement('input');
-              input.type = 'file';
-              input.accept = '.xlsx,.xls,.csv';
-              input.onchange = async (e: any) => {
-                const file = e.target?.files?.[0];
-                if (file) {
-                  try {
-                    toast({ title: 'جاري الاستيراد...', description: 'يرجى الانتظار' });
-                  } catch (error) {
-                    toast({ title: 'خطأ', description: 'حدث خطأ أثناء الاستيراد', variant: 'destructive' });
-                  }
-                }
-              };
-              input.click();
-            }}
-          >
-            <Upload className="h-4 w-4" />
-            استيراد
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => exportToExcel(filteredProducts, 'products')}>
+              <Download className="h-4 w-4 ml-2" />
+              Excel
+            </Button>
+            <Button variant="outline" onClick={() => exportToCSV(filteredProducts, 'products')}>
+              <Download className="h-4 w-4 ml-2" />
+              CSV
+            </Button>
+            <Button variant="outline" onClick={() => document.getElementById('import-file')?.click()}>
+              <Upload className="h-4 w-4 ml-2" />
+              استيراد
+            </Button>
+            <input
+              id="import-file"
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              className="hidden"
+              onChange={(e) => importFromFile(e, 'products', queryClient)}
+            />
+          </div>
         </div>
 
-        <Card className="border-0 shadow-lg bg-white">
+        <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="text-right">كود المنتج</TableHead>
+                <TableHead className="text-right">الكود</TableHead>
                 <TableHead className="text-right">اسم المنتج</TableHead>
                 <TableHead className="text-right">التصنيف</TableHead>
                 <TableHead className="text-right">الوحدة</TableHead>
@@ -771,21 +688,26 @@ const ProductsCosts = () => {
               {isLoading ? (
                 <TableRow>
                   <TableCell colSpan={9} className="text-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+                    <p className="mt-2 text-muted-foreground">جاري التحميل...</p>
                   </TableCell>
                 </TableRow>
               ) : filteredProducts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                    لا توجد منتجات
+                  <TableCell colSpan={9} className="text-center py-8">
+                    <EmptyTableMessage
+                      message={searchQuery ? "لا توجد منتجات مطابقة لبحثك" : "لا توجد منتجات"}
+                      onAdd={() => setAddDialogOpen(true)}
+                      addButtonText="إضافة منتج جديد"
+                    />
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredProducts.map((product) => (
                   <TableRow key={product.id}>
-                    <TableCell className="font-medium text-gray-600">{product.product_code}</TableCell>
-                    <TableCell className="font-medium">{product.product_name}</TableCell>
-                    <TableCell>{product.category || "-"}</TableCell>
+                    <TableCell className="font-medium">{product.product_code}</TableCell>
+                    <TableCell>{product.product_name}</TableCell>
+                    <TableCell>{product.category || '-'}</TableCell>
                     <TableCell>{product.unit}</TableCell>
                     <TableCell>{product.cost_price.toFixed(2)} ر.س</TableCell>
                     <TableCell>{product.selling_price.toFixed(2)} ر.س</TableCell>
@@ -796,38 +718,38 @@ const ProductsCosts = () => {
                     </TableCell>
                     <TableCell>
                       <Badge variant={product.status === 'active' ? "default" : "secondary"}>
-                        {product.status === 'active' ? "نشط" : "غير نشط"}
+                        {product.status === 'active' ? 'نشط' : 'غير نشط'}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="hover:bg-gray-100">
+                          <Button variant="ghost" size="sm">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem className="gap-2 hover:bg-blue-50 hover:text-blue-600" onClick={() => handleViewDetails(product)}>
-                            <Eye className="h-4 w-4" />
+                        <DropdownMenuContent align="end" dir="rtl">
+                          <DropdownMenuItem onClick={() => handleViewDetails(product)}>
+                            <Eye className="ml-2 h-4 w-4" />
                             عرض التفاصيل
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2 hover:bg-green-50 hover:text-green-600" onClick={() => handleEdit(product)}>
-                            <Edit className="h-4 w-4" />
+                          <DropdownMenuItem onClick={() => handleEdit(product)}>
+                            <Pencil className="ml-2 h-4 w-4" />
                             تعديل
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2 hover:bg-purple-50 hover:text-purple-600" onClick={() => handleAddCosts(product)}>
-                            <Package className="h-4 w-4" />
+                          <DropdownMenuItem onClick={() => handleAddCosts(product)}>
+                            <DollarSign className="ml-2 h-4 w-4" />
                             إضافة تكاليف
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
-                            className="gap-2 text-destructive hover:bg-red-50 hover:text-red-600"
                             onClick={() => {
                               setProductToDelete(product.id);
                               setDeleteDialogOpen(true);
                             }}
+                            className="text-red-600"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="ml-2 h-4 w-4" />
                             حذف
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -838,375 +760,268 @@ const ProductsCosts = () => {
               )}
             </TableBody>
           </Table>
-        </Card>
+        </div>
+      </Card>
 
-        {/* Add Product Dialog */}
-        <Dialog open={addDialogOpen} onOpenChange={(open) => {
-          setAddDialogOpen(open);
-          if (!open) {
-            resetForm();
-          }
-        }}>
-          <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-2xl font-bold">إضافة منتج جديد</DialogTitle>
-              <DialogDescription className="text-base">
-                قم بملء جميع الحقول المطلوبة لإضافة منتج جديد إلى النظام
-              </DialogDescription>
-            </DialogHeader>
-            <ProductForm />
-            <DialogFooter className="gap-2 sm:gap-0">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setAddDialogOpen(false);
-                  resetForm();
-                }}
-                className="text-base"
-              >
-                إلغاء
-              </Button>
-              <Button
-                onClick={() => {
-                  if (!formData.product_name.trim()) {
-                    toast({
-                      title: '⚠️ تحذير',
-                      description: 'اسم المنتج مطلوب',
-                      variant: 'destructive',
-                      duration: 3000,
-                    });
-                    return;
-                  }
-                  if (!formData.cost_price || parseFloat(formData.cost_price) <= 0) {
-                    toast({
-                      title: '⚠️ تحذير',
-                      description: 'سعر التكلفة مطلوب ويجب أن يكون أكبر من صفر',
-                      variant: 'destructive',
-                      duration: 3000,
-                    });
-                    return;
-                  }
-                  if (!formData.selling_price || parseFloat(formData.selling_price) <= 0) {
-                    toast({
-                      title: '⚠️ تحذير',
-                      description: 'سعر البيع مطلوب ويجب أن يكون أكبر من صفر',
-                      variant: 'destructive',
-                      duration: 3000,
-                    });
-                    return;
-                  }
-                  addProductMutation.mutate(formData);
-                }}
-                disabled={addProductMutation.isPending || !formData.product_name}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-base font-bold"
-              >
-                {addProductMutation.isPending ? (
-                  <>
-                    <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                    جاري الحفظ...
-                  </>
-                ) : (
-                  <>
-                    <Plus className="ml-2 h-4 w-4" />
-                    حفظ المنتج
-                  </>
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+      <Dialog open={addDialogOpen} onOpenChange={(open) => {
+        setAddDialogOpen(open);
+        if (!open) resetForm();
+      }}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-right">إضافة منتج جديد</DialogTitle>
+            <DialogDescription className="text-base text-right">
+              قم بملء جميع الحقول المطلوبة لإضافة منتج جديد إلى النظام
+            </DialogDescription>
+          </DialogHeader>
+          <ProductForm />
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setAddDialogOpen(false);
+                resetForm();
+              }}
+              className="text-base"
+            >
+              إلغاء
+            </Button>
+            <Button
+              onClick={() => addProductMutation.mutate(formData)}
+              disabled={addProductMutation.isPending || !formData.product_name}
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-base font-bold"
+            >
+              {addProductMutation.isPending ? (
+                <>
+                  <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                  جاري الحفظ...
+                </>
+              ) : (
+                <>
+                  <Plus className="ml-2 h-4 w-4" />
+                  حفظ المنتج
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-        {/* Edit Product Dialog */}
-        <Dialog open={editDialogOpen} onOpenChange={(open) => {
-          setEditDialogOpen(open);
-          if (!open) {
-            setSelectedProduct(null);
-            resetForm();
-          }
-        }}>
-          <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-2xl font-bold">تعديل المنتج</DialogTitle>
-              <DialogDescription className="text-base">
-                قم بتحديث معلومات المنتج حسب الحاجة
-              </DialogDescription>
-            </DialogHeader>
-            <ProductForm isEdit />
-            <DialogFooter className="gap-2 sm:gap-0">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setEditDialogOpen(false);
-                  setSelectedProduct(null);
-                  resetForm();
-                }}
-                className="text-base"
-              >
-                إلغاء
-              </Button>
-              <Button
-                onClick={() => {
-                  if (!formData.product_name.trim()) {
-                    toast({
-                      title: '⚠️ تحذير',
-                      description: 'اسم المنتج مطلوب',
-                      variant: 'destructive',
-                      duration: 3000,
-                    });
-                    return;
-                  }
-                  if (!formData.cost_price || parseFloat(formData.cost_price) <= 0) {
-                    toast({
-                      title: '⚠️ تحذير',
-                      description: 'سعر التكلفة مطلوب ويجب أن يكون أكبر من صفر',
-                      variant: 'destructive',
-                      duration: 3000,
-                    });
-                    return;
-                  }
-                  if (!formData.selling_price || parseFloat(formData.selling_price) <= 0) {
-                    toast({
-                      title: '⚠️ تحذير',
-                      description: 'سعر البيع مطلوب ويجب أن يكون أكبر من صفر',
-                      variant: 'destructive',
-                      duration: 3000,
-                    });
-                    return;
-                  }
-                  selectedProduct && updateProductMutation.mutate({ id: selectedProduct.id, data: formData });
-                }}
-                disabled={updateProductMutation.isPending || !formData.product_name}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-base font-bold"
-              >
-                {updateProductMutation.isPending ? (
-                  <>
-                    <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                    جاري التحديث...
-                  </>
-                ) : (
-                  <>
-                    <Edit className="ml-2 h-4 w-4" />
-                    حفظ التعديلات
-                  </>
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+      <Dialog open={editDialogOpen} onOpenChange={(open) => {
+        setEditDialogOpen(open);
+        if (!open) {
+          setSelectedProduct(null);
+          resetForm();
+        }
+      }}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-right">تعديل المنتج</DialogTitle>
+            <DialogDescription className="text-base text-right">
+              قم بتعديل المعلومات المطلوبة للمنتج
+            </DialogDescription>
+          </DialogHeader>
+          <ProductForm />
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEditDialogOpen(false);
+                setSelectedProduct(null);
+                resetForm();
+              }}
+              className="text-base"
+            >
+              إلغاء
+            </Button>
+            <Button
+              onClick={() =>
+                selectedProduct && updateProductMutation.mutate({ id: selectedProduct.id, data: formData })
+              }
+              disabled={updateProductMutation.isPending || !formData.product_name}
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-base font-bold"
+            >
+              {updateProductMutation.isPending ? (
+                <>
+                  <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                  جاري التحديث...
+                </>
+              ) : (
+                <>
+                  <Pencil className="ml-2 h-4 w-4" />
+                  حفظ التعديلات
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-        {/* View Details Dialog */}
-        <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-          <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-2xl font-bold">تفاصيل المنتج</DialogTitle>
-            </DialogHeader>
-            {selectedProduct && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="text-sm text-gray-500">كود المنتج</p>
-                    <p className="font-semibold">{selectedProduct.product_code}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">اسم المنتج</p>
-                    <p className="font-semibold">{selectedProduct.product_name}</p>
-                  </div>
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-right">تفاصيل المنتج</DialogTitle>
+          </DialogHeader>
+          {selectedProduct && (
+            <div className="space-y-4" dir="rtl">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">الكود</p>
+                  <p className="font-semibold">{selectedProduct.product_code}</p>
                 </div>
-
-                <div className="border-t pt-4">
-                  <h3 className="font-semibold mb-3">الأسعار والتكاليف</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-3 bg-blue-50 rounded">
-                      <p className="text-sm text-gray-600">سعر التكلفة</p>
-                      <p className="text-xl font-bold text-blue-600">{selectedProduct.cost_price.toFixed(2)} ر.س</p>
-                    </div>
-                    <div className="p-3 bg-green-50 rounded">
-                      <p className="text-sm text-gray-600">سعر البيع</p>
-                      <p className="text-xl font-bold text-green-600">{selectedProduct.selling_price.toFixed(2)} ر.س</p>
-                    </div>
-                    <div className="p-3 bg-purple-50 rounded">
-                      <p className="text-sm text-gray-600">تكلفة الشحن</p>
-                      <p className="text-xl font-bold text-purple-600">{(selectedProduct.shipping_cost || 0).toFixed(2)} ر.س</p>
-                    </div>
-                    <div className="p-3 bg-orange-50 rounded">
-                      <p className="text-sm text-gray-600">تكاليف إضافية</p>
-                      <p className="text-xl font-bold text-orange-600">{(selectedProduct.additional_costs || 0).toFixed(2)} ر.س</p>
-                    </div>
-                    <div className="p-3 bg-gray-100 rounded col-span-2">
-                      <p className="text-sm text-gray-600">إجمالي التكلفة</p>
-                      <p className="text-2xl font-bold text-gray-900">{(selectedProduct.total_cost || 0).toFixed(2)} ر.س</p>
-                    </div>
-                    <div className="p-3 bg-green-100 rounded">
-                      <p className="text-sm text-gray-600">هامش الربح</p>
-                      <p className="text-xl font-bold text-green-700">{(selectedProduct.profit_margin || 0).toFixed(2)} ر.س</p>
-                    </div>
-                    <div className="p-3 bg-blue-100 rounded">
-                      <p className="text-sm text-gray-600">سعر البيع المقترح</p>
-                      <p className="text-xl font-bold text-blue-700">{(selectedProduct.suggested_selling_price || 0).toFixed(2)} ر.س</p>
-                    </div>
-                  </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">اسم المنتج</p>
+                  <p className="font-semibold">{selectedProduct.product_name}</p>
                 </div>
-
-                <div className="border-t pt-4">
-                  <h3 className="font-semibold mb-3">المخزون</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-gray-500">المخزون الحالي</p>
-                      <p className="font-semibold">{selectedProduct.current_stock}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">نقطة إعادة الطلب</p>
-                      <p className="font-semibold">{selectedProduct.reorder_point}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">الحد الأدنى</p>
-                      <p className="font-semibold">{selectedProduct.min_stock_level}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">الحد الأقصى</p>
-                      <p className="font-semibold">{selectedProduct.max_stock_level}</p>
-                    </div>
-                  </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">التصنيف</p>
+                  <p className="font-semibold">{selectedProduct.category || '-'}</p>
                 </div>
-
-                {selectedProduct.description && (
-                  <div className="border-t pt-4">
-                    <h3 className="font-semibold mb-2">الوصف</h3>
-                    <p className="text-gray-700">{selectedProduct.description}</p>
-                  </div>
-                )}
+                <div>
+                  <p className="text-sm text-muted-foreground">الوحدة</p>
+                  <p className="font-semibold">{selectedProduct.unit}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">سعر التكلفة</p>
+                  <p className="font-semibold text-blue-600">{selectedProduct.cost_price.toFixed(2)} ر.س</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">سعر البيع</p>
+                  <p className="font-semibold text-green-600">{selectedProduct.selling_price.toFixed(2)} ر.س</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">المخزون الحالي</p>
+                  <p className="font-semibold">{selectedProduct.current_stock}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">نقطة إعادة الطلب</p>
+                  <p className="font-semibold">{selectedProduct.reorder_point}</p>
+                </div>
               </div>
-            )}
-            <DialogFooter>
-              <Button onClick={() => setViewDialogOpen(false)}>إغلاق</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              {selectedProduct.description && (
+                <div>
+                  <p className="text-sm text-muted-foreground">الوصف</p>
+                  <p className="mt-1">{selectedProduct.description}</p>
+                </div>
+              )}
+              {selectedProduct.notes && (
+                <div>
+                  <p className="text-sm text-muted-foreground">ملاحظات</p>
+                  <p className="mt-1">{selectedProduct.notes}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
-        {/* Add/Edit Costs Dialog */}
-        <Dialog open={costDialogOpen} onOpenChange={setCostDialogOpen}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle className="text-2xl font-bold">إضافة تكاليف المنتج</DialogTitle>
-              <DialogDescription className="text-base">
-                أدخل التكاليف الإضافية للمنتج لحساب السعر النهائي
-              </DialogDescription>
-            </DialogHeader>
+      <Dialog open={costDialogOpen} onOpenChange={setCostDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-right">إضافة تكاليف إضافية</DialogTitle>
+            <DialogDescription className="text-base text-right">
+              أضف تكاليف الشحن والتكاليف الإضافية للمنتج
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4" dir="rtl">
+            <div className="space-y-2">
+              <Label htmlFor="shipping_cost" className="text-right block">تكلفة الشحن (ر.س)</Label>
+              <Input
+                id="shipping_cost"
+                type="number"
+                step="0.01"
+                min="0"
+                value={costFormData.shipping_cost}
+                onChange={(e) => setCostFormData({ ...costFormData, shipping_cost: e.target.value })}
+                placeholder="0.00"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="additional_costs" className="text-right block">تكاليف إضافية (ر.س)</Label>
+              <Input
+                id="additional_costs"
+                type="number"
+                step="0.01"
+                min="0"
+                value={costFormData.additional_costs}
+                onChange={(e) => setCostFormData({ ...costFormData, additional_costs: e.target.value })}
+                placeholder="0.00"
+              />
+            </div>
             {selectedProduct && (
-              <div className="space-y-6">
-                <div className="p-4 bg-blue-50 rounded-lg">
-                  <p className="text-sm text-gray-600">المنتج</p>
-                  <p className="text-lg font-bold">{selectedProduct.product_name}</p>
-                  <p className="text-sm text-gray-600 mt-2">سعر التكلفة الأساسي: <span className="font-semibold">{selectedProduct.cost_price.toFixed(2)} ر.س</span></p>
+              <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm">سعر التكلفة الأساسي:</span>
+                  <span className="font-semibold">{selectedProduct.cost_price.toFixed(2)} ر.س</span>
                 </div>
-
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="shipping_cost" className="text-base font-semibold">
-                      تكلفة الشحن (ر.س)
-                    </Label>
-                    <Input
-                      id="shipping_cost"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={costFormData.shipping_cost}
-                      onChange={(e) => setCostFormData({ ...costFormData, shipping_cost: e.target.value })}
-                      placeholder="0.00"
-                      className="text-base"
-                      dir="ltr"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="additional_costs" className="text-base font-semibold">
-                      تكاليف إضافية (ر.س)
-                    </Label>
-                    <Input
-                      id="additional_costs"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={costFormData.additional_costs}
-                      onChange={(e) => setCostFormData({ ...costFormData, additional_costs: e.target.value })}
-                      placeholder="0.00"
-                      className="text-base"
-                      dir="ltr"
-                    />
-                    <p className="text-xs text-gray-500">مثال: رسوم جمركية، تخليص، تأمين، إلخ</p>
-                  </div>
+                <div className="flex justify-between">
+                  <span className="text-sm">تكلفة الشحن:</span>
+                  <span className="font-semibold">{parseFloat(costFormData.shipping_cost || '0').toFixed(2)} ر.س</span>
                 </div>
-
-                <div className="border-t pt-4">
-                  <h3 className="font-semibold mb-3">الحسابات التلقائية</h3>
-                  <div className="space-y-2 p-4 bg-gray-50 rounded-lg">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">سعر التكلفة:</span>
-                      <span className="font-semibold">{selectedProduct.cost_price.toFixed(2)} ر.س</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">تكلفة الشحن:</span>
-                      <span className="font-semibold">{parseFloat(costFormData.shipping_cost || "0").toFixed(2)} ر.س</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">تكاليف إضافية:</span>
-                      <span className="font-semibold">{parseFloat(costFormData.additional_costs || "0").toFixed(2)} ر.س</span>
-                    </div>
-                    <div className="border-t pt-2 mt-2">
-                      <div className="flex justify-between text-lg">
-                        <span className="font-bold">إجمالي التكلفة:</span>
-                        <span className="font-bold text-blue-600">
-                          {(selectedProduct.cost_price + parseFloat(costFormData.shipping_cost || "0") + parseFloat(costFormData.additional_costs || "0")).toFixed(2)} ر.س
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex justify-between text-lg text-green-600">
-                      <span className="font-bold">سعر البيع المقترح (+30%):</span>
-                      <span className="font-bold">
-                        {((selectedProduct.cost_price + parseFloat(costFormData.shipping_cost || "0") + parseFloat(costFormData.additional_costs || "0")) * 1.3).toFixed(2)} ر.س
-                      </span>
-                    </div>
-                  </div>
+                <div className="flex justify-between">
+                  <span className="text-sm">تكاليف إضافية:</span>
+                  <span className="font-semibold">{parseFloat(costFormData.additional_costs || '0').toFixed(2)} ر.س</span>
+                </div>
+                <div className="border-t pt-2 flex justify-between">
+                  <span className="font-semibold">إجمالي التكلفة:</span>
+                  <span className="font-bold text-blue-600">
+                    {(selectedProduct.cost_price + parseFloat(costFormData.shipping_cost || '0') + parseFloat(costFormData.additional_costs || '0')).toFixed(2)} ر.س
+                  </span>
                 </div>
               </div>
             )}
-            <DialogFooter className="gap-2 sm:gap-0">
-              <Button variant="outline" onClick={() => setCostDialogOpen(false)}>
-                إلغاء
-              </Button>
-              <Button
-                onClick={() => selectedProduct && updateCostsMutation.mutate({ id: selectedProduct.id, costs: costFormData })}
-                disabled={updateCostsMutation.isPending}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-              >
-                {updateCostsMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-                حفظ التكاليف
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setCostDialogOpen(false)}>
+              إلغاء
+            </Button>
+            <Button
+              onClick={() =>
+                selectedProduct && updateCostsMutation.mutate({ id: selectedProduct.id, costs: costFormData })
+              }
+              disabled={updateCostsMutation.isPending}
+            >
+              {updateCostsMutation.isPending ? (
+                <>
+                  <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                  جاري الحفظ...
+                </>
+              ) : (
+                'حفظ التكاليف'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-        {/* Delete Confirmation Dialog */}
-        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>تأكيد الحذف</AlertDialogTitle>
-              <AlertDialogDescription>
-                هل أنت متأكد من حذف هذا المنتج؟ لا يمكن التراجع عن هذا الإجراء.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>إلغاء</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => productToDelete && deleteProductMutation.mutate(productToDelete)}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                حذف
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-right">تأكيد الحذف</AlertDialogTitle>
+            <AlertDialogDescription className="text-right">
+              هل أنت متأكد من حذف هذا المنتج؟ لا يمكن التراجع عن هذا الإجراء.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)}>
+              إلغاء
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => productToDelete && deleteProductMutation.mutate(productToDelete)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleteProductMutation.isPending ? (
+                <>
+                  <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                  جاري الحذف...
+                </>
+              ) : (
+                'حذف'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
