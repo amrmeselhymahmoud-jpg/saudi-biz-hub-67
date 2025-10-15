@@ -1,5 +1,6 @@
 import { Receipt, Plus, Search, MoveHorizontal as MoreHorizontal, Eye, Trash2, Download, Loader as Loader2, DollarSign, FileText, CircleCheck as CheckCircle2, Clock, Circle as XCircle, Printer, CreditCard as Edit } from "lucide-react";
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -140,6 +141,7 @@ const normalizeInvoice = (invoice: any): SalesInvoice | null => {
 };
 
 const SalesInvoices = () => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [invoiceToDelete, setInvoiceToDelete] = useState<string | null>(null);
@@ -1117,7 +1119,7 @@ const SalesInvoices = () => {
             <Button
               size="lg"
               className="h-12 px-6 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-all gap-2"
-              onClick={() => setAddDialogOpen(true)}
+              onClick={() => navigate('/new-sales-invoice')}
             >
               <Plus className="h-5 w-5" />
               فاتورة جديدة

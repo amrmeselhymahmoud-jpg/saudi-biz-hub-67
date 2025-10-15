@@ -81,6 +81,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const Customers = lazy(() => import("./pages/Customers"));
 const Quotes = lazy(() => import("./pages/Quotes"));
 const SalesInvoices = lazy(() => import("./pages/SalesInvoices"));
+const NewSalesInvoice = lazy(() => import("./pages/NewSalesInvoice"));
 const CustomerBonds = lazy(() => import("./pages/CustomerBonds"));
 
 const Suppliers = lazy(() => import("./pages/Suppliers"));
@@ -210,6 +211,7 @@ const App = () => {
                   <Route path="/customers" element={<Customers />} />
                   <Route path="/quotes" element={<Quotes />} />
                   <Route path="/sales-invoices" element={<SalesInvoices />} />
+                  <Route path="/new-sales-invoice" element={<NewSalesInvoice />} />
                   <Route path="/customer-bonds" element={<CustomerBonds />} />
                   
                   {/* Purchases */}
