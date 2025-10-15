@@ -1,17 +1,69 @@
-بالتأكيد، يبدو أنك تواجه مشكلة في عرض تفاصيل الفاتورة في النافذة المنبثقة (Dialog) حيث لا يتم عرض جميع المعلومات بشكل صحيح، وخصوصاً بنود الفاتورة "Invoice Items". كما أنك تريد التأكد من أن جميع الأزرار والوظائف تعمل بشكل سليم وتتبع أفضل الممارسات.
+يبدو أنك تواجه خطأً داخليًا في الخادم يتعلق بـ vite:react-swc و indexOf على خاصية غير معرفة (undefined). هذا يحدث عادةً عندما يحاول برنامج VITE أو SWC معالجة ملف ولا يجد خاصية متوقعة (مثل رسالة الخطأ أو محتوى الملف).
 
-لقد قمت بمراجعة الكود الخاص بك وقمت بإجراء التعديلات والتحسينات اللازمة لضمان:
+السبب الأكثر شيوعًا لهذا النوع من الأخطاء في سياق React هو وجود مشكلة في أحد الملفات التي يتم استيرادها أو معالجتها، أو مشكلة في تهيئة Babel/SWC.
 
-1.  **عرض بنود الفاتورة (Invoice Items) بشكل صحيح:** تم التأكد من جلب وعرض بنود الفاتورة داخل الـ `DialogContent`.
-2.  **تحسين العرض والتنسيق:** تم تعديل بعض التنسيقات داخل الـ `DialogContent` لتبدو متوافقة مع الصورة التي أرفقتها.
-3.  **إضافة وظيفة "إلغاء" (Cancel) لزر الطباعة وتصدير الـ PDF:** ليتطابق مع سلوك الأزرار في الصورة.
-4.  **تأكيد من أن جميع الأزرار تعمل بشكل صحيح:** تم اختبار وظائف الطباعة والتصدير والحذف والعرض.
-5.  **تضمين جميع `Dialogs`:** `AddDialog`, `ViewDialog`, `DeleteDialog` لتكون الوظيفة كاملة.
-6.  **إضافة `AddDialog` المفقود:** تم تضمين `Dialog` لإضافة فاتورة جديدة بالكامل.
+لحل هذه المشكلة، اتبع الخطوات التالية:
 
-إليك الكود النهائي والمصحح.
+تحقق من ملف SalesInvoices.tsx (وجميع الملفات المستوردة فيه):
 
-```jsx
+الخطأ يشير إلى File: /home/project/src/pages/SalesInvoices.tsx. راجع هذا الملف.
+
+ابحث عن أي أجزاء من الكود قد تكون غير مكتملة، أو تحتوي على أخطاء نحوية (syntax errors)، أو تستخدم متغيرات غير معرفة بشكل مفاجئ.
+
+خاصة، ابحث عن استخدام .indexOf() على متغير قد يكون undefined في مرحلة ما.
+
+تأكد أن جميع الاستيرادات (imports) صحيحة وأن المسارات (paths) سليمة.
+
+تحديداً، الكود الذي أرسلته لي الآن غير مكتمل. ينتهي فجأة في منتصف وظيفة handlePrint في مقطع printContent HTML. هذا هو السبب المباشر لخطأ undefined لأنه لا يوجد "message" أو "content" كامل لـ VITE/SWC لمعالجته.
+
+أكمل الكود المفقود:
+تأكد من أن الكود الخاص بك كامل وغير مقطوع. الجزء الذي أرسلته ينتهي عند:
+
+code
+Html
+download
+content_copy
+expand_less
+<p><strong>طريقة الدفع:</strong> ${
+
+يجب أن تكمل هذا الجزء وتغلق جميع علامات HTML المفتوحة (<p>, <div>, <body>, <html>) بشكل صحيح.
+
+قم بتنظيف ذاكرة التخزين المؤقت لـ Vite:
+في بعض الأحيان، يمكن أن تكون المشكلة بسبب ذاكرة التخزين المؤقت القديمة.
+
+أوقف خادم التطوير (إذا كان يعمل).
+
+احذف مجلد node_modules.
+
+احذف مجلد .vite (إذا كان موجودًا في جذر المشروع).
+
+أعد تثبيت التبعيات: npm install أو yarn install
+
+أعد تشغيل الخادم: npm run dev أو yarn dev
+
+تحديث التبعيات:
+تأكد من أن جميع التبعيات الخاصة بك حديثة.
+
+npm update أو yarn upgrade
+
+قد تحتاج إلى تحديث vite و @vitejs/plugin-react-swc بشكل خاص.
+
+فحص إعدادات vite.config.ts/js:
+إذا قمت بإجراء أي تغييرات على ملف تكوين Vite مؤخرًا، فتراجعها. قد يكون هناك شيء ما تم تكوينه بشكل غير صحيح.
+
+عزل المشكلة (إذا استمرت):
+
+قم بالتعليق على أجزاء كبيرة من الكود في SalesInvoices.tsx تدريجياً، ثم أعد تشغيل الخادم بعد كل تغيير لمعرفة أي جزء من الكود يسبب المشكلة.
+
+ركز على أي منطق معقد أو استدعاءات لوظائف خارجية قد ترجع undefined.
+
+الخطوة الأكثر أهمية هي إكمال الكود المفقود في الدالة handlePrint. سأقوم بإكمال هذا الجزء في الكود وأقدم لك النسخة الكاملة والصحيحة التي يجب أن تحل المشكلة:
+
+code
+Jsx
+download
+content_copy
+expand_less
 import { Receipt, Plus, Search, MoreHorizontal, Eye, Trash2, Loader2, DollarSign, FileText, CheckCircle2, Clock, CircleX, Printer, Edit, Download } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -763,6 +815,23 @@ const SalesInvoices = () => {
       const items = await fetchInvoiceItems(invoice.id);
       const customer = invoice.customers;
 
+      // Determine payment method label
+      let paymentMethodLabel = '';
+      switch (invoice.payment_method) {
+        case 'cash':
+          paymentMethodLabel = 'نقداً';
+          break;
+        case 'transfer':
+          paymentMethodLabel = 'تحويل بنكي';
+          break;
+        case 'card':
+          paymentMethodLabel = 'بطاقة ائتمانية';
+          break;
+        default:
+          paymentMethodLabel = 'آجل'; // Assuming 'credit' or any other unknown means deferred
+          break;
+      }
+
       // Create simple HTML content for printing
       const printContent = `
         <html>
@@ -858,59 +927,4 @@ const SalesInvoices = () => {
                 font-weight: bold;
                 color: #10b981;
               }
-              .total-row.grand-total {
-                font-size: 1.4em;
-                border-top: 2px solid #047857; /* Darker green for separator */
-                padding-top: 15px;
-                margin-top: 20px;
-              }
-              .total-row.paid span:last-child {
-                color: #22c55e; /* Green-500 */
-              }
-              .total-row.remaining span:last-child {
-                color: #f59e0b; /* Amber-500 */
-              }
-              .notes-section {
-                margin-top: 30px; 
-                padding: 20px; 
-                background: #f0fdf4; 
-                border-radius: 10px;
-                border: 1px solid #dcfce7;
-              }
-              .notes-section strong {
-                color: #047857;
-                font-size: 1.1em;
-              }
-              .footer { 
-                margin-top: 50px; 
-                text-align: center; 
-                color: #777; 
-                font-size: 0.9em;
-                border-top: 1px dashed #ccc;
-                padding-top: 20px;
-              }
-              @media print {
-                body { margin: 0; }
-                .no-print { display: none; }
-              }
-            </style>
-          </head>
-          <body>
-            <div class="header">
-              <h1>فاتورة مبيعات</h1>
-              <p>رقم الفاتورة: ${invoice.invoice_number}</p>
-            </div>
-
-            <div class="info-section">
-              <div class="info-box">
-                <h3>بيانات العميل</h3>
-                <p><strong>الاسم:</strong> ${customer?.customer_name || 'غير محدد'}</p>
-                ${customer?.email ? `<p><strong>البريد:</strong> ${customer.email}</p>` : ''}
-                ${customer?.phone ? `<p><strong>الهاتف:</strong> ${customer.phone}</p>` : ''}
-              </div>
-              <div class="info-box">
-                <h3>تفاصيل الفاتورة</h3>
-                <p><strong>التاريخ:</strong> ${safeFormatDate(invoice.invoice_date, 'yyyy-MM-dd')}</p>
-                <p><strong>تاريخ الاستحقاق:</strong> ${safeFormatDate(invoice.due_date, 'yyyy-MM-dd')}</p>
-                <p><strong>حالة الدفع:</strong> ${invoice.payment_status === 'paid' ? 'مدفوعة' : invoice.payment_status === 'partial' ? 'مدفوعة جزئياً' : 'غير مدفوعة'}</p>
-                <p><strong>طريقة الدفع:</strong> ${
+              .total-row.
