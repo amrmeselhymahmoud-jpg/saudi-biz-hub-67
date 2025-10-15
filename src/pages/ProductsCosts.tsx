@@ -371,7 +371,7 @@ const ProductsCosts = () => {
     <div className="space-y-6">
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="product_name" className="text-base font-semibold">
+          <Label htmlFor="product_name" className="text-base font-semibold text-right block">
             اسم المنتج <span className="text-red-500">*</span>
           </Label>
           <Input
@@ -381,14 +381,16 @@ const ProductsCosts = () => {
             value={formData.product_name}
             onChange={(e) => setFormData({ ...formData, product_name: e.target.value })}
             placeholder="مثال: كمبيوتر محمول Dell"
-            className="text-base"
+            className="text-base text-right"
             dir="rtl"
+            autoComplete="off"
+            style={{ textAlign: 'right', direction: 'rtl' }}
           />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="category" className="text-base font-semibold">
+            <Label htmlFor="category" className="text-base font-semibold text-right block">
               التصنيف
             </Label>
             <Input
@@ -398,23 +400,25 @@ const ProductsCosts = () => {
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
               placeholder="مثال: إلكترونيات"
-              className="text-base"
+              className="text-base text-right"
               dir="rtl"
+              autoComplete="off"
+              style={{ textAlign: 'right', direction: 'rtl' }}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="unit" className="text-base font-semibold">
+            <Label htmlFor="unit" className="text-base font-semibold text-right block">
               الوحدة <span className="text-red-500">*</span>
             </Label>
             <Select
               value={formData.unit}
               onValueChange={(value) => setFormData({ ...formData, unit: value })}
             >
-              <SelectTrigger id="unit" className="text-base" dir="rtl">
+              <SelectTrigger id="unit" className="text-base text-right" dir="rtl">
                 <SelectValue placeholder="اختر الوحدة" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent dir="rtl">
                 <SelectItem value="قطعة">قطعة</SelectItem>
                 <SelectItem value="كيلو">كيلو</SelectItem>
                 <SelectItem value="لتر">لتر</SelectItem>
@@ -564,7 +568,7 @@ const ProductsCosts = () => {
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="description" className="text-base font-semibold">
+              <Label htmlFor="description" className="text-base font-semibold text-right block">
                 الوصف
               </Label>
               <Textarea
@@ -574,13 +578,15 @@ const ProductsCosts = () => {
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="أدخل وصف تفصيلي للمنتج..."
                 rows={3}
-                className="text-base resize-none"
+                className="text-base resize-none text-right"
                 dir="rtl"
+                autoComplete="off"
+                style={{ textAlign: 'right', direction: 'rtl' }}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="notes" className="text-base font-semibold">
+              <Label htmlFor="notes" className="text-base font-semibold text-right block">
                 ملاحظات
               </Label>
               <Textarea
@@ -590,8 +596,10 @@ const ProductsCosts = () => {
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 placeholder="أي ملاحظات إضافية..."
                 rows={2}
-                className="text-base resize-none"
+                className="text-base resize-none text-right"
                 dir="rtl"
+                autoComplete="off"
+                style={{ textAlign: 'right', direction: 'rtl' }}
               />
             </div>
           </div>
