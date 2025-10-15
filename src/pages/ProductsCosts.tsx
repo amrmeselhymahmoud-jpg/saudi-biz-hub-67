@@ -1,4 +1,4 @@
-import { Package, Plus, Search, MoveHorizontal as MoreHorizontal, Eye, CreditCard as Edit, Trash2, Loader as Loader2, CircleAlert as AlertCircle, TrendingUp, TrendingDown, Download, Upload } from "lucide-react";
+import { Package, Plus, Search, MoveHorizontal as MoreHorizontal, Eye, Pencil as Edit, Trash2, Loader as Loader2, CircleAlert as AlertCircle, TrendingUp, TrendingDown, Download, Upload } from "lucide-react";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -131,6 +131,14 @@ const ProductsCosts = () => {
         throw new Error('اسم المنتج مطلوب');
       }
 
+      if (!productData.cost_price || parseFloat(productData.cost_price) <= 0) {
+        throw new Error('سعر التكلفة يجب أن يكون أكبر من صفر');
+      }
+
+      if (!productData.selling_price || parseFloat(productData.selling_price) <= 0) {
+        throw new Error('سعر البيع يجب أن يكون أكبر من صفر');
+      }
+
       const productCode = `PRD-${Date.now()}`;
 
       const { data, error } = await supabase.from("products").insert({
@@ -150,6 +158,7 @@ const ProductsCosts = () => {
         additional_costs: parseFloat(productData.additional_costs) || 0,
         notes: productData.notes?.trim() || null,
         created_by: session?.user?.id || null,
+        status: 'active',
       }).select();
 
       if (error) {
@@ -161,17 +170,38 @@ const ProductsCosts = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
-      toast({ title: "تم بنجاح", description: "تم إضافة المنتج بنجاح" });
+      toast({
+        title: "✅ تم بنجاح",
+        description: "تم إضافة المنتج بنجاح وسيظهر في القائمة",
+        duration: 3000,
+      });
       setAddDialogOpen(false);
       resetForm();
     },
     onError: (error: Error) => {
-      toast({ title: "خطأ", description: error.message, variant: "destructive" });
+      toast({
+        title: "❌ خطأ",
+        description: error.message,
+        variant: "destructive",
+        duration: 4000,
+      });
     },
   });
 
   const updateProductMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: typeof formData }) => {
+      if (!data.product_name || data.product_name.trim() === '') {
+        throw new Error('اسم المنتج مطلوب');
+      }
+
+      if (!data.cost_price || parseFloat(data.cost_price) <= 0) {
+        throw new Error('سعر التكلفة يجب أن يكون أكبر من صفر');
+      }
+
+      if (!data.selling_price || parseFloat(data.selling_price) <= 0) {
+        throw new Error('سعر البيع يجب أن يكون أكبر من صفر');
+      }
+
       const { error } = await supabase
         .from("products")
         .update({
@@ -196,13 +226,22 @@ const ProductsCosts = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
-      toast({ title: "تم بنجاح", description: "تم تحديث المنتج بنجاح" });
+      toast({
+        title: "✅ تم بنجاح",
+        description: "تم تحديث المنتج بنجاح",
+        duration: 3000,
+      });
       setEditDialogOpen(false);
       setSelectedProduct(null);
       resetForm();
     },
     onError: (error: Error) => {
-      toast({ title: "خطأ", description: error.message, variant: "destructive" });
+      toast({
+        title: "❌ خطأ",
+        description: error.message,
+        variant: "destructive",
+        duration: 4000,
+      });
     },
   });
 
@@ -213,12 +252,21 @@ const ProductsCosts = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
-      toast({ title: "تم بنجاح", description: "تم حذف المنتج بنجاح" });
+      toast({
+        title: "✅ تم بنجاح",
+        description: "تم حذف المنتج بنجاح",
+        duration: 3000,
+      });
       setDeleteDialogOpen(false);
       setProductToDelete(null);
     },
     onError: (error: Error) => {
-      toast({ title: "خطأ", description: error.message, variant: "destructive" });
+      toast({
+        title: "❌ خطأ",
+        description: error.message,
+        variant: "destructive",
+        duration: 4000,
+      });
     },
   });
 
@@ -296,12 +344,21 @@ const ProductsCosts = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
-      toast({ title: "تم بنجاح", description: "تم تحديث التكاليف بنجاح" });
+      toast({
+        title: "✅ تم بنجاح",
+        description: "تم تحديث التكاليف والأسعار بنجاح",
+        duration: 3000,
+      });
       setCostDialogOpen(false);
       setSelectedProduct(null);
     },
     onError: (error: Error) => {
-      toast({ title: "خطأ", description: error.message, variant: "destructive" });
+      toast({
+        title: "❌ خطأ",
+        description: error.message,
+        variant: "destructive",
+        duration: 4000,
+      });
     },
   });
 
@@ -805,19 +862,47 @@ const ProductsCosts = () => {
                 onClick={() => {
                   if (!formData.product_name.trim()) {
                     toast({
-                      title: 'خطأ',
+                      title: '⚠️ تحذير',
                       description: 'اسم المنتج مطلوب',
-                      variant: 'destructive'
+                      variant: 'destructive',
+                      duration: 3000,
+                    });
+                    return;
+                  }
+                  if (!formData.cost_price || parseFloat(formData.cost_price) <= 0) {
+                    toast({
+                      title: '⚠️ تحذير',
+                      description: 'سعر التكلفة مطلوب ويجب أن يكون أكبر من صفر',
+                      variant: 'destructive',
+                      duration: 3000,
+                    });
+                    return;
+                  }
+                  if (!formData.selling_price || parseFloat(formData.selling_price) <= 0) {
+                    toast({
+                      title: '⚠️ تحذير',
+                      description: 'سعر البيع مطلوب ويجب أن يكون أكبر من صفر',
+                      variant: 'destructive',
+                      duration: 3000,
                     });
                     return;
                   }
                   addProductMutation.mutate(formData);
                 }}
                 disabled={addProductMutation.isPending || !formData.product_name}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-base"
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-base font-bold"
               >
-                {addProductMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-                إضافة المنتج
+                {addProductMutation.isPending ? (
+                  <>
+                    <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                    جاري الحفظ...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="ml-2 h-4 w-4" />
+                    حفظ المنتج
+                  </>
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -852,14 +937,50 @@ const ProductsCosts = () => {
                 إلغاء
               </Button>
               <Button
-                onClick={() =>
-                  selectedProduct && updateProductMutation.mutate({ id: selectedProduct.id, data: formData })
-                }
+                onClick={() => {
+                  if (!formData.product_name.trim()) {
+                    toast({
+                      title: '⚠️ تحذير',
+                      description: 'اسم المنتج مطلوب',
+                      variant: 'destructive',
+                      duration: 3000,
+                    });
+                    return;
+                  }
+                  if (!formData.cost_price || parseFloat(formData.cost_price) <= 0) {
+                    toast({
+                      title: '⚠️ تحذير',
+                      description: 'سعر التكلفة مطلوب ويجب أن يكون أكبر من صفر',
+                      variant: 'destructive',
+                      duration: 3000,
+                    });
+                    return;
+                  }
+                  if (!formData.selling_price || parseFloat(formData.selling_price) <= 0) {
+                    toast({
+                      title: '⚠️ تحذير',
+                      description: 'سعر البيع مطلوب ويجب أن يكون أكبر من صفر',
+                      variant: 'destructive',
+                      duration: 3000,
+                    });
+                    return;
+                  }
+                  selectedProduct && updateProductMutation.mutate({ id: selectedProduct.id, data: formData });
+                }}
                 disabled={updateProductMutation.isPending || !formData.product_name}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-base"
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-base font-bold"
               >
-                {updateProductMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-                تحديث المنتج
+                {updateProductMutation.isPending ? (
+                  <>
+                    <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                    جاري التحديث...
+                  </>
+                ) : (
+                  <>
+                    <Edit className="ml-2 h-4 w-4" />
+                    حفظ التعديلات
+                  </>
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>
