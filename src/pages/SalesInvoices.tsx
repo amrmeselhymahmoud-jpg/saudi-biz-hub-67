@@ -1,5 +1,5 @@
-import { Receipt, Plus, Search, MoveHorizontal as MoreHorizontal, Eye, Trash2, Loader as Loader2, DollarSign, FileText, CircleCheck as CheckCircle2, Clock, Circle as XCircle, Printer, CreditCard as Edit, Download } from "lucide-react";
-import { useState, useMemo } from "react";
+import { Receipt, Plus, Search, MoreHorizontal, Eye, Trash2, Loader2, DollarSign, FileText, CheckCircle2, Clock, CircleX, Printer, Edit, Download } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,7 +54,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
 import { safeFormatDate, formatCurrency, safeToLocaleString } from "@/utils/formatters";
 
 // Safe value helper
@@ -69,6 +68,18 @@ const safeValue = (value: any, fallback: string = 'N/A'): string => {
   }
 };
 
+// Enhanced payment status calculation
+const getPaymentStatus = (paymentMethod: string, paidAmount: number, totalAmount: number): string => {
+  if (paymentMethod === 'cash' && paidAmount >= totalAmount) {
+    return 'paid';
+  } else if (paidAmount > 0 && paidAmount < totalAmount) {
+    return 'partial';
+  } else if (paymentMethod === 'credit' && paidAmount === 0) {
+    return 'unpaid';
+  }
+  return paidAmount >= totalAmount ? 'paid' : 'unpaid';
+};
+
 interface Customer {
   id: string;
   customer_name: string;
@@ -81,6 +92,7 @@ interface Product {
   product_name: string;
   selling_price: number;
   tax_rate: number;
+  stock_quantity: number;
 }
 
 interface InvoiceItem {
@@ -115,36 +127,41 @@ interface SalesInvoice {
   customers?: Customer;
 }
 
-// Calculate payment status based on payment method
-const getPaymentStatusFromMethod = (paymentMethod: string): string => {
-  if (paymentMethod === 'credit') {
-    return 'unpaid';
-  }
-  return 'paid';
-};
-
-// Normalize invoice data with safety checks
+// Enhanced invoice normalization with better validation
 const normalizeInvoice = (invoice: any): SalesInvoice | null => {
   try {
-    if (!invoice || !invoice.id) return null;
+    if (!invoice || !invoice.id || !invoice.invoice_number) {
+      console.warn('Invalid invoice data:', invoice);
+      return null;
+    }
 
-    const paymentMethod = invoice.payment_method || 'credit';
-    const calculatedPaymentStatus = getPaymentStatusFromMethod(paymentMethod);
+    const subtotal = parseFloat(invoice.subtotal) || 0;
+    const taxAmount = parseFloat(invoice.tax_amount) || 0;
+    const discount = parseFloat(invoice.discount) || 0;
+    const totalAmount = parseFloat(invoice.total_amount) || 0;
+    const paidAmount = parseFloat(invoice.paid_amount) || 0;
+    const remainingAmount = parseFloat(invoice.remaining_amount) || (totalAmount - paidAmount);
+
+    const paymentStatus = getPaymentStatus(
+      invoice.payment_method || 'credit',
+      paidAmount,
+      totalAmount
+    );
 
     return {
-      id: invoice.id || '',
-      invoice_number: invoice.invoice_number || 'N/A',
-      customer_id: invoice.customer_id || '',
+      id: String(invoice.id),
+      invoice_number: String(invoice.invoice_number),
+      customer_id: String(invoice.customer_id || ''),
       invoice_date: invoice.invoice_date || new Date().toISOString(),
-      due_date: invoice.due_date || new Date().toISOString(),
-      subtotal: parseFloat(invoice.subtotal) || 0,
-      tax_amount: parseFloat(invoice.tax_amount) || 0,
-      discount: parseFloat(invoice.discount) || 0,
-      total_amount: parseFloat(invoice.total_amount) || 0,
-      paid_amount: parseFloat(invoice.paid_amount) || 0,
-      remaining_amount: parseFloat(invoice.remaining_amount) || 0,
-      payment_status: calculatedPaymentStatus,
-      payment_method: paymentMethod,
+      due_date: invoice.due_date || invoice.invoice_date || new Date().toISOString(),
+      subtotal,
+      tax_amount: taxAmount,
+      discount,
+      total_amount: totalAmount,
+      paid_amount: paidAmount,
+      remaining_amount: remainingAmount,
+      payment_status: paymentStatus,
+      payment_method: invoice.payment_method || 'credit',
       notes: invoice.notes || null,
       status: invoice.status || 'draft',
       created_at: invoice.created_at || new Date().toISOString(),
@@ -167,12 +184,14 @@ const SalesInvoices = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editInvoice, setEditInvoice] = useState<SalesInvoice | null>(null);
   const [invoiceItems, setInvoiceItems] = useState<InvoiceItem[]>([]);
+  const [invoiceToPrint, setInvoiceToPrint] = useState<SalesInvoice | null>(null);
 
   const [formData, setFormData] = useState({
     customer_id: "",
     invoice_date: new Date().toISOString().split('T')[0],
-    due_date: "",
+    due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     notes: "",
+    payment_method: "credit"
   });
 
   const [items, setItems] = useState<InvoiceItem[]>([]);
@@ -185,11 +204,17 @@ const SalesInvoices = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Query with retry and error handling
-  const { data: invoicesData = [], isLoading, error: queryError } = useQuery({
+  // Enhanced query with better error handling and caching
+  const { 
+    data: invoicesData = [], 
+    isLoading, 
+    error: queryError,
+    refetch 
+  } = useQuery({
     queryKey: ["sales-invoices"],
     queryFn: async () => {
       try {
+        console.log('Fetching sales invoices...');
         const { data, error } = await supabase
           .from("sales_invoices")
           .select(`
@@ -204,33 +229,43 @@ const SalesInvoices = () => {
           .order("created_at", { ascending: false });
 
         if (error) {
-          console.error('Query error:', error);
-          throw error;
+          console.error('Supabase query error:', error);
+          throw new Error(`فشل في تحميل الفواتير: ${error.message}`);
         }
 
+        console.log('Fetched invoices:', data?.length);
         return data || [];
       } catch (error) {
         console.error('Fetch error:', error);
         throw error;
       }
     },
-    retry: 3,
+    retry: 2,
     retryDelay: 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Safe data normalization with memoization
   const invoices = useMemo(() => {
     try {
-      if (!Array.isArray(invoicesData)) return [];
-      return invoicesData
+      if (!Array.isArray(invoicesData)) {
+        console.warn('invoicesData is not an array:', invoicesData);
+        return [];
+      }
+      
+      const normalized = invoicesData
         .map(normalizeInvoice)
         .filter((inv): inv is SalesInvoice => inv !== null);
+      
+      console.log('Normalized invoices:', normalized.length);
+      return normalized;
     } catch (error) {
       console.error('Error processing invoices:', error);
       return [];
     }
   }, [invoicesData]);
 
+  // Enhanced customers query
   const { data: customers = [] } = useQuery({
     queryKey: ["customers"],
     queryFn: async () => {
@@ -241,56 +276,88 @@ const SalesInvoices = () => {
           .eq("status", "active")
           .order("customer_name");
 
-        if (error) throw error;
+        if (error) {
+          console.error('Customers fetch error:', error);
+          throw error;
+        }
         return data || [];
       } catch (error) {
-        console.error('Customers fetch error:', error);
+        console.error('Customers query error:', error);
         return [];
       }
     },
     retry: 2,
   });
 
+  // Enhanced products query with stock validation
   const { data: products = [] } = useQuery({
     queryKey: ["products"],
     queryFn: async () => {
       try {
         const { data, error } = await supabase
           .from("products")
-          .select("id, product_name, selling_price, tax_rate")
+          .select("id, product_name, selling_price, tax_rate, stock_quantity")
           .eq("status", "active")
           .order("product_name");
 
-        if (error) throw error;
+        if (error) {
+          console.error('Products fetch error:', error);
+          throw error;
+        }
         return data || [];
       } catch (error) {
-        console.error('Products fetch error:', error);
+        console.error('Products query error:', error);
         return [];
       }
     },
     retry: 2,
   });
 
+  // Enhanced delete mutation
   const deleteInvoiceMutation = useMutation({
     mutationFn: async (invoiceId: string) => {
       try {
-        if (!invoiceId) throw new Error("معرف الفاتورة غير صحيح");
+        if (!invoiceId) {
+          throw new Error("معرف الفاتورة غير صحيح");
+        }
 
+        console.log('Deleting invoice:', invoiceId);
+        
+        // First delete related items
+        const { error: itemsError } = await supabase
+          .from("sales_invoice_items")
+          .delete()
+          .eq("invoice_id", invoiceId);
+
+        if (itemsError) {
+          console.error('Error deleting invoice items:', itemsError);
+          throw new Error(`فشل في حذف بنود الفاتورة: ${itemsError.message}`);
+        }
+
+        // Then delete the invoice
         const { error } = await supabase
           .from("sales_invoices")
           .delete()
           .eq("id", invoiceId);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error deleting invoice:', error);
+          throw new Error(`فشل في حذف الفاتورة: ${error.message}`);
+        }
+
+        return true;
       } catch (error) {
-        console.error('Delete error:', error);
+        console.error('Delete mutation error:', error);
         throw error;
       }
     },
     onSuccess: () => {
       try {
         queryClient.invalidateQueries({ queryKey: ["sales-invoices"] });
-        toast({ title: "تم بنجاح", description: "تم حذف الفاتورة بنجاح" });
+        toast({ 
+          title: "تم الحذف بنجاح", 
+          description: "تم حذف الفاتورة وجميع بنودها بنجاح" 
+        });
         setDeleteDialogOpen(false);
         setInvoiceToDelete(null);
       } catch (error) {
@@ -298,50 +365,89 @@ const SalesInvoices = () => {
       }
     },
     onError: (error: Error) => {
-      try {
-        toast({ title: "خطأ", description: error.message, variant: "destructive" });
-      } catch (e) {
-        console.error('Error showing toast:', e);
-      }
+      console.error('Delete error:', error);
+      toast({ 
+        title: "خطأ في الحذف", 
+        description: error.message, 
+        variant: "destructive" 
+      });
     },
   });
 
+  // Enhanced create invoice mutation
   const createInvoiceMutation = useMutation({
     mutationFn: async () => {
       try {
-        if (items.length === 0) throw new Error("يجب إضافة منتج واحد على الأقل");
-        if (!formData.customer_id) throw new Error("يجب اختيار عميل");
-        if (!formData.invoice_date) throw new Error("يجب تحديد تاريخ الفاتورة");
+        // Validation
+        if (items.length === 0) {
+          throw new Error("يجب إضافة منتج واحد على الأقل");
+        }
+        
+        if (!formData.customer_id) {
+          throw new Error("يجب اختيار عميل");
+        }
+        
+        if (!formData.invoice_date) {
+          throw new Error("يجب تحديد تاريخ الفاتورة");
+        }
+
+        // Validate stock availability
+        for (const item of items) {
+          const product = products.find(p => p.id === item.product_id);
+          if (product && product.stock_quantity < item.quantity) {
+            throw new Error(`الكمية المطلوبة للمنتج ${product.product_name} غير متوفرة في المخزون`);
+          }
+        }
 
         const invoiceNumber = `INV-${Date.now()}`;
         const subtotal = items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
         const taxAmount = items.reduce((sum, item) => sum + item.tax_amount, 0);
         const discount = items.reduce((sum, item) => sum + item.discount, 0);
         const totalAmount = subtotal + taxAmount - discount;
+        const paidAmount = formData.payment_method === 'cash' ? totalAmount : 0;
+        const remainingAmount = totalAmount - paidAmount;
 
+        console.log('Creating invoice with data:', {
+          invoiceNumber,
+          customer_id: formData.customer_id,
+          totalAmount,
+          itemsCount: items.length
+        });
+
+        // Create invoice
         const { data: invoice, error: invoiceError } = await supabase
           .from("sales_invoices")
           .insert({
             invoice_number: invoiceNumber,
             customer_id: formData.customer_id,
             invoice_date: formData.invoice_date,
-            due_date: formData.due_date || formData.invoice_date,
+            due_date: formData.due_date,
             subtotal,
             tax_amount: taxAmount,
             discount,
             total_amount: totalAmount,
-            paid_amount: 0,
-            remaining_amount: totalAmount,
-            payment_status: "unpaid",
-            status: "draft",
+            paid_amount: paidAmount,
+            remaining_amount: remainingAmount,
+            payment_status: getPaymentStatus(formData.payment_method, paidAmount, totalAmount),
+            payment_method: formData.payment_method,
+            status: "posted",
             notes: formData.notes || null,
           })
           .select()
           .single();
 
-        if (invoiceError) throw invoiceError;
-        if (!invoice) throw new Error("فشل إنشاء الفاتورة");
+        if (invoiceError) {
+          console.error('Invoice creation error:', invoiceError);
+          throw new Error(`فشل في إنشاء الفاتورة: ${invoiceError.message}`);
+        }
 
+        if (!invoice) {
+          throw new Error("فشل في إنشاء الفاتورة - لا توجد بيانات مسترجعة");
+        }
+
+        console.log('Invoice created, ID:', invoice.id);
+
+        // Prepare items for insertion
         const itemsToInsert = items.map(item => ({
           invoice_id: invoice.id,
           product_id: item.product_id,
@@ -353,11 +459,32 @@ const SalesInvoices = () => {
           total: item.total,
         }));
 
+        // Insert items
         const { error: itemsError } = await supabase
           .from("sales_invoice_items")
           .insert(itemsToInsert);
 
-        if (itemsError) throw itemsError;
+        if (itemsError) {
+          console.error('Items insertion error:', itemsError);
+          throw new Error(`فشل في إضافة بنود الفاتورة: ${itemsError.message}`);
+        }
+
+        // Update product stock
+        for (const item of items) {
+          const product = products.find(p => p.id === item.product_id);
+          if (product) {
+            const newStock = product.stock_quantity - item.quantity;
+            const { error: stockError } = await supabase
+              .from("products")
+              .update({ stock_quantity: newStock })
+              .eq("id", item.product_id);
+
+            if (stockError) {
+              console.error('Stock update error:', stockError);
+              // Don't throw here, just log the error
+            }
+          }
+        }
 
         return invoice;
       } catch (error) {
@@ -365,10 +492,14 @@ const SalesInvoices = () => {
         throw error;
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       try {
         queryClient.invalidateQueries({ queryKey: ["sales-invoices"] });
-        toast({ title: "تم بنجاح", description: "تم إنشاء الفاتورة بنجاح" });
+        queryClient.invalidateQueries({ queryKey: ["products"] });
+        toast({ 
+          title: "تم الإنشاء بنجاح", 
+          description: `تم إنشاء الفاتورة ${data.invoice_number} بنجاح` 
+        });
         setAddDialogOpen(false);
         resetForm();
       } catch (error) {
@@ -376,16 +507,25 @@ const SalesInvoices = () => {
       }
     },
     onError: (error: Error) => {
-      try {
-        toast({ title: "خطأ", description: error.message, variant: "destructive" });
-      } catch (e) {
-        console.error('Error showing toast:', e);
-      }
+      console.error('Create invoice mutation error:', error);
+      toast({ 
+        title: "خطأ في الإنشاء", 
+        description: error.message, 
+        variant: "destructive" 
+      });
     },
   });
 
+  // Enhanced update mutation
   const updateInvoiceMutation = useMutation({
-    mutationFn: async (data: { id: string; invoice_date: string; due_date: string; notes: string | null; payment_method?: string }) => {
+    mutationFn: async (data: { 
+      id: string; 
+      invoice_date: string; 
+      due_date: string; 
+      notes: string | null; 
+      payment_method?: string;
+      payment_status?: string;
+    }) => {
       try {
         const updateData: any = {
           invoice_date: data.invoice_date,
@@ -397,21 +537,35 @@ const SalesInvoices = () => {
           updateData.payment_method = data.payment_method;
         }
 
+        if (data.payment_status) {
+          updateData.payment_status = data.payment_status;
+        }
+
+        console.log('Updating invoice:', data.id, updateData);
+
         const { error } = await supabase
           .from("sales_invoices")
           .update(updateData)
           .eq("id", data.id);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Update error:', error);
+          throw new Error(`فشل في تحديث الفاتورة: ${error.message}`);
+        }
+
+        return true;
       } catch (error) {
-        console.error('Update error:', error);
+        console.error('Update mutation error:', error);
         throw error;
       }
     },
     onSuccess: () => {
       try {
         queryClient.invalidateQueries({ queryKey: ["sales-invoices"] });
-        toast({ title: "تم بنجاح", description: "تم تحديث الفاتورة بنجاح" });
+        toast({ 
+          title: "تم التحديث بنجاح", 
+          description: "تم تحديث الفاتورة بنجاح" 
+        });
         setEditDialogOpen(false);
         setEditInvoice(null);
       } catch (error) {
@@ -419,21 +573,24 @@ const SalesInvoices = () => {
       }
     },
     onError: (error: Error) => {
-      try {
-        toast({ title: "خطأ", description: error.message, variant: "destructive" });
-      } catch (e) {
-        console.error('Error showing toast:', e);
-      }
+      console.error('Update error:', error);
+      toast({ 
+        title: "خطأ في التحديث", 
+        description: error.message, 
+        variant: "destructive" 
+      });
     },
   });
 
+  // Reset form function
   const resetForm = () => {
     try {
       setFormData({
         customer_id: "",
         invoice_date: new Date().toISOString().split('T')[0],
-        due_date: "",
+        due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         notes: "",
+        payment_method: "credit"
       });
       setItems([]);
       setNewItem({ product_id: "", quantity: "1", discount: "0" });
@@ -442,11 +599,16 @@ const SalesInvoices = () => {
     }
   };
 
+  // Enhanced add item function with stock validation
   const addItem = () => {
     try {
       const product = products.find(p => p.id === newItem.product_id);
       if (!product) {
-        toast({ title: "خطأ", description: "يرجى اختيار منتج", variant: "destructive" });
+        toast({ 
+          title: "خطأ", 
+          description: "يرجى اختيار منتج صحيح", 
+          variant: "destructive" 
+        });
         return;
       }
 
@@ -454,7 +616,21 @@ const SalesInvoices = () => {
       const discount = parseFloat(newItem.discount) || 0;
 
       if (quantity <= 0) {
-        toast({ title: "خطأ", description: "الكمية يجب أن تكون أكبر من صفر", variant: "destructive" });
+        toast({ 
+          title: "خطأ", 
+          description: "الكمية يجب أن تكون أكبر من صفر", 
+          variant: "destructive" 
+        });
+        return;
+      }
+
+      // Check stock availability
+      if (product.stock_quantity < quantity) {
+        toast({ 
+          title: "خطأ في المخزون", 
+          description: `الكمية المطلوبة غير متوفرة. المخزون الحالي: ${product.stock_quantity}`,
+          variant: "destructive" 
+        });
         return;
       }
 
@@ -476,22 +652,33 @@ const SalesInvoices = () => {
 
       setItems([...items, item]);
       setNewItem({ product_id: "", quantity: "1", discount: "0" });
+      
+      toast({
+        title: "تم الإضافة",
+        description: "تم إضافة المنتج إلى الفاتورة بنجاح"
+      });
     } catch (error) {
       console.error('Error adding item:', error);
-      toast({ title: "خطأ", description: "حدث خطأ أثناء إضافة المنتج", variant: "destructive" });
+      toast({ 
+        title: "خطأ", 
+        description: "حدث خطأ أثناء إضافة المنتج", 
+        variant: "destructive" 
+      });
     }
   };
 
+  // Remove item function
   const removeItem = (index: number) => {
     try {
-      setItems(items.filter((_, i) => i !== index));
+      const newItems = items.filter((_, i) => i !== index);
+      setItems(newItems);
     } catch (error) {
       console.error('Error removing item:', error);
     }
   };
 
-  // Fetch invoice items
-  const fetchInvoiceItems = async (invoiceId: string) => {
+  // Enhanced fetch invoice items
+  const fetchInvoiceItems = async (invoiceId: string): Promise<InvoiceItem[]> => {
     try {
       const { data, error } = await supabase
         .from("sales_invoice_items")
@@ -503,9 +690,12 @@ const SalesInvoices = () => {
         `)
         .eq("invoice_id", invoiceId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching invoice items:', error);
+        throw error;
+      }
 
-      return data?.map((item: any) => ({
+      return (data || []).map((item: any) => ({
         id: item.id,
         product_id: item.product_id,
         product_name: item.products?.product_name || 'N/A',
@@ -515,14 +705,14 @@ const SalesInvoices = () => {
         tax_amount: parseFloat(item.tax_amount) || 0,
         discount: parseFloat(item.discount) || 0,
         total: parseFloat(item.total) || 0,
-      })) || [];
+      }));
     } catch (error) {
       console.error('Error fetching invoice items:', error);
       return [];
     }
   };
 
-  // Safe filtering with comprehensive checks
+  // Enhanced search filtering
   const filteredInvoices = useMemo(() => {
     try {
       if (!Array.isArray(invoices)) return [];
@@ -530,20 +720,17 @@ const SalesInvoices = () => {
 
       const query = searchQuery.toLowerCase().trim();
       return invoices.filter((invoice) => {
-        try {
-          if (!invoice) return false;
+        if (!invoice) return false;
 
-          const invoiceNumber = (invoice.invoice_number || '').toLowerCase();
-          const customerName = (invoice.customers?.customer_name || '').toLowerCase();
-          const email = (invoice.customers?.email || '').toLowerCase();
+        const invoiceNumber = (invoice.invoice_number || '').toLowerCase();
+        const customerName = (invoice.customers?.customer_name || '').toLowerCase();
+        const email = (invoice.customers?.email || '').toLowerCase();
+        const totalAmount = String(invoice.total_amount || '').toLowerCase();
 
-          return invoiceNumber.includes(query) ||
-                 customerName.includes(query) ||
-                 email.includes(query);
-        } catch (error) {
-          console.error('Error filtering invoice:', error, invoice);
-          return false;
-        }
+        return invoiceNumber.includes(query) ||
+               customerName.includes(query) ||
+               email.includes(query) ||
+               totalAmount.includes(query);
       });
     } catch (error) {
       console.error('Error in filteredInvoices:', error);
@@ -551,36 +738,65 @@ const SalesInvoices = () => {
     }
   }, [invoices, searchQuery]);
 
-  // Safe calculations with memoization
+  // Enhanced statistics calculation
   const stats = useMemo(() => {
     try {
-      if (!Array.isArray(filteredInvoices)) return {
-        totalInvoices: 0,
-        paidInvoices: 0,
-        unpaidInvoices: 0,
-        totalRevenue: 0
-      };
+      if (!Array.isArray(filteredInvoices)) {
+        return {
+          totalInvoices: 0,
+          paidInvoices: 0,
+          unpaidInvoices: 0,
+          partialInvoices: 0,
+          totalRevenue: 0,
+          collectedRevenue: 0,
+          pendingRevenue: 0
+        };
+      }
 
       const totalInvoices = filteredInvoices.length;
       const paidInvoices = filteredInvoices.filter(inv => inv?.payment_status === 'paid').length;
       const unpaidInvoices = filteredInvoices.filter(inv => inv?.payment_status === 'unpaid').length;
+      const partialInvoices = filteredInvoices.filter(inv => inv?.payment_status === 'partial').length;
+      
       const totalRevenue = filteredInvoices.reduce((sum, inv) => {
-        try {
-          const amount = parseFloat(String(inv?.total_amount || 0));
-          return sum + (isNaN(amount) ? 0 : amount);
-        } catch (error) {
-          console.error('Error calculating revenue for invoice:', error, inv);
-          return sum;
-        }
+        const amount = parseFloat(String(inv?.total_amount || 0));
+        return sum + (isNaN(amount) ? 0 : amount);
       }, 0);
 
-      return { totalInvoices, paidInvoices, unpaidInvoices, totalRevenue };
+      const collectedRevenue = filteredInvoices.reduce((sum, inv) => {
+        const amount = parseFloat(String(inv?.paid_amount || 0));
+        return sum + (isNaN(amount) ? 0 : amount);
+      }, 0);
+
+      const pendingRevenue = filteredInvoices.reduce((sum, inv) => {
+        const amount = parseFloat(String(inv?.remaining_amount || 0));
+        return sum + (isNaN(amount) ? 0 : amount);
+      }, 0);
+
+      return { 
+        totalInvoices, 
+        paidInvoices, 
+        unpaidInvoices, 
+        partialInvoices,
+        totalRevenue, 
+        collectedRevenue,
+        pendingRevenue
+      };
     } catch (error) {
       console.error('Error calculating stats:', error);
-      return { totalInvoices: 0, paidInvoices: 0, unpaidInvoices: 0, totalRevenue: 0 };
+      return { 
+        totalInvoices: 0, 
+        paidInvoices: 0, 
+        unpaidInvoices: 0, 
+        partialInvoices: 0,
+        totalRevenue: 0,
+        collectedRevenue: 0,
+        pendingRevenue: 0
+      };
     }
   }, [filteredInvoices]);
 
+  // Calculate totals for new invoice
   const calculateTotals = () => {
     try {
       if (!Array.isArray(items) || items.length === 0) {
@@ -588,34 +804,19 @@ const SalesInvoices = () => {
       }
 
       const subtotal = items.reduce((sum, item) => {
-        try {
-          const qty = parseFloat(String(item?.quantity || 0));
-          const price = parseFloat(String(item?.unit_price || 0));
-          return sum + (qty * price);
-        } catch (error) {
-          console.error('Error calculating subtotal for item:', error, item);
-          return sum;
-        }
+        const qty = parseFloat(String(item?.quantity || 0));
+        const price = parseFloat(String(item?.unit_price || 0));
+        return sum + (qty * price);
       }, 0);
 
       const taxAmount = items.reduce((sum, item) => {
-        try {
-          const tax = parseFloat(String(item?.tax_amount || 0));
-          return sum + tax;
-        } catch (error) {
-          console.error('Error calculating tax for item:', error, item);
-          return sum;
-        }
+        const tax = parseFloat(String(item?.tax_amount || 0));
+        return sum + tax;
       }, 0);
 
       const discount = items.reduce((sum, item) => {
-        try {
-          const disc = parseFloat(String(item?.discount || 0));
-          return sum + disc;
-        } catch (error) {
-          console.error('Error calculating discount for item:', error, item);
-          return sum;
-        }
+        const disc = parseFloat(String(item?.discount || 0));
+        return sum + disc;
       }, 0);
 
       const total = subtotal + taxAmount - discount;
@@ -629,177 +830,264 @@ const SalesInvoices = () => {
 
   const totals = calculateTotals();
 
-  // Print invoice with items
+  // Enhanced print functionality
   const handlePrint = async (invoice: SalesInvoice) => {
-    console.log('=== handlePrint CALLED ===', invoice);
+    console.log('Starting print process for invoice:', invoice.invoice_number);
 
     try {
       if (!invoice || !invoice.id) {
         console.error('Invalid invoice:', invoice);
-        toast({ title: "خطأ", description: "فاتورة غير صالحة", variant: "destructive" });
+        toast({ 
+          title: "خطأ", 
+          description: "فاتورة غير صالحة", 
+          variant: "destructive" 
+        });
         return;
       }
 
-      console.log('Starting print for invoice:', invoice.invoice_number);
-
       // Fetch invoice items
       const items = await fetchInvoiceItems(invoice.id);
-      console.log('Fetched items:', items.length);
-
       const customer = invoice.customers;
-      console.log('Customer:', customer?.customer_name);
 
-      // Generate items table rows
-      const itemsRows = items.map((item, index) => `
-        <tr>
-          <td>${index + 1}</td>
-          <td>${safeValue(item.product_name)}</td>
-          <td>${safeToLocaleString(item.quantity)}</td>
-          <td>${safeToLocaleString(item.unit_price)}</td>
-          <td>${safeToLocaleString(item.tax_rate)}%</td>
-          <td>${safeToLocaleString(item.discount)}</td>
-          <td>${safeToLocaleString(item.total)}</td>
-        </tr>
-      `).join('');
-
-      console.log('Generated HTML rows');
-
-      // Generate full HTML content
-      const htmlContent = `
+      // Generate print content
+      const printContent = `
         <!DOCTYPE html>
-        <html dir="rtl">
+        <html dir="rtl" lang="ar">
         <head>
           <meta charset="UTF-8">
           <title>فاتورة ${safeValue(invoice.invoice_number)}</title>
           <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; padding: 40px; direction: rtl; }
-            .invoice-header { text-align: center; margin-bottom: 30px; border-bottom: 3px solid #10b981; padding-bottom: 20px; }
-            .invoice-header h1 { color: #10b981; font-size: 32px; margin-bottom: 10px; }
-            .invoice-info { display: flex; justify-content: space-between; margin: 30px 0; }
-            .info-box { flex: 1; padding: 15px; background: #f9fafb; border-radius: 8px; margin: 0 5px; }
-            .info-box h3 { color: #374151; margin-bottom: 12px; font-size: 16px; }
-            .info-box p { color: #6b7280; line-height: 1.8; font-size: 14px; }
-            table { width: 100%; border-collapse: collapse; margin: 30px 0; }
-            th { background: #10b981; color: white; padding: 15px; text-align: right; font-size: 14px; }
-            td { padding: 12px 15px; border-bottom: 1px solid #e5e7eb; font-size: 13px; text-align: right; }
-            tr:hover { background: #f9fafb; }
-            .totals { margin-top: 30px; text-align: left; background: #f9fafb; padding: 20px; border-radius: 8px; }
-            .totals div { padding: 10px 0; display: flex; justify-content: space-between; font-size: 14px; }
-            .total-final { font-size: 22px; font-weight: bold; color: #10b981; border-top: 2px solid #10b981; padding-top: 15px; margin-top: 15px; }
-            .footer { margin-top: 50px; text-align: center; color: #6b7280; font-size: 13px; padding-top: 20px; border-top: 1px solid #e5e7eb; }
+            * { 
+              margin: 0; 
+              padding: 0; 
+              box-sizing: border-box; 
+              font-family: 'Segoe UI', 'Tahoma', 'Arial', sans-serif;
+            }
+            body { 
+              padding: 20px; 
+              direction: rtl; 
+              background: white;
+              color: #333;
+            }
+            .invoice-container {
+              max-width: 800px;
+              margin: 0 auto;
+              background: white;
+              padding: 30px;
+              border: 2px solid #10b981;
+              border-radius: 12px;
+            }
+            .invoice-header { 
+              text-align: center; 
+              margin-bottom: 30px; 
+              border-bottom: 3px solid #10b981; 
+              padding-bottom: 20px; 
+            }
+            .invoice-header h1 { 
+              color: #10b981; 
+              font-size: 32px; 
+              margin-bottom: 10px; 
+            }
+            .invoice-info { 
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 20px;
+              margin: 30px 0; 
+            }
+            .info-box { 
+              padding: 20px; 
+              background: #f9fafb; 
+              border-radius: 8px; 
+              border: 1px solid #e5e7eb;
+            }
+            .info-box h3 { 
+              color: #374151; 
+              margin-bottom: 12px; 
+              font-size: 16px; 
+              border-bottom: 1px solid #e5e7eb;
+              padding-bottom: 8px;
+            }
+            .info-box p { 
+              color: #6b7280; 
+              line-height: 1.8; 
+              font-size: 14px; 
+              margin-bottom: 5px;
+            }
+            table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              margin: 30px 0; 
+              font-size: 14px;
+            }
+            th { 
+              background: #10b981; 
+              color: white; 
+              padding: 15px; 
+              text-align: right; 
+              font-size: 14px; 
+              border: 1px solid #0da271;
+            }
+            td { 
+              padding: 12px 15px; 
+              border-bottom: 1px solid #e5e7eb; 
+              font-size: 13px; 
+              text-align: right; 
+              border: 1px solid #e5e7eb;
+            }
+            tr:nth-child(even) { 
+              background: #f9fafb; 
+            }
+            .totals { 
+              margin-top: 30px; 
+              background: #f9fafb; 
+              padding: 25px; 
+              border-radius: 8px; 
+              border: 1px solid #e5e7eb;
+            }
+            .totals div { 
+              padding: 8px 0; 
+              display: flex; 
+              justify-content: space-between; 
+              font-size: 14px; 
+            }
+            .total-final { 
+              font-size: 20px; 
+              font-weight: bold; 
+              color: #10b981; 
+              border-top: 2px solid #10b981; 
+              padding-top: 15px; 
+              margin-top: 15px; 
+            }
+            .footer { 
+              margin-top: 50px; 
+              text-align: center; 
+              color: #6b7280; 
+              font-size: 13px; 
+              padding-top: 20px; 
+              border-top: 1px solid #e5e7eb; 
+            }
             @media print {
-              body { padding: 20px; }
-              .no-print { display: none; }
+              body { 
+                padding: 10px; 
+                background: white;
+              }
+              .invoice-container {
+                border: none;
+                box-shadow: none;
+                padding: 0;
+              }
+              .no-print { 
+                display: none; 
+              }
+              .info-box {
+                border: 1px solid #ccc;
+              }
             }
           </style>
         </head>
         <body>
-          <div class="invoice-header">
-            <h1>فاتورة مبيعات</h1>
-            <p style="font-size: 16px; color: #6b7280; margin-top: 5px;">رقم الفاتورة: ${safeValue(invoice.invoice_number)}</p>
+          <div class="invoice-container">
+            <div class="invoice-header">
+              <h1>فاتورة مبيعات</h1>
+              <p style="font-size: 16px; color: #6b7280; margin-top: 5px;">رقم الفاتورة: ${safeValue(invoice.invoice_number)}</p>
+            </div>
+
+            <div class="invoice-info">
+              <div class="info-box">
+                <h3>بيانات العميل:</h3>
+                <p><strong style="color: #111827; font-size: 15px;">${safeValue(customer?.customer_name, 'غير محدد')}</strong></p>
+                ${customer?.email ? `<p><strong>البريد:</strong> ${safeValue(customer.email)}</p>` : ''}
+                ${customer?.phone ? `<p><strong>الهاتف:</strong> ${safeValue(customer.phone)}</p>` : ''}
+              </div>
+
+              <div class="info-box">
+                <h3>تفاصيل الفاتورة:</h3>
+                <p><strong>التاريخ:</strong> ${safeFormatDate(invoice.invoice_date, 'yyyy-MM-dd')}</p>
+                <p><strong>تاريخ الاستحقاق:</strong> ${safeFormatDate(invoice.due_date, 'yyyy-MM-dd')}</p>
+                <p><strong>الحالة:</strong> ${invoice.status === 'posted' ? 'منشورة' : 'مسودة'}</p>
+                <p><strong>حالة الدفع:</strong> ${
+                  invoice.payment_status === 'paid' ? 'مدفوعة' :
+                  invoice.payment_status === 'partial' ? 'مدفوعة جزئياً' :
+                  'غير مدفوعة'
+                }</p>
+              </div>
+            </div>
+
+            ${items.length > 0 ? `
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>المنتج</th>
+                    <th>الكمية</th>
+                    <th>السعر</th>
+                    <th>الضريبة</th>
+                    <th>الخصم</th>
+                    <th>الإجمالي</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${items.map((item, index) => `
+                    <tr>
+                      <td>${index + 1}</td>
+                      <td>${safeValue(item.product_name)}</td>
+                      <td>${safeToLocaleString(item.quantity)}</td>
+                      <td>${safeToLocaleString(item.unit_price)}</td>
+                      <td>${safeToLocaleString(item.tax_rate)}%</td>
+                      <td>${safeToLocaleString(item.discount)}</td>
+                      <td>${safeToLocaleString(item.total)}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            ` : '<p style="text-align: center; color: #6b7280; margin: 40px 0;">لا توجد بنود في هذه الفاتورة</p>'}
+
+            <div class="totals">
+              <div>
+                <span>المجموع الفرعي:</span>
+                <span><strong>${safeToLocaleString(invoice.subtotal)} ر.س</strong></span>
+              </div>
+              <div>
+                <span>الضريبة:</span>
+                <span><strong>${safeToLocaleString(invoice.tax_amount)} ر.س</strong></span>
+              </div>
+              <div>
+                <span>الخصم:</span>
+                <span style="color: #dc2626;"><strong>${safeToLocaleString(invoice.discount)} ر.س</strong></span>
+              </div>
+              <div class="total-final">
+                <span>الإجمالي:</span>
+                <span>${safeToLocaleString(invoice.total_amount)} ر.س</span>
+              </div>
+              <div style="color: #10b981;">
+                <span>المدفوع:</span>
+                <span><strong>${safeToLocaleString(invoice.paid_amount)} ر.س</strong></span>
+              </div>
+              <div style="color: #f59e0b;">
+                <span>المتبقي:</span>
+                <span><strong>${safeToLocaleString(invoice.remaining_amount)} ر.س</strong></span>
+              </div>
+            </div>
+
+            ${invoice.notes ? `
+              <div style="margin-top: 30px; padding: 20px; background: #f9fafb; border-radius: 8px; border-right: 4px solid #10b981;">
+                <strong style="color: #374151; font-size: 15px;">ملاحظات:</strong>
+                <p style="margin-top: 10px; color: #6b7280; line-height: 1.6;">${safeValue(invoice.notes)}</p>
+              </div>
+            ` : ''}
+
+            <div class="footer">
+              <p style="font-size: 16px; font-weight: bold; color: #10b981; margin-bottom: 5px;">شكراً لتعاملكم معنا</p>
+              <p>تم الطباعة في: ${safeFormatDate(new Date().toISOString(), 'yyyy-MM-dd HH:mm')}</p>
+            </div>
           </div>
-
-          <div class="invoice-info">
-            <div class="info-box">
-              <h3>بيانات العميل:</h3>
-              <p><strong style="color: #111827; font-size: 15px;">${safeValue(customer?.customer_name, 'غير محدد')}</strong></p>
-              ${customer?.email ? `<p><strong>البريد:</strong> ${safeValue(customer.email)}</p>` : ''}
-              ${customer?.phone ? `<p><strong>الهاتف:</strong> ${safeValue(customer.phone)}</p>` : ''}
-            </div>
-
-            <div class="info-box">
-              <h3>تفاصيل الفاتورة:</h3>
-              <p><strong>التاريخ:</strong> ${safeFormatDate(invoice.invoice_date, 'yyyy-MM-dd')}</p>
-              <p><strong>تاريخ الاستحقاق:</strong> ${safeFormatDate(invoice.due_date, 'yyyy-MM-dd')}</p>
-              <p><strong>الحالة:</strong> ${invoice.status === 'posted' ? 'منشورة' : 'مسودة'}</p>
-              <p><strong>حالة الدفع:</strong> ${
-                invoice.payment_status === 'paid' ? 'مدفوعة' :
-                invoice.payment_status === 'partial' ? 'مدفوعة جزئياً' :
-                'غير مدفوعة'
-              }</p>
-            </div>
-          </div>
-
-          ${items.length > 0 ? `
-            <table>
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>المنتج</th>
-                  <th>الكمية</th>
-                  <th>السعر</th>
-                  <th>الضريبة</th>
-                  <th>الخصم</th>
-                  <th>الإجمالي</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${itemsRows}
-              </tbody>
-            </table>
-          ` : ''}
-
-          <div class="totals">
-            <div>
-              <span>المجموع الفرعي:</span>
-              <span><strong>${safeToLocaleString(invoice.subtotal)} ر.س</strong></span>
-            </div>
-            <div>
-              <span>الضريبة:</span>
-              <span><strong>${safeToLocaleString(invoice.tax_amount)} ر.س</strong></span>
-            </div>
-            <div>
-              <span>الخصم:</span>
-              <span style="color: #dc2626;"><strong>${safeToLocaleString(invoice.discount)} ر.س</strong></span>
-            </div>
-            <div class="total-final">
-              <span>الإجمالي:</span>
-              <span>${safeToLocaleString(invoice.total_amount)} ر.س</span>
-            </div>
-            <div style="color: #10b981;">
-              <span>المدفوع:</span>
-              <span><strong>${safeToLocaleString(invoice.paid_amount)} ر.س</strong></span>
-            </div>
-            <div style="color: #f59e0b;">
-              <span>المتبقي:</span>
-              <span><strong>${safeToLocaleString(invoice.remaining_amount)} ر.س</strong></span>
-            </div>
-          </div>
-
-          ${invoice.notes ? `
-            <div style="margin-top: 30px; padding: 20px; background: #f9fafb; border-radius: 8px; border-right: 4px solid #10b981;">
-              <strong style="color: #374151; font-size: 15px;">ملاحظات:</strong>
-              <p style="margin-top: 10px; color: #6b7280; line-height: 1.6;">${safeValue(invoice.notes)}</p>
-            </div>
-          ` : ''}
-
-          <div class="footer">
-            <p style="font-size: 16px; font-weight: bold; color: #10b981; margin-bottom: 5px;">شكراً لتعاملكم معنا</p>
-            <p>تم الطباعة في: ${safeFormatDate(new Date().toISOString(), 'yyyy-MM-dd HH:mm')}</p>
-          </div>
-
-          <script>
-            window.onload = function() {
-              console.log('Print window loaded');
-              setTimeout(function() {
-                window.print();
-              }, 500);
-              window.onafterprint = function() {
-                window.close();
-              };
-            };
-          </script>
         </body>
         </html>
       `;
 
-      console.log('Opening print window...');
-
-      // Open window and write content
-      const printWindow = window.open('', '_blank');
-      if (!printWindow || printWindow.closed || typeof printWindow.closed === 'undefined') {
-        console.error('Failed to open print window - popup blocked?');
+      // Create print window
+      const printWindow = window.open('', '_blank', 'width=900,height=600');
+      if (!printWindow) {
         toast({
           title: "تنبيه",
           description: "يرجى السماح بالنوافذ المنبثقة لهذا الموقع ثم المحاولة مرة أخرى",
@@ -808,21 +1096,18 @@ const SalesInvoices = () => {
         return;
       }
 
-      try {
-        printWindow.document.open();
-        printWindow.document.write(htmlContent);
-        printWindow.document.close();
-        console.log('Print window content written successfully');
-      } catch (writeError) {
-        console.error('Error writing to print window:', writeError);
-        printWindow.close();
-        toast({
-          title: "خطأ",
-          description: "فشل في كتابة محتوى الطباعة",
-          variant: "destructive",
-        });
-        return;
-      }
+      printWindow.document.open();
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+
+      // Wait for content to load then print
+      printWindow.onload = () => {
+        setTimeout(() => {
+          printWindow.print();
+          // Don't close immediately to allow print dialog to show
+        }, 500);
+      };
+
     } catch (error) {
       console.error('Error printing invoice:', error);
       toast({
@@ -833,96 +1118,100 @@ const SalesInvoices = () => {
     }
   };
 
-  // Export single invoice to PDF with high quality
+  // Enhanced PDF export
   const handleExportInvoicePDF = async (invoice: SalesInvoice) => {
-    console.log('=== handleExportInvoicePDF CALLED ===', invoice);
+    console.log('Exporting invoice to PDF:', invoice.invoice_number);
 
     try {
       if (!invoice || !invoice.id) {
-        console.error('Invalid invoice:', invoice);
-        toast({ title: "خطأ", description: "فاتورة غير صالحة", variant: "destructive" });
+        toast({ 
+          title: "خطأ", 
+          description: "فاتورة غير صالحة", 
+          variant: "destructive" 
+        });
         return;
       }
 
-      console.log('Fetching invoice items for PDF export...');
       const items = await fetchInvoiceItems(invoice.id);
-      console.log('Fetched items:', items.length);
-
       const customer = invoice.customers;
 
-      // Create PDF document
-      console.log('Creating PDF document...');
+      // Create PDF
       const doc = new jsPDF();
-
-      // Add Arabic font with error handling
-      console.log('Adding Arabic font...');
+      
+      // Try to add Arabic font
       let useCustomFont = false;
       try {
-        doc.addFileToVFS('Amiri-Regular.ttf', amiriRegularBase64);
-        doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal');
-        doc.setFont('Amiri', 'normal');
-        useCustomFont = true;
-        console.log('Custom font loaded successfully');
+        if (amiriRegularBase64) {
+          doc.addFileToVFS('Amiri-Regular.ttf', amiriRegularBase64);
+          doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal');
+          doc.setFont('Amiri');
+          useCustomFont = true;
+        }
       } catch (fontError) {
-        console.warn('Failed to load custom font, using default:', fontError);
-        useCustomFont = false;
+        console.warn('Custom font not available, using default');
       }
 
-      // Header with logo/title
+      // Header
       doc.setFillColor(16, 185, 129);
-      doc.rect(0, 0, 210, 35, 'F');
-
+      doc.rect(0, 0, 210, 30, 'F');
+      
       doc.setTextColor(255, 255, 255);
-      doc.setFontSize(24);
-      doc.text('فاتورة مبيعات', 105, 15, { align: 'center' });
+      doc.setFontSize(20);
+      doc.text('فاتورة مبيعات', 105, 12, { align: 'center' });
+      
+      doc.setFontSize(10);
+      doc.text(`رقم الفاتورة: ${safeValue(invoice.invoice_number)}`, 105, 20, { align: 'center' });
 
-      doc.setFontSize(12);
-      doc.text(`رقم الفاتورة: ${safeValue(invoice.invoice_number)}`, 105, 25, { align: 'center' });
-
-      // Reset text color
+      // Reset colors
       doc.setTextColor(0, 0, 0);
+      doc.setFillColor(255, 255, 255);
 
-      // Customer & Invoice Info Section
-      let yPos = 45;
+      let yPos = 40;
 
-      // Customer Info Box
+      // Customer and Invoice info
+      const customerInfo = [
+        `العميل: ${safeValue(customer?.customer_name, 'غير محدد')}`,
+        ...(customer?.email ? [`البريد: ${safeValue(customer.email)}`] : []),
+        ...(customer?.phone ? [`الهاتف: ${safeValue(customer.phone)}`] : [])
+      ];
+
+      const invoiceInfo = [
+        `التاريخ: ${safeFormatDate(invoice.invoice_date, 'yyyy-MM-dd')}`,
+        `تاريخ الاستحقاق: ${safeFormatDate(invoice.due_date, 'yyyy-MM-dd')}`,
+        `الحالة: ${invoice.status === 'posted' ? 'منشورة' : 'مسودة'}`,
+        `حالة الدفع: ${invoice.payment_status === 'paid' ? 'مدفوعة' : invoice.payment_status === 'partial' ? 'مدفوعة جزئياً' : 'غير مدفوعة'}`
+      ];
+
+      // Customer info box
       doc.setFillColor(249, 250, 251);
-      doc.rect(110, yPos, 90, 45, 'F');
+      doc.rect(110, yPos, 90, 40, 'F');
       doc.setDrawColor(229, 231, 235);
-      doc.rect(110, yPos, 90, 45, 'S');
+      doc.rect(110, yPos, 90, 40, 'S');
+      
+      doc.setFontSize(12);
+      doc.text('بيانات العميل', 195, yPos + 8, { align: 'right' });
+      doc.setFontSize(9);
+      customerInfo.forEach((line, index) => {
+        doc.text(line, 195, yPos + 16 + (index * 5), { align: 'right' });
+      });
 
-      doc.setFontSize(13);
-      doc.text('بيانات العميل', 195, yPos + 7, { align: 'right' });
-      doc.setFontSize(10);
-      doc.text(`الاسم: ${safeValue(customer?.customer_name, 'غير محدد')}`, 195, yPos + 15, { align: 'right' });
-      if (customer?.email) {
-        doc.text(`البريد: ${safeValue(customer.email)}`, 195, yPos + 23, { align: 'right' });
-      }
-      if (customer?.phone) {
-        doc.text(`الهاتف: ${safeValue(customer.phone)}`, 195, yPos + 31, { align: 'right' });
-      }
-
-      // Invoice Info Box
+      // Invoice info box
       doc.setFillColor(249, 250, 251);
-      doc.rect(10, yPos, 90, 45, 'F');
+      doc.rect(10, yPos, 90, 40, 'F');
       doc.setDrawColor(229, 231, 235);
-      doc.rect(10, yPos, 90, 45, 'S');
+      doc.rect(10, yPos, 90, 40, 'S');
+      
+      doc.setFontSize(12);
+      doc.text('تفاصيل الفاتورة', 95, yPos + 8, { align: 'right' });
+      doc.setFontSize(9);
+      invoiceInfo.forEach((line, index) => {
+        doc.text(line, 95, yPos + 16 + (index * 5), { align: 'right' });
+      });
 
-      doc.setFontSize(13);
-      doc.text('تفاصيل الفاتورة', 95, yPos + 7, { align: 'right' });
-      doc.setFontSize(10);
-      doc.text(`التاريخ: ${safeFormatDate(invoice.invoice_date, 'yyyy-MM-dd')}`, 95, yPos + 15, { align: 'right' });
-      doc.text(`تاريخ الاستحقاق: ${safeFormatDate(invoice.due_date, 'yyyy-MM-dd')}`, 95, yPos + 23, { align: 'right' });
-      doc.text(`الحالة: ${invoice.status === 'posted' ? 'منشورة' : 'مسودة'}`, 95, yPos + 31, { align: 'right' });
-      const paymentStatusText = invoice.payment_status === 'paid' ? 'مدفوعة' :
-                                invoice.payment_status === 'partial' ? 'مدفوعة جزئياً' : 'غير مدفوعة';
-      doc.text(`حالة الدفع: ${paymentStatusText}`, 95, yPos + 39, { align: 'right' });
+      yPos += 50;
 
-      yPos += 55;
-
-      // Items Table
+      // Items table
       if (items.length > 0) {
-        console.log('Creating items table...');
         const tableData = items.map((item, index) => [
           String(index + 1),
           safeValue(item.product_name),
@@ -933,145 +1222,113 @@ const SalesInvoices = () => {
           safeToLocaleString(item.total),
         ]);
 
-        const tableConfig: any = {
+        (doc as any).autoTable({
           startY: yPos,
           head: [['#', 'المنتج', 'الكمية', 'السعر', 'الضريبة', 'الخصم', 'الإجمالي']],
           body: tableData,
-          styles: {
+          styles: { 
             halign: 'right',
-            fontSize: 10,
+            fontSize: 8,
           },
           headStyles: {
             fillColor: [16, 185, 129],
             textColor: [255, 255, 255],
             halign: 'center',
-            fontSize: 11,
+            fontSize: 9,
           },
           alternateRowStyles: {
             fillColor: [249, 250, 251],
           },
-          margin: { top: 10, right: 10, bottom: 10, left: 10 },
-          columnStyles: {
-            0: { halign: 'center', cellWidth: 15 },
-            1: { halign: 'right', cellWidth: 50 },
-            2: { halign: 'center', cellWidth: 20 },
-            3: { halign: 'center', cellWidth: 25 },
-            4: { halign: 'center', cellWidth: 20 },
-            5: { halign: 'center', cellWidth: 20 },
-            6: { halign: 'center', cellWidth: 30 },
-          },
-        };
-
-        // Only add custom font if it was loaded successfully
-        if (useCustomFont) {
-          tableConfig.styles.font = 'Amiri';
-        }
-
-        (doc as any).autoTable(tableConfig);
+          margin: { top: 10 },
+        });
 
         yPos = (doc as any).lastAutoTable.finalY + 10;
       }
 
-      // Totals Section
-      const totalsX = 150;
-      const totalsWidth = 50;
+      // Totals section
+      const totalsData = [
+        ['المجموع الفرعي:', `${safeToLocaleString(invoice.subtotal)} ر.س`],
+        ['الضريبة:', `${safeToLocaleString(invoice.tax_amount)} ر.س`],
+        ['الخصم:', `${safeToLocaleString(invoice.discount)} ر.س`],
+        ['الإجمالي:', `${safeToLocaleString(invoice.total_amount)} ر.س`],
+        ['المدفوع:', `${safeToLocaleString(invoice.paid_amount)} ر.س`],
+        ['المتبقي:', `${safeToLocaleString(invoice.remaining_amount)} ر.س`],
+      ];
 
       doc.setFillColor(249, 250, 251);
-      doc.rect(totalsX - totalsWidth, yPos, totalsWidth, 60, 'F');
+      doc.rect(120, yPos, 80, 50, 'F');
       doc.setDrawColor(229, 231, 235);
-      doc.rect(totalsX - totalsWidth, yPos, totalsWidth, 60, 'S');
+      doc.rect(120, yPos, 80, 50, 'S');
 
       doc.setFontSize(10);
-      let totalYPos = yPos + 8;
+      totalsData.forEach(([label, value], index) => {
+        const isTotal = index === 3;
+        const isLast = index === totalsData.length - 1;
+        
+        if (isTotal) {
+          doc.setFontSize(12);
+          doc.setTextColor(16, 185, 129);
+          doc.setFont(useCustomFont ? 'Amiri' : 'helvetica', 'bold');
+        } else if (isLast) {
+          doc.setTextColor(245, 158, 11);
+        } else {
+          doc.setTextColor(0, 0, 0);
+        }
 
-      doc.text('المجموع الفرعي:', totalsX - 5, totalYPos, { align: 'right' });
-      doc.text(`${safeToLocaleString(invoice.subtotal)} ر.س`, totalsX - totalsWidth + 5, totalYPos);
+        doc.text(label, 195, yPos + 12 + (index * 8), { align: 'right' });
+        doc.text(value, 125, yPos + 12 + (index * 8), { align: 'left' });
 
-      totalYPos += 10;
-      doc.text('الضريبة:', totalsX - 5, totalYPos, { align: 'right' });
-      doc.text(`${safeToLocaleString(invoice.tax_amount)} ر.س`, totalsX - totalsWidth + 5, totalYPos);
+        if (isTotal) {
+          doc.setFontSize(10);
+          doc.setFont(useCustomFont ? 'Amiri' : 'helvetica', 'normal');
+        }
+      });
 
-      totalYPos += 10;
-      doc.setTextColor(220, 38, 38);
-      doc.text('الخصم:', totalsX - 5, totalYPos, { align: 'right' });
-      doc.text(`${safeToLocaleString(invoice.discount)} ر.س`, totalsX - totalsWidth + 5, totalYPos);
-      doc.setTextColor(0, 0, 0);
+      yPos += 60;
 
-      totalYPos += 12;
-      doc.setFontSize(13);
-      doc.setTextColor(16, 185, 129);
-      doc.text('الإجمالي:', totalsX - 5, totalYPos, { align: 'right' });
-      doc.text(`${safeToLocaleString(invoice.total_amount)} ر.س`, totalsX - totalsWidth + 5, totalYPos);
-
-      totalYPos += 10;
-      doc.setFontSize(10);
-      doc.setTextColor(0, 0, 0);
-      doc.text('المدفوع:', totalsX - 5, totalYPos, { align: 'right' });
-      doc.text(`${safeToLocaleString(invoice.paid_amount)} ر.س`, totalsX - totalsWidth + 5, totalYPos);
-
-      totalYPos += 10;
-      doc.setTextColor(245, 158, 11);
-      doc.text('المتبقي:', totalsX - 5, totalYPos, { align: 'right' });
-      doc.text(`${safeToLocaleString(invoice.remaining_amount)} ر.س`, totalsX - totalsWidth + 5, totalYPos);
-      doc.setTextColor(0, 0, 0);
-
-      yPos += 65;
-
-      // Notes Section
+      // Notes
       if (invoice.notes) {
-        yPos += 5;
-        doc.setFillColor(249, 250, 251);
-        doc.rect(10, yPos, 190, 20, 'F');
-        doc.setDrawColor(16, 185, 129);
-        doc.rect(10, yPos, 190, 20, 'S');
-
-        doc.setFontSize(11);
-        doc.text('ملاحظات:', 195, yPos + 7, { align: 'right' });
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(10);
+        doc.text('ملاحظات:', 195, yPos, { align: 'right' });
         doc.setFontSize(9);
-        const notesText = safeValue(invoice.notes);
-        const splitNotes = doc.splitTextToSize(notesText, 180);
-        doc.text(splitNotes, 195, yPos + 14, { align: 'right' });
-
-        yPos += 25;
+        const splitNotes = doc.splitTextToSize(safeValue(invoice.notes), 180);
+        doc.text(splitNotes, 195, yPos + 6, { align: 'right' });
+        yPos += 20;
       }
 
       // Footer
-      yPos = doc.internal.pageSize.height - 25;
       doc.setDrawColor(16, 185, 129);
-      doc.line(10, yPos, 200, yPos);
-
+      doc.line(10, 280, 200, 280);
+      
       doc.setFontSize(12);
       doc.setTextColor(16, 185, 129);
-      doc.text('شكراً لتعاملكم معنا', 105, yPos + 7, { align: 'center' });
-
+      doc.text('شكراً لتعاملكم معنا', 105, 285, { align: 'center' });
+      
       doc.setFontSize(8);
       doc.setTextColor(107, 114, 128);
-      doc.text(`تم التصدير في: ${safeFormatDate(new Date().toISOString(), 'yyyy-MM-dd HH:mm')}`, 105, yPos + 13, { align: 'center' });
+      doc.text(`تم التصدير في: ${safeFormatDate(new Date().toISOString(), 'yyyy-MM-dd HH:mm')}`, 105, 290, { align: 'center' });
 
       // Save PDF
-      console.log('Saving PDF...');
-      const fileName = `invoice-${safeValue(invoice.invoice_number)}-${Date.now()}.pdf`;
+      const fileName = `فاتورة-${safeValue(invoice.invoice_number)}.pdf`;
       doc.save(fileName);
-      console.log('PDF saved successfully:', fileName);
 
       toast({
-        title: "تم بنجاح",
-        description: "تم تصدير الفاتورة إلى PDF بنجاح",
+        title: "تم التصدير بنجاح",
+        description: `تم حفظ الملف كـ ${fileName}`,
       });
-    } catch (error) {
-      console.error('=== ERROR IN handleExportInvoicePDF ===');
-      console.error('Error details:', error);
-      console.error('Error message:', error instanceof Error ? error.message : 'Unknown error');
 
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
       toast({
-        title: "خطأ",
-        description: error instanceof Error ? error.message : "حدث خطأ أثناء التصدير إلى PDF",
+        title: "خطأ في التصدير",
+        description: "حدث خطأ أثناء تصدير الفاتورة إلى PDF",
         variant: "destructive",
       });
     }
   };
 
-  // Handle delete
+  // Delete handler
   const handleDelete = (invoiceId: string) => {
     try {
       if (!invoiceId) {
@@ -1095,7 +1352,7 @@ const SalesInvoices = () => {
     }
   };
 
-  // Handle view
+  // View handler
   const handleView = async (invoice: SalesInvoice) => {
     try {
       if (!invoice || !invoice.id) {
@@ -1103,7 +1360,6 @@ const SalesInvoices = () => {
         return;
       }
 
-      // Fetch items for this invoice
       const items = await fetchInvoiceItems(invoice.id);
       setInvoiceItems(items);
       setSelectedInvoice(invoice);
@@ -1113,7 +1369,7 @@ const SalesInvoices = () => {
     }
   };
 
-  // Handle edit
+  // Edit handler
   const handleEdit = (invoice: SalesInvoice) => {
     try {
       if (!invoice || !invoice.id) {
@@ -1127,20 +1383,22 @@ const SalesInvoices = () => {
     }
   };
 
-  // Handle update
+  // Update handler
   const handleUpdate = (e: React.FormEvent<HTMLFormElement>) => {
     try {
       e.preventDefault();
       if (!editInvoice) return;
 
       const formData = new FormData(e.currentTarget);
-      updateInvoiceMutation.mutate({
+      const updateData = {
         id: editInvoice.id,
         invoice_date: formData.get('invoice_date') as string,
         due_date: formData.get('due_date') as string,
         notes: formData.get('notes') as string || null,
         payment_method: formData.get('payment_method') as string,
-      });
+      };
+
+      updateInvoiceMutation.mutate(updateData);
     } catch (error) {
       console.error('Error in handleUpdate:', error);
       toast({
@@ -1151,108 +1409,93 @@ const SalesInvoices = () => {
     }
   };
 
-  // Get status badge
+  // Status badge components
   const getPaymentStatusBadge = (status: string) => {
-    try {
-      const statusMap = {
-        paid: { label: "مدفوعة", className: "bg-green-500 text-white" },
-        partial: { label: "جزئي", className: "bg-yellow-500 text-white" },
-        unpaid: { label: "غير مدفوعة", className: "bg-red-500 text-white" },
-      };
+    const statusMap = {
+      paid: { label: "مدفوعة", className: "bg-green-500 text-white" },
+      partial: { label: "مدفوعة جزئياً", className: "bg-yellow-500 text-white" },
+      unpaid: { label: "غير مدفوعة", className: "bg-red-500 text-white" },
+    };
 
-      const statusInfo = statusMap[status as keyof typeof statusMap] || statusMap.unpaid;
+    const statusInfo = statusMap[status as keyof typeof statusMap] || statusMap.unpaid;
 
-      return (
-        <Badge className={statusInfo.className}>
-          {statusInfo.label}
-        </Badge>
-      );
-    } catch (error) {
-      console.error('Error in getPaymentStatusBadge:', error);
-      return <Badge variant="secondary">غير محدد</Badge>;
-    }
+    return (
+      <Badge className={statusInfo.className}>
+        {statusInfo.label}
+      </Badge>
+    );
   };
 
   const getStatusBadge = (status: string) => {
-    try {
-      return status === 'posted' ? (
-        <Badge className="bg-blue-500 text-white">منشورة</Badge>
-      ) : (
-        <Badge variant="secondary">مسودة</Badge>
-      );
-    } catch (error) {
-      console.error('Error in getStatusBadge:', error);
-      return <Badge variant="secondary">غير محدد</Badge>;
-    }
+    return status === 'posted' ? (
+      <Badge className="bg-blue-500 text-white">منشورة</Badge>
+    ) : (
+      <Badge variant="secondary">مسودة</Badge>
+    );
   };
 
   // Render invoice row
   const renderInvoiceRow = (invoice: SalesInvoice) => {
-    try {
-      if (!invoice || !invoice.id) return null;
+    if (!invoice || !invoice.id) return null;
 
-      return (
-        <TableRow key={invoice.id}>
-          <TableCell className="font-medium">{safeValue(invoice.invoice_number)}</TableCell>
-          <TableCell>{safeValue(invoice.customers?.customer_name, '-')}</TableCell>
-          <TableCell className="text-left" dir="ltr">{safeValue(invoice.customers?.email, '-')}</TableCell>
-          <TableCell>{safeFormatDate(invoice.invoice_date, 'yyyy-MM-dd')}</TableCell>
-          <TableCell className="font-semibold">{formatCurrency(invoice.total_amount)}</TableCell>
-          <TableCell>{getPaymentStatusBadge(invoice.payment_status)}</TableCell>
-          <TableCell>{getStatusBadge(invoice.status)}</TableCell>
-          <TableCell>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="hover:bg-gray-100">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  className="gap-2"
-                  onClick={() => handleView(invoice)}
-                >
-                  <Eye className="h-4 w-4" />
-                  عرض
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="gap-2"
-                  onClick={() => handleEdit(invoice)}
-                >
-                  <Edit className="h-4 w-4" />
-                  تعديل
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="gap-2"
-                  onClick={() => handlePrint(invoice)}
-                >
-                  <Printer className="h-4 w-4" />
-                  طباعة
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="gap-2"
-                  onClick={() => handleExportInvoicePDF(invoice)}
-                >
-                  <Download className="h-4 w-4" />
-                  تصدير PDF
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="gap-2 text-destructive"
-                  onClick={() => handleDelete(invoice.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  حذف
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </TableCell>
-        </TableRow>
-      );
-    } catch (error) {
-      console.error('Error rendering invoice row:', error, invoice);
-      return null;
-    }
+    return (
+      <TableRow key={invoice.id} className="hover:bg-gray-50/50">
+        <TableCell className="font-medium">{safeValue(invoice.invoice_number)}</TableCell>
+        <TableCell>{safeValue(invoice.customers?.customer_name, '-')}</TableCell>
+        <TableCell className="text-right">{safeValue(invoice.customers?.email, '-')}</TableCell>
+        <TableCell>{safeFormatDate(invoice.invoice_date, 'yyyy-MM-dd')}</TableCell>
+        <TableCell className="font-semibold">{formatCurrency(invoice.total_amount)}</TableCell>
+        <TableCell>{getPaymentStatusBadge(invoice.payment_status)}</TableCell>
+        <TableCell>{getStatusBadge(invoice.status)}</TableCell>
+        <TableCell>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="hover:bg-gray-100">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem
+                className="gap-2 cursor-pointer"
+                onClick={() => handleView(invoice)}
+              >
+                <Eye className="h-4 w-4" />
+                عرض التفاصيل
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="gap-2 cursor-pointer"
+                onClick={() => handleEdit(invoice)}
+              >
+                <Edit className="h-4 w-4" />
+                تعديل الفاتورة
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="gap-2 cursor-pointer"
+                onClick={() => handlePrint(invoice)}
+              >
+                <Printer className="h-4 w-4" />
+                طباعة الفاتورة
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="gap-2 cursor-pointer"
+                onClick={() => handleExportInvoicePDF(invoice)}
+              >
+                <Download className="h-4 w-4" />
+                تصدير PDF
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="gap-2 cursor-pointer text-destructive focus:text-destructive"
+                onClick={() => handleDelete(invoice.id)}
+              >
+                <Trash2 className="h-4 w-4" />
+                حذف الفاتورة
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </TableCell>
+      </TableRow>
+    );
   };
 
   return (
@@ -1272,7 +1515,7 @@ const SalesInvoices = () => {
           <Button
             size="lg"
             className="h-12 px-6 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-all gap-2"
-            onClick={() => navigate('/new-sales-invoice')}
+            onClick={() => setAddDialogOpen(true)}
           >
             <Plus className="h-5 w-5" />
             فاتورة جديدة
@@ -1325,7 +1568,7 @@ const SalesInvoices = () => {
               <div>
                 <div className="text-sm font-medium text-gray-500">إجمالي الإيرادات</div>
                 <div className="text-3xl font-bold text-emerald-600 mt-2">
-                  {safeToLocaleString(stats.totalRevenue)}
+                  {safeToLocaleString(stats.totalRevenue)} ر.س
                 </div>
                 <p className="text-xs text-gray-500 mt-1">ريال سعودي</p>
               </div>
@@ -1336,15 +1579,25 @@ const SalesInvoices = () => {
           </Card>
         </div>
 
-        {/* Search */}
-        <div className="relative max-w-md">
-          <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="بحث عن فاتورة..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pr-10"
-          />
+        {/* Search and Actions */}
+        <div className="flex items-center justify-between gap-4">
+          <div className="relative max-w-md flex-1">
+            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="ابحث برقم الفاتورة، اسم العميل، أو المبلغ..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pr-10"
+            />
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => refetch()}
+            disabled={isLoading}
+          >
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin ml-2" /> : null}
+            تحديث البيانات
+          </Button>
         </div>
 
         {/* Table */}
@@ -1366,16 +1619,25 @@ const SalesInvoices = () => {
               {isLoading ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-green-600" />
-                    <p className="text-sm text-gray-500 mt-2">جاري التحميل...</p>
+                    <div className="flex items-center justify-center gap-2">
+                      <Loader2 className="h-6 w-6 animate-spin text-green-600" />
+                      <span className="text-sm text-gray-500">جاري تحميل الفواتير...</span>
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : queryError ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-8">
-                    <div className="text-red-600">
+                    <div className="text-red-600 text-center">
                       <p className="font-semibold">حدث خطأ أثناء تحميل البيانات</p>
                       <p className="text-sm mt-1">يرجى المحاولة مرة أخرى</p>
+                      <Button 
+                        variant="outline" 
+                        className="mt-2"
+                        onClick={() => refetch()}
+                      >
+                        إعادة المحاولة
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -1385,12 +1647,21 @@ const SalesInvoices = () => {
                     <Receipt className="h-12 w-12 mx-auto text-gray-400 mb-3" />
                     <p className="text-gray-600 font-medium">لا توجد فواتير</p>
                     <p className="text-sm text-gray-400 mt-1">
-                      {searchQuery ? 'لا توجد نتائج للبحث' : 'ابدأ بإنشاء فاتورة جديدة'}
+                      {searchQuery ? 'لا توجد نتائج تطابق بحثك' : 'ابدأ بإنشاء فاتورة جديدة'}
                     </p>
+                    {!searchQuery && (
+                      <Button 
+                        className="mt-4"
+                        onClick={() => setAddDialogOpen(true)}
+                      >
+                        <Plus className="h-4 w-4 ml-2" />
+                        إنشاء فاتورة جديدة
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredInvoices.map(renderInvoiceRow).filter(Boolean)
+                filteredInvoices.map(renderInvoiceRow)
               )}
             </TableBody>
           </Table>
@@ -1402,15 +1673,18 @@ const SalesInvoices = () => {
             <DialogHeader>
               <DialogTitle>إنشاء فاتورة مبيعات جديدة</DialogTitle>
               <DialogDescription>
-                أدخل تفاصيل الفاتورة والمنتجات
+                أدخل تفاصيل الفاتورة والمنتجات. الحقول marked with * are required.
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>العميل *</Label>
-                  <Select value={formData.customer_id} onValueChange={(value) => setFormData({ ...formData, customer_id: value })}>
+                <div className="space-y-2">
+                  <Label htmlFor="customer">العميل *</Label>
+                  <Select 
+                    value={formData.customer_id} 
+                    onValueChange={(value) => setFormData({ ...formData, customer_id: value })}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="اختر العميل" />
                     </SelectTrigger>
@@ -1424,18 +1698,38 @@ const SalesInvoices = () => {
                   </Select>
                 </div>
 
-                <div>
-                  <Label>تاريخ الفاتورة *</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="payment_method">طريقة الدفع</Label>
+                  <Select 
+                    value={formData.payment_method} 
+                    onValueChange={(value) => setFormData({ ...formData, payment_method: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر طريقة الدفع" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cash">نقداً</SelectItem>
+                      <SelectItem value="transfer">تحويل بنكي</SelectItem>
+                      <SelectItem value="card">بطاقة</SelectItem>
+                      <SelectItem value="credit">آجل</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="invoice_date">تاريخ الفاتورة *</Label>
                   <Input
+                    id="invoice_date"
                     type="date"
                     value={formData.invoice_date}
                     onChange={(e) => setFormData({ ...formData, invoice_date: e.target.value })}
                   />
                 </div>
 
-                <div>
-                  <Label>تاريخ الاستحقاق *</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="due_date">تاريخ الاستحقاق *</Label>
                   <Input
+                    id="due_date"
                     type="date"
                     value={formData.due_date}
                     onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
@@ -1445,118 +1739,160 @@ const SalesInvoices = () => {
 
               <Separator />
 
-              <div>
-                <h3 className="font-semibold mb-3">المنتجات</h3>
-                <div className="grid grid-cols-4 gap-2 mb-2">
-                  <Select value={newItem.product_id} onValueChange={(value) => setNewItem({ ...newItem, product_id: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر المنتج" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {products.map(product => (
-                        <SelectItem key={product.id} value={product.id}>
-                          {product.product_name} - {product.selling_price} ر.س
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg">إضافة المنتجات</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 p-4 bg-gray-50 rounded-lg">
+                  <div className="space-y-2">
+                    <Label htmlFor="product">المنتج</Label>
+                    <Select 
+                      value={newItem.product_id} 
+                      onValueChange={(value) => setNewItem({ ...newItem, product_id: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر المنتج" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {products.map(product => (
+                          <SelectItem key={product.id} value={product.id}>
+                            {product.product_name} - {product.selling_price} ر.س
+                            {product.stock_quantity > 0 ? ` (${product.stock_quantity} متوفر)` : ' (غير متوفر)'}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                  <Input
-                    type="number"
-                    placeholder="الكمية"
-                    value={newItem.quantity}
-                    onChange={(e) => setNewItem({ ...newItem, quantity: e.target.value })}
-                  />
+                  <div className="space-y-2">
+                    <Label htmlFor="quantity">الكمية</Label>
+                    <Input
+                      id="quantity"
+                      type="number"
+                      min="1"
+                      placeholder="الكمية"
+                      value={newItem.quantity}
+                      onChange={(e) => setNewItem({ ...newItem, quantity: e.target.value })}
+                    />
+                  </div>
 
-                  <Input
-                    type="number"
-                    placeholder="الخصم"
-                    value={newItem.discount}
-                    onChange={(e) => setNewItem({ ...newItem, discount: e.target.value })}
-                  />
+                  <div className="space-y-2">
+                    <Label htmlFor="discount">الخصم (ر.س)</Label>
+                    <Input
+                      id="discount"
+                      type="number"
+                      min="0"
+                      placeholder="الخصم"
+                      value={newItem.discount}
+                      onChange={(e) => setNewItem({ ...newItem, discount: e.target.value })}
+                    />
+                  </div>
 
-                  <Button onClick={addItem} className="w-full">
-                    <Plus className="h-4 w-4 ml-2" />
-                    إضافة
-                  </Button>
+                  <div className="space-y-2">
+                    <Label className="invisible">إضافة</Label>
+                    <Button onClick={addItem} className="w-full" disabled={!newItem.product_id}>
+                      <Plus className="h-4 w-4 ml-2" />
+                      إضافة للمفاتورة
+                    </Button>
+                  </div>
                 </div>
 
-                {items.length > 0 && (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>المنتج</TableHead>
-                        <TableHead>الكمية</TableHead>
-                        <TableHead>السعر</TableHead>
-                        <TableHead>الضريبة</TableHead>
-                        <TableHead>الخصم</TableHead>
-                        <TableHead>الإجمالي</TableHead>
-                        <TableHead></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {items.map((item, index) => (
-                        <TableRow key={index}>
-                          <TableCell>{item.product_name}</TableCell>
-                          <TableCell>{item.quantity}</TableCell>
-                          <TableCell>{item.unit_price.toFixed(2)}</TableCell>
-                          <TableCell>{item.tax_amount.toFixed(2)}</TableCell>
-                          <TableCell>{item.discount.toFixed(2)}</TableCell>
-                          <TableCell>{item.total.toFixed(2)}</TableCell>
-                          <TableCell>
-                            <Button variant="ghost" size="sm" onClick={() => removeItem(index)}>
-                              <XCircle className="h-4 w-4 text-red-500" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
+                {items.length > 0 ? (
+                  <>
+                    <div className="border rounded-lg">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>المنتج</TableHead>
+                            <TableHead>الكمية</TableHead>
+                            <TableHead>السعر</TableHead>
+                            <TableHead>الضريبة</TableHead>
+                            <TableHead>الخصم</TableHead>
+                            <TableHead>الإجمالي</TableHead>
+                            <TableHead></TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {items.map((item, index) => (
+                            <TableRow key={index}>
+                              <TableCell className="font-medium">{item.product_name}</TableCell>
+                              <TableCell>{item.quantity}</TableCell>
+                              <TableCell>{item.unit_price.toFixed(2)} ر.س</TableCell>
+                              <TableCell>{item.tax_amount.toFixed(2)} ر.س</TableCell>
+                              <TableCell>{item.discount.toFixed(2)} ر.س</TableCell>
+                              <TableCell className="font-semibold">{item.total.toFixed(2)} ر.س</TableCell>
+                              <TableCell>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={() => removeItem(index)}
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <CircleX className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
 
-                {items.length > 0 && (
-                  <div className="mt-4 space-y-2 text-left bg-gray-50 p-4 rounded">
-                    <div className="flex justify-between">
-                      <span>المجموع الفرعي:</span>
-                      <span>{totals.subtotal.toFixed(2)} ر.س</span>
+                    <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">المجموع الفرعي:</span>
+                        <span className="font-semibold">{totals.subtotal.toFixed(2)} ر.س</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">الضريبة:</span>
+                        <span className="font-semibold">{totals.taxAmount.toFixed(2)} ر.س</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">الخصم:</span>
+                        <span className="font-semibold text-red-600">{totals.discount.toFixed(2)} ر.س</span>
+                      </div>
+                      <Separator />
+                      <div className="flex justify-between items-center text-lg">
+                        <span className="font-bold">الإجمالي النهائي:</span>
+                        <span className="font-bold text-green-600">{totals.total.toFixed(2)} ر.س</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between">
-                      <span>الضريبة:</span>
-                      <span>{totals.taxAmount.toFixed(2)} ر.س</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>الخصم:</span>
-                      <span>{totals.discount.toFixed(2)} ر.س</span>
-                    </div>
-                    <Separator />
-                    <div className="flex justify-between font-bold text-lg">
-                      <span>الإجمالي:</span>
-                      <span>{totals.total.toFixed(2)} ر.س</span>
-                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+                    <FileText className="h-12 w-12 mx-auto text-gray-400 mb-3" />
+                    <p className="text-gray-500">لم يتم إضافة أي منتجات بعد</p>
+                    <p className="text-sm text-gray-400 mt-1">استخدم النموذج أعلاه لإضافة المنتجات</p>
                   </div>
                 )}
               </div>
 
-              <div>
-                <Label>ملاحظات</Label>
+              <div className="space-y-2">
+                <Label htmlFor="notes">ملاحظات إضافية</Label>
                 <Textarea
+                  id="notes"
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="ملاحظات إضافية..."
+                  placeholder="أي ملاحظات إضافية حول الفاتورة..."
                   rows={3}
                 />
               </div>
             </div>
 
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
+            <DialogFooter className="flex gap-2 sm:gap-0">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setAddDialogOpen(false);
+                  resetForm();
+                }}
+              >
                 إلغاء
               </Button>
               <Button
                 onClick={() => createInvoiceMutation.mutate()}
                 disabled={createInvoiceMutation.isPending || !formData.customer_id || items.length === 0}
+                className="gap-2"
               >
-                {createInvoiceMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                {createInvoiceMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                 إنشاء الفاتورة
               </Button>
             </DialogFooter>
@@ -1576,17 +1912,17 @@ const SalesInvoices = () => {
             {editInvoice && (
               <form onSubmit={handleUpdate} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
+                  <div className="space-y-2">
                     <Label>رقم الفاتورة</Label>
                     <Input value={editInvoice.invoice_number} disabled className="bg-gray-50" />
                   </div>
 
-                  <div>
+                  <div className="space-y-2">
                     <Label>العميل</Label>
                     <Input value={editInvoice.customers?.customer_name || 'غير محدد'} disabled className="bg-gray-50" />
                   </div>
 
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="edit-invoice_date">تاريخ الفاتورة *</Label>
                     <Input
                       id="edit-invoice_date"
@@ -1597,7 +1933,7 @@ const SalesInvoices = () => {
                     />
                   </div>
 
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="edit-due_date">تاريخ الاستحقاق *</Label>
                     <Input
                       id="edit-due_date"
@@ -1608,13 +1944,13 @@ const SalesInvoices = () => {
                     />
                   </div>
 
-                  <div>
+                  <div className="space-y-2">
                     <Label>المبلغ الإجمالي</Label>
                     <Input value={formatCurrency(editInvoice.total_amount)} disabled className="bg-gray-50" />
                   </div>
 
-                  <div>
-                    <Label>طريقة الدفع</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-payment_method">طريقة الدفع</Label>
                     <Select name="payment_method" defaultValue={editInvoice.payment_method || 'credit'}>
                       <SelectTrigger>
                         <SelectValue />
@@ -1628,16 +1964,16 @@ const SalesInvoices = () => {
                     </Select>
                   </div>
 
-                  <div>
+                  <div className="space-y-2">
                     <Label>حالة الدفع</Label>
-                    <div className="flex items-center h-10 px-3 border rounded-md bg-gray-50">
+                    <div className="flex items-center justify-between h-10 px-3 border rounded-md bg-gray-50">
                       {getPaymentStatusBadge(editInvoice.payment_status)}
-                      <span className="mr-2 text-xs text-muted-foreground">(تلقائي)</span>
+                      <span className="text-xs text-muted-foreground">(تلقائي حسب طريقة الدفع والمبلغ)</span>
                     </div>
                   </div>
                 </div>
 
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="edit-notes">ملاحظات</Label>
                   <Textarea
                     id="edit-notes"
@@ -1648,18 +1984,26 @@ const SalesInvoices = () => {
                   />
                 </div>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <p className="text-sm text-blue-800">
-                    يمكنك تعديل التواريخ والملاحظات فقط. لتعديل المنتجات أو المبالغ، يرجى حذف الفاتورة وإنشاء واحدة جديدة.
+                    يمكنك تعديل التواريخ والملاحظات وطريقة الدفع فقط. لتعديل المنتجات أو المبالغ، يرجى حذف الفاتورة وإنشاء واحدة جديدة.
                   </p>
                 </div>
 
                 <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setEditDialogOpen(false)}
+                  >
                     إلغاء
                   </Button>
-                  <Button type="submit" disabled={updateInvoiceMutation.isPending}>
-                    {updateInvoiceMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                  <Button 
+                    type="submit" 
+                    disabled={updateInvoiceMutation.isPending}
+                    className="gap-2"
+                  >
+                    {updateInvoiceMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                     حفظ التعديلات
                   </Button>
                 </DialogFooter>
@@ -1677,122 +2021,181 @@ const SalesInvoices = () => {
                 فاتورة رقم: {selectedInvoice?.invoice_number}
               </DialogDescription>
             </DialogHeader>
+            
             {selectedInvoice && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>رقم الفاتورة</Label>
-                    <p className="font-semibold">{safeValue(selectedInvoice.invoice_number)}</p>
+              <div className="space-y-6">
+                {/* Basic Info */}
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-sm text-gray-500">رقم الفاتورة</Label>
+                      <p className="font-semibold text-lg">{safeValue(selectedInvoice.invoice_number)}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-gray-500">العميل</Label>
+                      <p className="font-semibold">{safeValue(selectedInvoice.customers?.customer_name, '-')}</p>
+                    </div>
+                    {selectedInvoice.customers?.email && (
+                      <div>
+                        <Label className="text-sm text-gray-500">البريد الإلكتروني</Label>
+                        <p>{safeValue(selectedInvoice.customers.email)}</p>
+                      </div>
+                    )}
+                    {selectedInvoice.customers?.phone && (
+                      <div>
+                        <Label className="text-sm text-gray-500">الهاتف</Label>
+                        <p>{safeValue(selectedInvoice.customers.phone)}</p>
+                      </div>
+                    )}
                   </div>
-                  <div>
-                    <Label>العميل</Label>
-                    <p className="font-semibold">{safeValue(selectedInvoice.customers?.customer_name, '-')}</p>
-                  </div>
-                  <div>
-                    <Label>التاريخ</Label>
-                    <p>{safeFormatDate(selectedInvoice.invoice_date, 'yyyy-MM-dd')}</p>
-                  </div>
-                  <div>
-                    <Label>تاريخ الاستحقاق</Label>
-                    <p>{safeFormatDate(selectedInvoice.due_date, 'yyyy-MM-dd')}</p>
+
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-sm text-gray-500">التاريخ</Label>
+                      <p>{safeFormatDate(selectedInvoice.invoice_date, 'yyyy-MM-dd')}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-gray-500">تاريخ الاستحقاق</Label>
+                      <p>{safeFormatDate(selectedInvoice.due_date, 'yyyy-MM-dd')}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-gray-500">طريقة الدفع</Label>
+                      <p>
+                        {selectedInvoice.payment_method === 'cash' ? 'نقداً' :
+                         selectedInvoice.payment_method === 'transfer' ? 'تحويل بنكي' :
+                         selectedInvoice.payment_method === 'card' ? 'بطاقة' : 'آجل'}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-gray-500">الحالة</Label>
+                      <div className="mt-1">
+                        {getStatusBadge(selectedInvoice.status)}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
+                <Separator />
+
+                {/* Invoice Items */}
                 {invoiceItems.length > 0 && (
-                  <>
-                    <Separator />
-                    <div>
-                      <h3 className="font-semibold mb-3">بنود الفاتورة</h3>
+                  <div>
+                    <h3 className="font-semibold text-lg mb-4">بنود الفاتورة</h3>
+                    <div className="border rounded-lg">
                       <Table>
                         <TableHeader>
                           <TableRow>
                             <TableHead>المنتج</TableHead>
                             <TableHead>الكمية</TableHead>
                             <TableHead>السعر</TableHead>
+                            <TableHead>الضريبة</TableHead>
+                            <TableHead>الخصم</TableHead>
                             <TableHead>الإجمالي</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {invoiceItems.map((item, index) => (
                             <TableRow key={index}>
-                              <TableCell>{safeValue(item.product_name)}</TableCell>
+                              <TableCell className="font-medium">{safeValue(item.product_name)}</TableCell>
                               <TableCell>{safeToLocaleString(item.quantity)}</TableCell>
                               <TableCell>{formatCurrency(item.unit_price)}</TableCell>
+                              <TableCell>{formatCurrency(item.tax_amount)}</TableCell>
+                              <TableCell>{formatCurrency(item.discount)}</TableCell>
                               <TableCell className="font-semibold">{formatCurrency(item.total)}</TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
                       </Table>
                     </div>
-                  </>
+                  </div>
                 )}
 
                 <Separator />
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span>المجموع الفرعي:</span>
-                    <span>{formatCurrency(selectedInvoice.subtotal)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>الضريبة:</span>
-                    <span>{formatCurrency(selectedInvoice.tax_amount)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>الخصم:</span>
-                    <span>{formatCurrency(selectedInvoice.discount)}</span>
-                  </div>
-                  <Separator />
-                  <div className="flex justify-between font-bold text-lg">
-                    <span>الإجمالي:</span>
-                    <span>{formatCurrency(selectedInvoice.total_amount)}</span>
-                  </div>
-                  <div className="flex justify-between text-green-600">
-                    <span>المدفوع:</span>
-                    <span>{formatCurrency(selectedInvoice.paid_amount)}</span>
-                  </div>
-                  <div className="flex justify-between text-orange-600">
-                    <span>المتبقي:</span>
-                    <span>{formatCurrency(selectedInvoice.remaining_amount)}</span>
+
+                {/* Totals */}
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-lg">الملخص المالي</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">المجموع الفرعي:</span>
+                        <span className="font-semibold">{formatCurrency(selectedInvoice.subtotal)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">الضريبة:</span>
+                        <span className="font-semibold">{formatCurrency(selectedInvoice.tax_amount)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">الخصم:</span>
+                        <span className="font-semibold text-red-600">{formatCurrency(selectedInvoice.discount)}</span>
+                      </div>
+                    </div>
+                    <div className="space-y-2 bg-gray-50 p-4 rounded-lg">
+                      <div className="flex justify-between items-center text-lg">
+                        <span className="font-bold">الإجمالي:</span>
+                        <span className="font-bold text-green-600">{formatCurrency(selectedInvoice.total_amount)}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-green-600">
+                        <span>المدفوع:</span>
+                        <span className="font-semibold">{formatCurrency(selectedInvoice.paid_amount)}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-orange-600">
+                        <span>المتبقي:</span>
+                        <span className="font-semibold">{formatCurrency(selectedInvoice.remaining_amount)}</span>
+                      </div>
+                      <div className="mt-2">
+                        {getPaymentStatusBadge(selectedInvoice.payment_status)}
+                      </div>
+                    </div>
                   </div>
                 </div>
+
+                {/* Notes */}
                 {selectedInvoice.notes && (
                   <>
                     <Separator />
                     <div>
-                      <Label>ملاحظات</Label>
-                      <p className="text-sm text-gray-600">{safeValue(selectedInvoice.notes)}</p>
+                      <Label className="text-sm text-gray-500">ملاحظات</Label>
+                      <p className="mt-2 p-3 bg-gray-50 rounded-lg text-gray-700">
+                        {safeValue(selectedInvoice.notes)}
+                      </p>
                     </div>
                   </>
                 )}
               </div>
             )}
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
+
+            <DialogFooter className="flex flex-col sm:flex-row gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setViewDialogOpen(false)}
+                className="sm:order-2"
+              >
                 إغلاق
               </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  if (selectedInvoice) {
-                    handleExportInvoicePDF(selectedInvoice);
-                  }
-                }}
-              >
-                <Download className="h-4 w-4 ml-2" />
-                تصدير PDF
-              </Button>
-              <Button onClick={() => {
-                console.log('Print button clicked in view dialog');
-                console.log('Selected invoice:', selectedInvoice);
-                if (selectedInvoice) {
-                  handlePrint(selectedInvoice);
-                } else {
-                  console.error('No selected invoice!');
-                }
-              }}>
-                <Printer className="h-4 w-4 ml-2" />
-                طباعة
-              </Button>
+              <div className="flex gap-2 sm:order-1">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (selectedInvoice) {
+                      handleExportInvoicePDF(selectedInvoice);
+                    }
+                  }}
+                >
+                  <Download className="h-4 w-4 ml-2" />
+                  تصدير PDF
+                </Button>
+                <Button 
+                  onClick={() => {
+                    if (selectedInvoice) {
+                      handlePrint(selectedInvoice);
+                    }
+                  }}
+                >
+                  <Printer className="h-4 w-4 ml-2" />
+                  طباعة الفاتورة
+                </Button>
+              </div>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -1803,17 +2206,24 @@ const SalesInvoices = () => {
             <AlertDialogHeader>
               <AlertDialogTitle>تأكيد الحذف</AlertDialogTitle>
               <AlertDialogDescription>
-                هل أنت متأكد من حذف هذه الفاتورة؟ لا يمكن التراجع عن هذا الإجراء.
+                هل أنت متأكد من رغبتك في حذف هذه الفاتورة؟ 
+                <br />
+                <span className="font-semibold text-red-600">
+                  هذا الإجراء لا يمكن التراجع عنه وسيتم حذف جميع بنود الفاتورة المرتبطة بها.
+                </span>
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>إلغاء</AlertDialogCancel>
+              <AlertDialogCancel disabled={deleteInvoiceMutation.isPending}>
+                إلغاء
+              </AlertDialogCancel>
               <AlertDialogAction
                 onClick={confirmDelete}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                disabled={deleteInvoiceMutation.isPending}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90 gap-2"
               >
-                {deleteInvoiceMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-                حذف
+                {deleteInvoiceMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                نعم، احذف الفاتورة
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
