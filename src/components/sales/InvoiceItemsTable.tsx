@@ -53,18 +53,23 @@ export function InvoiceItemsTable({
   const handleProductSelect = (itemId: string, productId: string) => {
     const product = products.find((p) => p.id === productId);
     if (product) {
+      const currentItem = items.find((i) => i.id === itemId);
+      const quantity = currentItem?.quantity || 1;
+
       onUpdateItem(itemId, "product_id", productId);
       onUpdateItem(itemId, "product_name", product.product_name);
       onUpdateItem(itemId, "unit_price", product.selling_price);
-      onUpdateItem(itemId, "tax_rate", product.tax_rate);
+      onUpdateItem(itemId, "tax_rate", product.tax_rate || 15);
 
-      const quantity = items.find((i) => i.id === itemId)?.quantity || 1;
       const subtotal = quantity * product.selling_price;
-      const taxAmount = (subtotal * product.tax_rate) / 100;
+      const taxAmount = (subtotal * (product.tax_rate || 15)) / 100;
       const total = subtotal + taxAmount;
 
       onUpdateItem(itemId, "tax_amount", taxAmount);
       onUpdateItem(itemId, "total", total);
+
+      console.log(`Product selected: ${product.product_name}, ID: ${productId}`);
+      console.log(`Calculated - Subtotal: ${subtotal}, Tax: ${taxAmount}, Total: ${total}`);
     }
   };
 

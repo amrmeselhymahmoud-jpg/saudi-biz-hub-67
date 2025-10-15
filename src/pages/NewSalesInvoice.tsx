@@ -83,10 +83,13 @@ export default function NewSalesInvoice() {
 
   useEffect(() => {
     generateInvoiceNumber();
+  }, []);
+
+  useEffect(() => {
     if (items.length === 0) {
       addItem();
     }
-  }, []);
+  }, [items.length]);
 
   const generateInvoiceNumber = () => {
     const timestamp = Date.now();
@@ -144,20 +147,22 @@ export default function NewSalesInvoice() {
 
   const saveInvoiceMutation = useMutation({
     mutationFn: async () => {
-      console.log("Items before save:", items);
-
       if (!selectedCustomerId) {
         throw new Error("الرجاء اختيار العميل");
       }
 
-      if (items.length === 0) {
-        throw new Error("الرجاء إضافة منتج واحد على الأقل");
-      }
+      const validItems = items.filter((item) => {
+        return item.product_id &&
+               item.product_id.trim() !== "" &&
+               item.quantity > 0 &&
+               item.unit_price > 0;
+      });
 
-      const validItems = items.filter((item) => item.product_id && item.product_id.trim() !== "");
+      console.log("Valid items:", validItems);
+      console.log("Total items:", items.length);
 
       if (validItems.length === 0) {
-        throw new Error("الرجاء اختيار منتج واحد على الأقل");
+        throw new Error("الرجاء اختيار منتج واحد على الأقل مع تحديد الكمية والسعر");
       }
 
       const { data: invoice, error: invoiceError } = await supabase
@@ -218,10 +223,14 @@ export default function NewSalesInvoice() {
   });
 
   const handlePrint = async () => {
-    if (!selectedCustomer || items.length === 0) {
+    const validItems = items.filter((item) =>
+      item.product_id && item.product_id.trim() !== ""
+    );
+
+    if (!selectedCustomer || validItems.length === 0) {
       toast({
         title: "تنبيه",
-        description: "الرجاء إضافة العميل والمنتجات أولاً",
+        description: "الرجاء إضافة العميل واختيار منتج واحد على الأقل",
         variant: "destructive",
       });
       return;
@@ -238,7 +247,7 @@ export default function NewSalesInvoice() {
       doc.text(`Date: ${invoiceDate}`, 20, 48);
       doc.text(`Customer: ${selectedCustomer.customer_name}`, 20, 56);
 
-      const tableData = items.map((item) => [
+      const tableData = validItems.map((item) => [
         item.product_name,
         item.quantity.toString(),
         item.unit_price.toFixed(2),
