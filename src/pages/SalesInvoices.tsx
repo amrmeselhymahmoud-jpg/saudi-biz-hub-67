@@ -883,10 +883,8 @@ const SalesInvoices = () => {
       doc.setDrawColor(229, 231, 235);
       doc.rect(110, yPos, 90, 45, 'S');
 
-      doc.setFontSize(12);
-      doc.setFont('Amiri', 'bold');
+      doc.setFontSize(13);
       doc.text('بيانات العميل', 195, yPos + 7, { align: 'right' });
-      doc.setFont('Amiri', 'normal');
       doc.setFontSize(10);
       doc.text(`الاسم: ${safeValue(customer?.customer_name, 'غير محدد')}`, 195, yPos + 15, { align: 'right' });
       if (customer?.email) {
@@ -902,10 +900,8 @@ const SalesInvoices = () => {
       doc.setDrawColor(229, 231, 235);
       doc.rect(10, yPos, 90, 45, 'S');
 
-      doc.setFontSize(12);
-      doc.setFont('Amiri', 'bold');
+      doc.setFontSize(13);
       doc.text('تفاصيل الفاتورة', 95, yPos + 7, { align: 'right' });
-      doc.setFont('Amiri', 'normal');
       doc.setFontSize(10);
       doc.text(`التاريخ: ${safeFormatDate(invoice.invoice_date, 'yyyy-MM-dd')}`, 95, yPos + 15, { align: 'right' });
       doc.text(`تاريخ الاستحقاق: ${safeFormatDate(invoice.due_date, 'yyyy-MM-dd')}`, 95, yPos + 23, { align: 'right' });
@@ -942,8 +938,9 @@ const SalesInvoices = () => {
           headStyles: {
             fillColor: [16, 185, 129],
             textColor: [255, 255, 255],
-            fontStyle: 'bold',
+            fontStyle: 'normal',
             halign: 'center',
+            fontSize: 11,
           },
           alternateRowStyles: {
             fillColor: [249, 250, 251],
@@ -989,15 +986,14 @@ const SalesInvoices = () => {
       doc.setTextColor(0, 0, 0);
 
       totalYPos += 12;
-      doc.setFont('Amiri', 'bold');
-      doc.setFontSize(12);
+      doc.setFontSize(13);
       doc.setTextColor(16, 185, 129);
       doc.text('الإجمالي:', totalsX - 5, totalYPos, { align: 'right' });
       doc.text(`${safeToLocaleString(invoice.total_amount)} ر.س`, totalsX - totalsWidth + 5, totalYPos);
 
       totalYPos += 10;
       doc.setFontSize(10);
-      doc.setFont('Amiri', 'normal');
+      doc.setTextColor(0, 0, 0);
       doc.text('المدفوع:', totalsX - 5, totalYPos, { align: 'right' });
       doc.text(`${safeToLocaleString(invoice.paid_amount)} ر.س`, totalsX - totalsWidth + 5, totalYPos);
 
@@ -1017,10 +1013,8 @@ const SalesInvoices = () => {
         doc.setDrawColor(16, 185, 129);
         doc.rect(10, yPos, 190, 20, 'S');
 
-        doc.setFont('Amiri', 'bold');
-        doc.setFontSize(10);
+        doc.setFontSize(11);
         doc.text('ملاحظات:', 195, yPos + 7, { align: 'right' });
-        doc.setFont('Amiri', 'normal');
         doc.setFontSize(9);
         const notesText = safeValue(invoice.notes);
         const splitNotes = doc.splitTextToSize(notesText, 180);
@@ -1034,12 +1028,10 @@ const SalesInvoices = () => {
       doc.setDrawColor(16, 185, 129);
       doc.line(10, yPos, 200, yPos);
 
-      doc.setFontSize(11);
-      doc.setFont('Amiri', 'bold');
+      doc.setFontSize(12);
       doc.setTextColor(16, 185, 129);
       doc.text('شكراً لتعاملكم معنا', 105, yPos + 7, { align: 'center' });
 
-      doc.setFont('Amiri', 'normal');
       doc.setFontSize(8);
       doc.setTextColor(107, 114, 128);
       doc.text(`تم التصدير في: ${safeFormatDate(new Date().toISOString(), 'yyyy-MM-dd HH:mm')}`, 105, yPos + 13, { align: 'center' });
