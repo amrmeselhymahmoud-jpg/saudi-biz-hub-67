@@ -53,6 +53,20 @@ interface Product {
   created_at: string;
 }
 
+const getUnitLabel = (unit: string | null) => {
+  const unitMap: Record<string, string> = {
+    'piece': 'قطعة',
+    'box': 'صندوق',
+    'carton': 'كرتون',
+    'kg': 'كيلوغرام',
+    'gram': 'جرام',
+    'liter': 'لتر',
+    'meter': 'متر',
+    'pack': 'باكو',
+  };
+  return unitMap[unit || 'piece'] || unit || '-';
+};
+
 export default function ProductsCosts() {
   const [searchQuery, setSearchQuery] = useState("");
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -65,7 +79,7 @@ export default function ProductsCosts() {
     product_name: "",
     description: "",
     category: "",
-    unit: "قطعة",
+    unit: "piece",
     cost_price: "",
     selling_price: "",
     tax_rate: "15",
@@ -110,7 +124,7 @@ export default function ProductsCosts() {
           product_name: data.product_name,
           description: data.description || null,
           category: data.category || null,
-          unit: data.unit || "قطعة",
+          unit: data.unit || "piece",
           cost_price: parseFloat(data.cost_price),
           selling_price: parseFloat(data.selling_price),
           tax_rate: parseFloat(data.tax_rate) || 15,
@@ -156,7 +170,7 @@ export default function ProductsCosts() {
           product_name: data.product_name,
           description: data.description || null,
           category: data.category || null,
-          unit: data.unit || "قطعة",
+          unit: data.unit || "piece",
           cost_price: parseFloat(data.cost_price),
           selling_price: parseFloat(data.selling_price),
           tax_rate: parseFloat(data.tax_rate) || 15,
@@ -221,7 +235,7 @@ export default function ProductsCosts() {
       product_name: product.product_name,
       description: product.description || "",
       category: product.category || "",
-      unit: product.unit || "قطعة",
+      unit: product.unit || "piece",
       cost_price: product.cost_price.toString(),
       selling_price: product.selling_price.toString(),
       tax_rate: product.tax_rate.toString(),
@@ -329,7 +343,7 @@ export default function ProductsCosts() {
                     <TableCell className="hidden md:table-cell">
                       <Badge variant="outline">{product.category || "-"}</Badge>
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell">{product.unit || "-"}</TableCell>
+                    <TableCell className="hidden lg:table-cell">{getUnitLabel(product.unit)}</TableCell>
                     <TableCell>{product.cost_price.toFixed(2)} ر.س</TableCell>
                     <TableCell>{product.selling_price.toFixed(2)} ر.س</TableCell>
                     <TableCell className="hidden lg:table-cell">{product.tax_rate}%</TableCell>
@@ -464,7 +478,7 @@ export default function ProductsCosts() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">الوحدة</p>
-                  <p className="font-semibold">{selectedProduct.unit || "-"}</p>
+                  <p className="font-semibold">{getUnitLabel(selectedProduct.unit)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">سعر التكلفة</p>

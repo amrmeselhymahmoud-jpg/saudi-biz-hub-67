@@ -94,14 +94,14 @@ export const ProductForm = ({ formData, onChange }: ProductFormProps) => {
                 <SelectValue placeholder="اختر الوحدة" />
               </SelectTrigger>
               <SelectContent dir="rtl">
-                <SelectItem value="قطعة">قطعة</SelectItem>
-                <SelectItem value="صندوق">صندوق</SelectItem>
-                <SelectItem value="كرتون">كرتون</SelectItem>
-                <SelectItem value="كيلوغرام">كيلوغرام</SelectItem>
-                <SelectItem value="لتر">لتر</SelectItem>
-                <SelectItem value="متر">متر</SelectItem>
-                <SelectItem value="علبة">علبة</SelectItem>
-                <SelectItem value="باكو">باكو</SelectItem>
+                <SelectItem value="piece">قطعة</SelectItem>
+                <SelectItem value="box">صندوق</SelectItem>
+                <SelectItem value="carton">كرتون</SelectItem>
+                <SelectItem value="kg">كيلوغرام</SelectItem>
+                <SelectItem value="gram">جرام</SelectItem>
+                <SelectItem value="liter">لتر</SelectItem>
+                <SelectItem value="meter">متر</SelectItem>
+                <SelectItem value="pack">باكو</SelectItem>
               </SelectContent>
             </Select>
           </div>
