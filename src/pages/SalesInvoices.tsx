@@ -1,4 +1,4 @@
-import { Receipt, Plus, Search, MoveHorizontal as MoreHorizontal, Eye, Trash2, Download, Loader as Loader2, DollarSign, FileText, CircleCheck as CheckCircle2, Clock, Circle as XCircle, Printer, CreditCard as Edit } from "lucide-react";
+import { Receipt, Plus, Search, MoveHorizontal as MoreHorizontal, Eye, Trash2, Loader as Loader2, DollarSign, FileText, CircleCheck as CheckCircle2, Clock, Circle as XCircle, Printer, CreditCard as Edit } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -7,9 +7,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import jsPDF from "jspdf";
-import "jspdf-autotable";
-import { amiriRegularBase64 } from "@/utils/arabicFont";
 import {
   Table,
   TableBody,
@@ -629,130 +626,6 @@ const SalesInvoices = () => {
 
   const totals = calculateTotals();
 
-  const handleExportPDF = async () => {
-    console.log('=== handleExportPDF CALLED ===');
-    console.log('Filtered invoices count:', filteredInvoices.length);
-    console.log('Stats:', stats);
-
-    try {
-      if (filteredInvoices.length === 0) {
-        console.warn('No invoices to export');
-        toast({
-          title: "تنبيه",
-          description: "لا توجد فواتير للتصدير",
-          variant: "default",
-        });
-        return;
-      }
-
-      console.log('Creating PDF document...');
-      const doc = new jsPDF();
-
-      console.log('Adding Arabic font...');
-      doc.addFileToVFS('Amiri-Regular.ttf', amiriRegularBase64);
-      doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal');
-      doc.setFont('Amiri');
-
-      console.log('Adding header...');
-      doc.setFontSize(18);
-      doc.text('فواتير المبيعات', 105, 20, { align: 'center' });
-
-      doc.setFontSize(10);
-      const currentDate = new Date().toLocaleDateString('ar-SA', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-      doc.text(`تاريخ التصدير: ${currentDate}`, 105, 30, { align: 'center' });
-
-      doc.setFontSize(10);
-      let yPos = 40;
-      doc.text(`إجمالي الفواتير: ${stats.totalInvoices}`, 20, yPos);
-      doc.text(`مدفوعة: ${stats.paidInvoices}`, 80, yPos);
-      doc.text(`غير مدفوعة: ${stats.unpaidInvoices}`, 120, yPos);
-      yPos += 10;
-      doc.text(`إجمالي الإيرادات: ${safeToLocaleString(stats.totalRevenue)} ر.س`, 20, yPos);
-
-      console.log('Preparing table data...');
-      const tableData = filteredInvoices.map((invoice, index) => {
-        try {
-          return [
-            String(index + 1),
-            safeValue(invoice.invoice_number),
-            safeValue(invoice.customers?.customer_name),
-            safeValue(invoice.customers?.email),
-            safeFormatDate(invoice.invoice_date, 'yyyy-MM-dd'),
-            `${safeToLocaleString(invoice.total_amount)} ر.س`,
-            invoice.payment_status === 'paid' ? 'مدفوعة' :
-            invoice.payment_status === 'partial' ? 'جزئي' : 'غير مدفوعة',
-          ];
-        } catch (error) {
-          console.error('Error formatting invoice row:', error, invoice);
-          return ['', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A'];
-        }
-      });
-
-      console.log('Table data prepared:', tableData.length, 'rows');
-      console.log('Creating table...');
-
-      (doc as any).autoTable({
-        startY: yPos + 10,
-        head: [['#', 'رقم الفاتورة', 'العميل', 'البريد', 'التاريخ', 'الإجمالي', 'الحالة']],
-        body: tableData,
-        styles: {
-          font: 'Amiri',
-          fontStyle: 'normal',
-          halign: 'right',
-          fontSize: 9,
-        },
-        headStyles: {
-          fillColor: [16, 185, 129],
-          textColor: [255, 255, 255],
-          fontStyle: 'bold',
-        },
-        alternateRowStyles: {
-          fillColor: [249, 250, 251],
-        },
-        margin: { top: 10, right: 10, bottom: 10, left: 10 },
-      });
-
-      const pageCount = (doc as any).internal.getNumberOfPages();
-      for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(8);
-        doc.text(
-          `صفحة ${i} من ${pageCount}`,
-          doc.internal.pageSize.width / 2,
-          doc.internal.pageSize.height - 10,
-          { align: 'center' }
-        );
-      }
-
-      console.log('Saving PDF...');
-      const fileName = `sales-invoices-${Date.now()}.pdf`;
-      doc.save(fileName);
-      console.log('PDF saved successfully:', fileName);
-
-      toast({
-        title: "تم بنجاح",
-        description: "تم تصدير الفواتير إلى PDF بنجاح",
-      });
-    } catch (error) {
-      console.error('=== ERROR IN handleExportPDF ===');
-      console.error('Error details:', error);
-      console.error('Error message:', error instanceof Error ? error.message : 'Unknown error');
-      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-
-      toast({
-        title: "خطأ",
-        description: error instanceof Error ? error.message : "حدث خطأ أثناء التصدير إلى PDF",
-        variant: "destructive",
-      });
-    }
-  };
-
   // Print invoice with items
   const handlePrint = async (invoice: SalesInvoice) => {
     console.log('=== handlePrint CALLED ===', invoice);
@@ -1148,25 +1021,14 @@ const SalesInvoices = () => {
               <p className="text-gray-600 mt-1">إدارة وإصدار فواتير المبيعات</p>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="lg"
-              className="h-12 px-6 gap-2"
-              onClick={handleExportPDF}
-            >
-              <Download className="h-5 w-5" />
-              تصدير PDF
-            </Button>
-            <Button
-              size="lg"
-              className="h-12 px-6 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-all gap-2"
-              onClick={() => navigate('/new-sales-invoice')}
-            >
-              <Plus className="h-5 w-5" />
-              فاتورة جديدة
-            </Button>
-          </div>
+          <Button
+            size="lg"
+            className="h-12 px-6 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-all gap-2"
+            onClick={() => navigate('/new-sales-invoice')}
+          >
+            <Plus className="h-5 w-5" />
+            فاتورة جديدة
+          </Button>
         </div>
 
         {/* Stats Cards */}
