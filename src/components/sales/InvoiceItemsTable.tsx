@@ -52,25 +52,27 @@ export function InvoiceItemsTable({
 }: InvoiceItemsTableProps) {
   const handleProductSelect = (itemId: string, productId: string) => {
     const product = products.find((p) => p.id === productId);
-    if (product) {
-      const currentItem = items.find((i) => i.id === itemId);
-      const quantity = currentItem?.quantity || 1;
+    if (!product) return;
 
-      onUpdateItem(itemId, "product_id", productId);
-      onUpdateItem(itemId, "product_name", product.product_name);
-      onUpdateItem(itemId, "unit_price", product.selling_price);
-      onUpdateItem(itemId, "tax_rate", product.tax_rate || 15);
+    const currentItem = items.find((i) => i.id === itemId);
+    const quantity = currentItem?.quantity || 1;
+    const taxRate = product.tax_rate || 15;
 
-      const subtotal = quantity * product.selling_price;
-      const taxAmount = (subtotal * (product.tax_rate || 15)) / 100;
-      const total = subtotal + taxAmount;
+    onUpdateItem(itemId, "product_id", productId);
+    onUpdateItem(itemId, "product_name", product.product_name);
+    onUpdateItem(itemId, "unit_price", product.selling_price);
+    onUpdateItem(itemId, "tax_rate", taxRate);
 
-      onUpdateItem(itemId, "tax_amount", taxAmount);
-      onUpdateItem(itemId, "total", total);
+    const subtotal = quantity * product.selling_price;
+    const taxAmount = (subtotal * taxRate) / 100;
+    const total = subtotal + taxAmount;
 
-      console.log(`Product selected: ${product.product_name}, ID: ${productId}`);
-      console.log(`Calculated - Subtotal: ${subtotal}, Tax: ${taxAmount}, Total: ${total}`);
-    }
+    onUpdateItem(itemId, "tax_amount", taxAmount);
+    onUpdateItem(itemId, "total", total);
+
+    console.log(`✅ Product selected: ${product.product_name}`);
+    console.log(`📊 Values - Quantity: ${quantity}, Price: ${product.selling_price}, Tax: ${taxRate}%`);
+    console.log(`💰 Calculated - Subtotal: ${subtotal.toFixed(2)}, Tax: ${taxAmount.toFixed(2)}, Total: ${total.toFixed(2)}`);
   };
 
   return (
@@ -134,11 +136,12 @@ export function InvoiceItemsTable({
                       <Input
                         type="number"
                         min="1"
-                        value={item.quantity}
-                        onChange={(e) =>
-                          onUpdateItem(item.id, "quantity", parseFloat(e.target.value) || 1)
-                        }
-                        className="text-center"
+                        value={item.quantity || 1}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value);
+                          onUpdateItem(item.id, "quantity", val > 0 ? val : 1);
+                        }}
+                        className="text-center w-20"
                       />
                     </TableCell>
                     <TableCell>
@@ -146,11 +149,12 @@ export function InvoiceItemsTable({
                         type="number"
                         step="0.01"
                         min="0"
-                        value={item.unit_price}
-                        onChange={(e) =>
-                          onUpdateItem(item.id, "unit_price", parseFloat(e.target.value) || 0)
-                        }
-                        className="text-right"
+                        value={item.unit_price || 0}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value);
+                          onUpdateItem(item.id, "unit_price", val >= 0 ? val : 0);
+                        }}
+                        className="text-right w-24"
                         dir="rtl"
                       />
                     </TableCell>
@@ -160,11 +164,12 @@ export function InvoiceItemsTable({
                         step="0.01"
                         min="0"
                         max="100"
-                        value={item.tax_rate}
-                        onChange={(e) =>
-                          onUpdateItem(item.id, "tax_rate", parseFloat(e.target.value) || 0)
-                        }
-                        className="text-center"
+                        value={item.tax_rate || 15}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value);
+                          onUpdateItem(item.id, "tax_rate", val >= 0 && val <= 100 ? val : 15);
+                        }}
+                        className="text-center w-20"
                       />
                     </TableCell>
                     <TableCell className="text-right font-medium">

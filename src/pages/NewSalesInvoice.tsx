@@ -116,14 +116,16 @@ export default function NewSalesInvoice() {
   };
 
   const updateItem = (itemId: string, field: keyof InvoiceItem, value: any) => {
-    setItems(
-      items.map((item) => {
+    setItems((prevItems) =>
+      prevItems.map((item) => {
         if (item.id === itemId) {
           const updatedItem = { ...item, [field]: value };
 
-          const subtotal = updatedItem.quantity * updatedItem.unit_price;
-          updatedItem.tax_amount = (subtotal * updatedItem.tax_rate) / 100;
-          updatedItem.total = subtotal + updatedItem.tax_amount;
+          if (field === "quantity" || field === "unit_price" || field === "tax_rate") {
+            const subtotal = updatedItem.quantity * updatedItem.unit_price;
+            updatedItem.tax_amount = (subtotal * updatedItem.tax_rate) / 100;
+            updatedItem.total = subtotal + updatedItem.tax_amount;
+          }
 
           return updatedItem;
         }
@@ -179,7 +181,7 @@ export default function NewSalesInvoice() {
           paid_amount: 0,
           remaining_amount: total,
           payment_status: "unpaid",
-          status: "pending",
+          status: "draft",
           notes,
         })
         .select()
