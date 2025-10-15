@@ -1,4 +1,4 @@
-import { Receipt, Plus, Search, MoveHorizontal as MoreHorizontal, Eye, Trash2, Loader as Loader2, DollarSign, FileText, CircleCheck as CheckCircle2, Clock, Circle as XCircle, Printer, CreditCard as Edit } from "lucide-react";
+import { Receipt, Plus, Search, MoveHorizontal as MoreHorizontal, Eye, Trash2, Loader as Loader2, DollarSign, FileText, CircleCheck as CheckCircle2, Clock, Circle as XCircle, Printer, CreditCard as Edit, Download } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -7,6 +7,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
+import { amiriRegularBase64 } from "@/utils/arabicFont";
 import {
   Table,
   TableBody,
@@ -830,6 +833,240 @@ const SalesInvoices = () => {
     }
   };
 
+  // Export single invoice to PDF with high quality
+  const handleExportInvoicePDF = async (invoice: SalesInvoice) => {
+    console.log('=== handleExportInvoicePDF CALLED ===', invoice);
+
+    try {
+      if (!invoice || !invoice.id) {
+        console.error('Invalid invoice:', invoice);
+        toast({ title: "خطأ", description: "فاتورة غير صالحة", variant: "destructive" });
+        return;
+      }
+
+      console.log('Fetching invoice items for PDF export...');
+      const items = await fetchInvoiceItems(invoice.id);
+      console.log('Fetched items:', items.length);
+
+      const customer = invoice.customers;
+
+      // Create PDF document
+      console.log('Creating PDF document...');
+      const doc = new jsPDF();
+
+      // Add Arabic font
+      console.log('Adding Arabic font...');
+      doc.addFileToVFS('Amiri-Regular.ttf', amiriRegularBase64);
+      doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal');
+      doc.setFont('Amiri');
+
+      // Header with logo/title
+      doc.setFillColor(16, 185, 129);
+      doc.rect(0, 0, 210, 35, 'F');
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(24);
+      doc.text('فاتورة مبيعات', 105, 15, { align: 'center' });
+
+      doc.setFontSize(12);
+      doc.text(`رقم الفاتورة: ${safeValue(invoice.invoice_number)}`, 105, 25, { align: 'center' });
+
+      // Reset text color
+      doc.setTextColor(0, 0, 0);
+
+      // Customer & Invoice Info Section
+      let yPos = 45;
+
+      // Customer Info Box
+      doc.setFillColor(249, 250, 251);
+      doc.rect(110, yPos, 90, 45, 'F');
+      doc.setDrawColor(229, 231, 235);
+      doc.rect(110, yPos, 90, 45, 'S');
+
+      doc.setFontSize(12);
+      doc.setFont('Amiri', 'bold');
+      doc.text('بيانات العميل', 195, yPos + 7, { align: 'right' });
+      doc.setFont('Amiri', 'normal');
+      doc.setFontSize(10);
+      doc.text(`الاسم: ${safeValue(customer?.customer_name, 'غير محدد')}`, 195, yPos + 15, { align: 'right' });
+      if (customer?.email) {
+        doc.text(`البريد: ${safeValue(customer.email)}`, 195, yPos + 23, { align: 'right' });
+      }
+      if (customer?.phone) {
+        doc.text(`الهاتف: ${safeValue(customer.phone)}`, 195, yPos + 31, { align: 'right' });
+      }
+
+      // Invoice Info Box
+      doc.setFillColor(249, 250, 251);
+      doc.rect(10, yPos, 90, 45, 'F');
+      doc.setDrawColor(229, 231, 235);
+      doc.rect(10, yPos, 90, 45, 'S');
+
+      doc.setFontSize(12);
+      doc.setFont('Amiri', 'bold');
+      doc.text('تفاصيل الفاتورة', 95, yPos + 7, { align: 'right' });
+      doc.setFont('Amiri', 'normal');
+      doc.setFontSize(10);
+      doc.text(`التاريخ: ${safeFormatDate(invoice.invoice_date, 'yyyy-MM-dd')}`, 95, yPos + 15, { align: 'right' });
+      doc.text(`تاريخ الاستحقاق: ${safeFormatDate(invoice.due_date, 'yyyy-MM-dd')}`, 95, yPos + 23, { align: 'right' });
+      doc.text(`الحالة: ${invoice.status === 'posted' ? 'منشورة' : 'مسودة'}`, 95, yPos + 31, { align: 'right' });
+      const paymentStatusText = invoice.payment_status === 'paid' ? 'مدفوعة' :
+                                invoice.payment_status === 'partial' ? 'مدفوعة جزئياً' : 'غير مدفوعة';
+      doc.text(`حالة الدفع: ${paymentStatusText}`, 95, yPos + 39, { align: 'right' });
+
+      yPos += 55;
+
+      // Items Table
+      if (items.length > 0) {
+        console.log('Creating items table...');
+        const tableData = items.map((item, index) => [
+          String(index + 1),
+          safeValue(item.product_name),
+          safeToLocaleString(item.quantity),
+          safeToLocaleString(item.unit_price),
+          `${safeToLocaleString(item.tax_rate)}%`,
+          safeToLocaleString(item.discount),
+          safeToLocaleString(item.total),
+        ]);
+
+        (doc as any).autoTable({
+          startY: yPos,
+          head: [['#', 'المنتج', 'الكمية', 'السعر', 'الضريبة', 'الخصم', 'الإجمالي']],
+          body: tableData,
+          styles: {
+            font: 'Amiri',
+            fontStyle: 'normal',
+            halign: 'right',
+            fontSize: 10,
+          },
+          headStyles: {
+            fillColor: [16, 185, 129],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            halign: 'center',
+          },
+          alternateRowStyles: {
+            fillColor: [249, 250, 251],
+          },
+          margin: { top: 10, right: 10, bottom: 10, left: 10 },
+          columnStyles: {
+            0: { halign: 'center', cellWidth: 15 },
+            1: { halign: 'right', cellWidth: 50 },
+            2: { halign: 'center', cellWidth: 20 },
+            3: { halign: 'center', cellWidth: 25 },
+            4: { halign: 'center', cellWidth: 20 },
+            5: { halign: 'center', cellWidth: 20 },
+            6: { halign: 'center', cellWidth: 30 },
+          },
+        });
+
+        yPos = (doc as any).lastAutoTable.finalY + 10;
+      }
+
+      // Totals Section
+      const totalsX = 150;
+      const totalsWidth = 50;
+
+      doc.setFillColor(249, 250, 251);
+      doc.rect(totalsX - totalsWidth, yPos, totalsWidth, 60, 'F');
+      doc.setDrawColor(229, 231, 235);
+      doc.rect(totalsX - totalsWidth, yPos, totalsWidth, 60, 'S');
+
+      doc.setFontSize(10);
+      let totalYPos = yPos + 8;
+
+      doc.text('المجموع الفرعي:', totalsX - 5, totalYPos, { align: 'right' });
+      doc.text(`${safeToLocaleString(invoice.subtotal)} ر.س`, totalsX - totalsWidth + 5, totalYPos);
+
+      totalYPos += 10;
+      doc.text('الضريبة:', totalsX - 5, totalYPos, { align: 'right' });
+      doc.text(`${safeToLocaleString(invoice.tax_amount)} ر.س`, totalsX - totalsWidth + 5, totalYPos);
+
+      totalYPos += 10;
+      doc.setTextColor(220, 38, 38);
+      doc.text('الخصم:', totalsX - 5, totalYPos, { align: 'right' });
+      doc.text(`${safeToLocaleString(invoice.discount)} ر.س`, totalsX - totalsWidth + 5, totalYPos);
+      doc.setTextColor(0, 0, 0);
+
+      totalYPos += 12;
+      doc.setFont('Amiri', 'bold');
+      doc.setFontSize(12);
+      doc.setTextColor(16, 185, 129);
+      doc.text('الإجمالي:', totalsX - 5, totalYPos, { align: 'right' });
+      doc.text(`${safeToLocaleString(invoice.total_amount)} ر.س`, totalsX - totalsWidth + 5, totalYPos);
+
+      totalYPos += 10;
+      doc.setFontSize(10);
+      doc.setFont('Amiri', 'normal');
+      doc.text('المدفوع:', totalsX - 5, totalYPos, { align: 'right' });
+      doc.text(`${safeToLocaleString(invoice.paid_amount)} ر.س`, totalsX - totalsWidth + 5, totalYPos);
+
+      totalYPos += 10;
+      doc.setTextColor(245, 158, 11);
+      doc.text('المتبقي:', totalsX - 5, totalYPos, { align: 'right' });
+      doc.text(`${safeToLocaleString(invoice.remaining_amount)} ر.س`, totalsX - totalsWidth + 5, totalYPos);
+      doc.setTextColor(0, 0, 0);
+
+      yPos += 65;
+
+      // Notes Section
+      if (invoice.notes) {
+        yPos += 5;
+        doc.setFillColor(249, 250, 251);
+        doc.rect(10, yPos, 190, 20, 'F');
+        doc.setDrawColor(16, 185, 129);
+        doc.rect(10, yPos, 190, 20, 'S');
+
+        doc.setFont('Amiri', 'bold');
+        doc.setFontSize(10);
+        doc.text('ملاحظات:', 195, yPos + 7, { align: 'right' });
+        doc.setFont('Amiri', 'normal');
+        doc.setFontSize(9);
+        const notesText = safeValue(invoice.notes);
+        const splitNotes = doc.splitTextToSize(notesText, 180);
+        doc.text(splitNotes, 195, yPos + 14, { align: 'right' });
+
+        yPos += 25;
+      }
+
+      // Footer
+      yPos = doc.internal.pageSize.height - 25;
+      doc.setDrawColor(16, 185, 129);
+      doc.line(10, yPos, 200, yPos);
+
+      doc.setFontSize(11);
+      doc.setFont('Amiri', 'bold');
+      doc.setTextColor(16, 185, 129);
+      doc.text('شكراً لتعاملكم معنا', 105, yPos + 7, { align: 'center' });
+
+      doc.setFont('Amiri', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(107, 114, 128);
+      doc.text(`تم التصدير في: ${safeFormatDate(new Date().toISOString(), 'yyyy-MM-dd HH:mm')}`, 105, yPos + 13, { align: 'center' });
+
+      // Save PDF
+      console.log('Saving PDF...');
+      const fileName = `invoice-${safeValue(invoice.invoice_number)}-${Date.now()}.pdf`;
+      doc.save(fileName);
+      console.log('PDF saved successfully:', fileName);
+
+      toast({
+        title: "تم بنجاح",
+        description: "تم تصدير الفاتورة إلى PDF بنجاح",
+      });
+    } catch (error) {
+      console.error('=== ERROR IN handleExportInvoicePDF ===');
+      console.error('Error details:', error);
+      console.error('Error message:', error instanceof Error ? error.message : 'Unknown error');
+
+      toast({
+        title: "خطأ",
+        description: error instanceof Error ? error.message : "حدث خطأ أثناء التصدير إلى PDF",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Handle delete
   const handleDelete = (invoiceId: string) => {
     try {
@@ -987,6 +1224,13 @@ const SalesInvoices = () => {
                 >
                   <Printer className="h-4 w-4" />
                   طباعة
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="gap-2"
+                  onClick={() => handleExportInvoicePDF(invoice)}
+                >
+                  <Download className="h-4 w-4" />
+                  تصدير PDF
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -1521,6 +1765,17 @@ const SalesInvoices = () => {
             <DialogFooter>
               <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
                 إغلاق
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (selectedInvoice) {
+                    handleExportInvoicePDF(selectedInvoice);
+                  }
+                }}
+              >
+                <Download className="h-4 w-4 ml-2" />
+                تصدير PDF
               </Button>
               <Button onClick={() => {
                 console.log('Print button clicked in view dialog');
