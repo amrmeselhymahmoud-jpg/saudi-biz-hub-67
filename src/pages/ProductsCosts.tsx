@@ -364,6 +364,9 @@ const ProductsCosts = () => {
             placeholder="مثال: كمبيوتر محمول Dell"
             className="text-base text-right"
             dir="rtl"
+            autoComplete="off"
+            autoFocus
+            required
           />
         </div>
 
@@ -381,6 +384,7 @@ const ProductsCosts = () => {
               placeholder="مثال: إلكترونيات"
               className="text-base text-right"
               dir="rtl"
+              autoComplete="off"
             />
           </div>
 
@@ -424,6 +428,8 @@ const ProductsCosts = () => {
               onChange={(e) => setFormData({ ...formData, cost_price: e.target.value })}
               placeholder="0.00"
               className="text-base"
+              autoComplete="off"
+              required
             />
           </div>
 
@@ -441,6 +447,8 @@ const ProductsCosts = () => {
               onChange={(e) => setFormData({ ...formData, selling_price: e.target.value })}
               placeholder="0.00"
               className="text-base"
+              autoComplete="off"
+              required
             />
           </div>
         </div>
@@ -480,6 +488,7 @@ const ProductsCosts = () => {
                 onChange={(e) => setFormData({ ...formData, current_stock: e.target.value })}
                 placeholder="0"
                 className="text-base"
+                autoComplete="off"
               />
             </div>
 
@@ -496,6 +505,7 @@ const ProductsCosts = () => {
                 onChange={(e) => setFormData({ ...formData, reorder_point: e.target.value })}
                 placeholder="10"
                 className="text-base"
+                autoComplete="off"
               />
             </div>
 
@@ -512,6 +522,7 @@ const ProductsCosts = () => {
                 onChange={(e) => setFormData({ ...formData, min_stock_level: e.target.value })}
                 placeholder="0"
                 className="text-base"
+                autoComplete="off"
               />
             </div>
 
@@ -528,6 +539,7 @@ const ProductsCosts = () => {
                 onChange={(e) => setFormData({ ...formData, max_stock_level: e.target.value })}
                 placeholder="1000"
                 className="text-base"
+                autoComplete="off"
               />
             </div>
           </div>
@@ -550,6 +562,7 @@ const ProductsCosts = () => {
                 rows={3}
                 className="text-base resize-none text-right"
                 dir="rtl"
+                autoComplete="off"
               />
             </div>
 
@@ -566,6 +579,7 @@ const ProductsCosts = () => {
                 rows={2}
                 className="text-base resize-none text-right"
                 dir="rtl"
+                autoComplete="off"
               />
             </div>
           </div>
@@ -767,14 +781,16 @@ const ProductsCosts = () => {
         setAddDialogOpen(open);
         if (!open) resetForm();
       }}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto" style={{ pointerEvents: 'auto', zIndex: 50 }}>
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-right">إضافة منتج جديد</DialogTitle>
             <DialogDescription className="text-base text-right">
               قم بملء جميع الحقول المطلوبة لإضافة منتج جديد إلى النظام
             </DialogDescription>
           </DialogHeader>
-          <ProductForm />
+          <div style={{ pointerEvents: 'auto' }}>
+            <ProductForm />
+          </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button
               variant="outline"
