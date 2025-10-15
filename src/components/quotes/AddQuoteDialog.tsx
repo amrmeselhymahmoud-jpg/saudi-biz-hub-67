@@ -166,11 +166,14 @@ export function AddQuoteDialog({ open, onOpenChange }: AddQuoteDialogProps) {
 
       const itemsToInsert = items.map((item) => ({
         quote_id: quote.id,
+        product_id: null,
         description: item.description,
         quantity: item.quantity,
         unit_price: item.unit_price,
         tax_rate: item.tax_rate,
         discount_rate: item.discount_rate,
+        discount: (item.quantity * item.unit_price * item.discount_rate) / 100,
+        tax_amount: ((item.quantity * item.unit_price - (item.quantity * item.unit_price * item.discount_rate / 100)) * item.tax_rate) / 100,
         total: item.total,
       }));
 
