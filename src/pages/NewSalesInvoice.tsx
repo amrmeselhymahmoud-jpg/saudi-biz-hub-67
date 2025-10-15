@@ -144,12 +144,20 @@ export default function NewSalesInvoice() {
 
   const saveInvoiceMutation = useMutation({
     mutationFn: async () => {
+      console.log("Items before save:", items);
+
       if (!selectedCustomerId) {
         throw new Error("الرجاء اختيار العميل");
       }
 
-      if (items.length === 0 || items.some((item) => !item.product_id)) {
+      if (items.length === 0) {
         throw new Error("الرجاء إضافة منتج واحد على الأقل");
+      }
+
+      const validItems = items.filter((item) => item.product_id && item.product_id.trim() !== "");
+
+      if (validItems.length === 0) {
+        throw new Error("الرجاء اختيار منتج واحد على الأقل");
       }
 
       const { data: invoice, error: invoiceError } = await supabase
@@ -174,7 +182,7 @@ export default function NewSalesInvoice() {
 
       if (invoiceError) throw invoiceError;
 
-      const itemsToInsert = items.map((item) => ({
+      const itemsToInsert = validItems.map((item) => ({
         invoice_id: invoice.id,
         product_id: item.product_id,
         quantity: item.quantity,
