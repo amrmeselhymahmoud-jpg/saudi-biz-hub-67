@@ -854,11 +854,19 @@ const SalesInvoices = () => {
       console.log('Creating PDF document...');
       const doc = new jsPDF();
 
-      // Add Arabic font
+      // Add Arabic font with error handling
       console.log('Adding Arabic font...');
-      doc.addFileToVFS('Amiri-Regular.ttf', amiriRegularBase64);
-      doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal');
-      doc.setFont('Amiri');
+      let useCustomFont = false;
+      try {
+        doc.addFileToVFS('Amiri-Regular.ttf', amiriRegularBase64);
+        doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal');
+        doc.setFont('Amiri', 'normal');
+        useCustomFont = true;
+        console.log('Custom font loaded successfully');
+      } catch (fontError) {
+        console.warn('Failed to load custom font, using default:', fontError);
+        useCustomFont = false;
+      }
 
       // Header with logo/title
       doc.setFillColor(16, 185, 129);
@@ -925,20 +933,17 @@ const SalesInvoices = () => {
           safeToLocaleString(item.total),
         ]);
 
-        (doc as any).autoTable({
+        const tableConfig: any = {
           startY: yPos,
           head: [['#', 'المنتج', 'الكمية', 'السعر', 'الضريبة', 'الخصم', 'الإجمالي']],
           body: tableData,
           styles: {
-            font: 'Amiri',
-            fontStyle: 'normal',
             halign: 'right',
             fontSize: 10,
           },
           headStyles: {
             fillColor: [16, 185, 129],
             textColor: [255, 255, 255],
-            fontStyle: 'normal',
             halign: 'center',
             fontSize: 11,
           },
@@ -955,7 +960,14 @@ const SalesInvoices = () => {
             5: { halign: 'center', cellWidth: 20 },
             6: { halign: 'center', cellWidth: 30 },
           },
-        });
+        };
+
+        // Only add custom font if it was loaded successfully
+        if (useCustomFont) {
+          tableConfig.styles.font = 'Amiri';
+        }
+
+        (doc as any).autoTable(tableConfig);
 
         yPos = (doc as any).lastAutoTable.finalY + 10;
       }
