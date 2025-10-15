@@ -554,17 +554,17 @@ const SalesInvoices = () => {
   // Safe calculations with memoization
   const stats = useMemo(() => {
     try {
-      if (!Array.isArray(invoices)) return {
+      if (!Array.isArray(filteredInvoices)) return {
         totalInvoices: 0,
         paidInvoices: 0,
         unpaidInvoices: 0,
         totalRevenue: 0
       };
 
-      const totalInvoices = invoices.length;
-      const paidInvoices = invoices.filter(inv => inv?.payment_status === 'paid').length;
-      const unpaidInvoices = invoices.filter(inv => inv?.payment_status === 'unpaid').length;
-      const totalRevenue = invoices.reduce((sum, inv) => {
+      const totalInvoices = filteredInvoices.length;
+      const paidInvoices = filteredInvoices.filter(inv => inv?.payment_status === 'paid').length;
+      const unpaidInvoices = filteredInvoices.filter(inv => inv?.payment_status === 'unpaid').length;
+      const totalRevenue = filteredInvoices.reduce((sum, inv) => {
         try {
           const amount = parseFloat(String(inv?.total_amount || 0));
           return sum + (isNaN(amount) ? 0 : amount);
@@ -579,7 +579,7 @@ const SalesInvoices = () => {
       console.error('Error calculating stats:', error);
       return { totalInvoices: 0, paidInvoices: 0, unpaidInvoices: 0, totalRevenue: 0 };
     }
-  }, [invoices]);
+  }, [filteredInvoices]);
 
   const calculateTotals = () => {
     try {
@@ -630,8 +630,13 @@ const SalesInvoices = () => {
   const totals = calculateTotals();
 
   const handleExportPDF = async () => {
+    console.log('=== handleExportPDF CALLED ===');
+    console.log('Filtered invoices count:', filteredInvoices.length);
+    console.log('Stats:', stats);
+
     try {
       if (filteredInvoices.length === 0) {
+        console.warn('No invoices to export');
         toast({
           title: "تنبيه",
           description: "لا توجد فواتير للتصدير",
@@ -640,12 +645,15 @@ const SalesInvoices = () => {
         return;
       }
 
+      console.log('Creating PDF document...');
       const doc = new jsPDF();
 
+      console.log('Adding Arabic font...');
       doc.addFileToVFS('Amiri-Regular.ttf', amiriRegularBase64);
       doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal');
       doc.setFont('Amiri');
 
+      console.log('Adding header...');
       doc.setFontSize(18);
       doc.text('فواتير المبيعات', 105, 20, { align: 'center' });
 
@@ -667,6 +675,7 @@ const SalesInvoices = () => {
       yPos += 10;
       doc.text(`إجمالي الإيرادات: ${safeToLocaleString(stats.totalRevenue)} ر.س`, 20, yPos);
 
+      console.log('Preparing table data...');
       const tableData = filteredInvoices.map((invoice, index) => {
         try {
           return [
@@ -684,6 +693,9 @@ const SalesInvoices = () => {
           return ['', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A'];
         }
       });
+
+      console.log('Table data prepared:', tableData.length, 'rows');
+      console.log('Creating table...');
 
       (doc as any).autoTable({
         startY: yPos + 10,
@@ -718,17 +730,24 @@ const SalesInvoices = () => {
         );
       }
 
-      doc.save(`sales-invoices-${Date.now()}.pdf`);
+      console.log('Saving PDF...');
+      const fileName = `sales-invoices-${Date.now()}.pdf`;
+      doc.save(fileName);
+      console.log('PDF saved successfully:', fileName);
 
       toast({
         title: "تم بنجاح",
         description: "تم تصدير الفواتير إلى PDF بنجاح",
       });
     } catch (error) {
-      console.error('Error exporting to PDF:', error);
+      console.error('=== ERROR IN handleExportPDF ===');
+      console.error('Error details:', error);
+      console.error('Error message:', error instanceof Error ? error.message : 'Unknown error');
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+
       toast({
         title: "خطأ",
-        description: "حدث خطأ أثناء التصدير إلى PDF",
+        description: error instanceof Error ? error.message : "حدث خطأ أثناء التصدير إلى PDF",
         variant: "destructive",
       });
     }
