@@ -10,22 +10,47 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Bell, Settings, LogOut, User } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const QoyodHeader = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+
+  const { data: profile, isLoading } = useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return null;
+      }
+      return data;
+    },
+    enabled: !!user?.id,
+  });
 
   const handleSignOut = async () => {
     await signOut();
     navigate("/auth");
   };
 
+  const displayName = profile?.display_name || user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'مستخدم';
+  const companyName = profile?.company_name || user?.user_metadata?.company_name || 'مستخدم';
+  const businessType = profile?.business_type || user?.user_metadata?.business_type || '';
+
   const getUserInitials = () => {
-    if (user?.user_metadata?.display_name) {
-      const names = user.user_metadata.display_name.split(' ');
+    if (displayName && displayName !== 'مستخدم') {
+      const names = displayName.split(' ');
       return names.length > 1
-        ? `${names[0][0]}${names[1][0]}`
-        : names[0][0];
+        ? `${names[0][0]}${names[1][0]}`.toUpperCase()
+        : names[0][0].toUpperCase();
     }
     return user?.email?.[0]?.toUpperCase() || 'U';
   };
@@ -61,10 +86,10 @@ const QoyodHeader = () => {
                   </Avatar>
                   <div className="text-right">
                     <div className="text-sm font-semibold text-white leading-tight">
-                      {user?.user_metadata?.display_name || user?.email?.split('@')[0]}
+                      {isLoading ? '...' : displayName}
                     </div>
                     <div className="text-xs text-blue-100/80 leading-tight mt-0.5">
-                      {user?.user_metadata?.company_name || 'مستخدم'}
+                      {isLoading ? '...' : `${companyName}${businessType ? ` • ${businessType}` : ''}`}
                     </div>
                   </div>
                 </Button>
