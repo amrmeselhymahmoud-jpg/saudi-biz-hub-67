@@ -75,23 +75,28 @@ const QoyodHeader = () => {
               <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full border border-white shadow-sm"></span>
             </Button>
 
+            {/* معلومات المستخدم */}
+            <div className="flex items-center gap-3 px-4 py-2 bg-white/10 rounded-lg backdrop-blur-sm">
+              <Avatar className="h-10 w-10 border-2 border-white shadow-md">
+                <AvatarFallback className="bg-white text-blue-600 font-bold text-base">
+                  {getUserInitials()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="text-right">
+                <div className="text-sm font-bold text-white leading-tight">
+                  {isLoading ? 'جاري التحميل...' : displayName}
+                </div>
+                <div className="text-xs text-blue-100 leading-tight mt-1">
+                  {isLoading ? '...' : (companyName !== 'مستخدم' ? companyName : user?.email)}
+                </div>
+              </div>
+            </div>
+
             {/* قائمة المستخدم */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center gap-2.5 hover:bg-white/10 h-10 px-3 rounded-lg transition-all">
-                  <Avatar className="h-8 w-8 border-2 border-white/50 shadow-md">
-                    <AvatarFallback className="bg-white text-blue-600 font-semibold text-sm">
-                      {getUserInitials()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="text-right">
-                    <div className="text-sm font-semibold text-white leading-tight">
-                      {isLoading ? '...' : displayName}
-                    </div>
-                    <div className="text-xs text-blue-100/80 leading-tight mt-0.5">
-                      {isLoading ? '...' : `${companyName}${businessType ? ` • ${businessType}` : ''}`}
-                    </div>
-                  </div>
+                <Button variant="ghost" size="sm" className="hover:bg-white/10 text-white h-9 w-9 p-0 rounded-lg transition-all">
+                  <Settings className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
