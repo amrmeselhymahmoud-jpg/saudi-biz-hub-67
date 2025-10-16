@@ -383,7 +383,7 @@ const PurchaseOrders = () => {
     }
   };
 
-  const handleExport = (format: 'csv' | 'json') => {
+  const handleExport = (exportFormat: 'csv' | 'json') => {
     if (filteredOrders.length === 0) {
       toast({
         title: "تنبيه",
@@ -405,7 +405,7 @@ const PurchaseOrders = () => {
       'الملاحظات': order.notes || '-'
     }));
 
-    if (format === 'csv') {
+    if (exportFormat === 'csv') {
       exportToCSV(exportData, 'purchase_orders');
     } else {
       exportToJSON(exportData, 'purchase_orders');
