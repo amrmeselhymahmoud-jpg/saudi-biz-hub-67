@@ -39,7 +39,6 @@ import { format } from "date-fns";
 import { exportToCSV } from "@/utils/exportImport";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { loadArabicFont } from "@/utils/arabicFont";
 
 interface PurchaseOrder {
   id: string;
@@ -411,9 +410,9 @@ const PurchaseOrders = () => {
       exportToCSV(exportData, 'purchase_orders');
     } else if (exportFormat === 'pdf') {
       const doc = new jsPDF();
-      await loadArabicFont(doc);
 
-      doc.text("أوامر الشراء", 105, 15, { align: "center" });
+      doc.setFontSize(16);
+      doc.text("Purchase Orders / Awamer Al-Shera", 105, 15, { align: "center" });
 
       const tableData = filteredOrders.map(order => [
         order.order_number,
@@ -427,11 +426,10 @@ const PurchaseOrders = () => {
       ]);
 
       autoTable(doc, {
-        head: [['رقم الأمر', 'المورد', 'تاريخ الأمر', 'تاريخ التسليم', 'الحالة', 'المبلغ الفرعي', 'الضريبة', 'الإجمالي']],
+        head: [['Order No', 'Supplier', 'Order Date', 'Delivery Date', 'Status', 'Subtotal', 'Tax', 'Total']],
         body: tableData,
         startY: 25,
         styles: {
-          font: "Arial",
           fontSize: 10,
           halign: "center",
         },
