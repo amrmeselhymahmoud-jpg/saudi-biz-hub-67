@@ -36,7 +36,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { exportToCSV, exportToJSON } from "@/utils/exportImport";
+import { exportToCSV } from "@/utils/exportImport";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { loadArabicFont } from "@/utils/arabicFont";
 
 interface PurchaseOrder {
   id: string;
@@ -383,7 +386,7 @@ const PurchaseOrders = () => {
     }
   };
 
-  const handleExport = (exportFormat: 'csv' | 'json') => {
+  const handleExport = async (exportFormat: 'csv' | 'pdf') => {
     if (filteredOrders.length === 0) {
       toast({
         title: "تنبيه",
@@ -393,22 +396,54 @@ const PurchaseOrders = () => {
       return;
     }
 
-    const exportData = filteredOrders.map(order => ({
-      'رقم الأمر': order.order_number,
-      'المورد': order.suppliers?.name,
-      'تاريخ الأمر': format(new Date(order.order_date), "yyyy-MM-dd"),
-      'تاريخ التسليم': order.delivery_date ? format(new Date(order.delivery_date), "yyyy-MM-dd") : '-',
-      'الحالة': statusLabels[order.status],
-      'المبلغ الفرعي': order.subtotal,
-      'الضريبة': order.tax_amount,
-      'الإجمالي': order.total_amount,
-      'الملاحظات': order.notes || '-'
-    }));
-
     if (exportFormat === 'csv') {
+      const exportData = filteredOrders.map(order => ({
+        'رقم الأمر': order.order_number,
+        'المورد': order.suppliers?.name,
+        'تاريخ الأمر': format(new Date(order.order_date), "yyyy-MM-dd"),
+        'تاريخ التسليم': order.delivery_date ? format(new Date(order.delivery_date), "yyyy-MM-dd") : '-',
+        'الحالة': statusLabels[order.status],
+        'المبلغ الفرعي': order.subtotal,
+        'الضريبة': order.tax_amount,
+        'الإجمالي': order.total_amount,
+        'الملاحظات': order.notes || '-'
+      }));
       exportToCSV(exportData, 'purchase_orders');
-    } else {
-      exportToJSON(exportData, 'purchase_orders');
+    } else if (exportFormat === 'pdf') {
+      const doc = new jsPDF();
+      await loadArabicFont(doc);
+
+      doc.text("أوامر الشراء", 105, 15, { align: "center" });
+
+      const tableData = filteredOrders.map(order => [
+        order.order_number,
+        order.suppliers?.name || '',
+        format(new Date(order.order_date), "yyyy-MM-dd"),
+        order.delivery_date ? format(new Date(order.delivery_date), "yyyy-MM-dd") : '-',
+        statusLabels[order.status],
+        order.subtotal.toFixed(2),
+        order.tax_amount.toFixed(2),
+        order.total_amount.toFixed(2),
+      ]);
+
+      autoTable(doc, {
+        head: [['رقم الأمر', 'المورد', 'تاريخ الأمر', 'تاريخ التسليم', 'الحالة', 'المبلغ الفرعي', 'الضريبة', 'الإجمالي']],
+        body: tableData,
+        startY: 25,
+        styles: {
+          font: "Arial",
+          fontSize: 10,
+          halign: "center",
+        },
+        headStyles: {
+          fillColor: [41, 128, 185],
+          textColor: 255,
+          fontStyle: "bold",
+        },
+        margin: { top: 25 },
+      });
+
+      doc.save(`purchase_orders_${new Date().toISOString().split('T')[0]}.pdf`);
     }
 
     toast({
@@ -479,8 +514,8 @@ const PurchaseOrders = () => {
               <DropdownMenuItem onClick={() => handleExport('csv')}>
                 تصدير CSV
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport('json')}>
-                تصدير JSON
+              <DropdownMenuItem onClick={() => handleExport('pdf')}>
+                تصدير PDF
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
