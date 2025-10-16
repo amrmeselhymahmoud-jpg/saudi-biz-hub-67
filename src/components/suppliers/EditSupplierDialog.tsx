@@ -28,28 +28,32 @@ import { useEffect } from "react";
 import { Switch } from "@/components/ui/switch";
 
 const formSchema = z.object({
-  name: z.string().min(1, "الاسم مطلوب"),
+  supplier_name: z.string().min(1, "الاسم مطلوب"),
   email: z.string().email("البريد الإلكتروني غير صحيح").optional().or(z.literal("")),
   phone: z.string().optional(),
   address: z.string().optional(),
+  city: z.string().optional(),
   tax_number: z.string().optional(),
   credit_limit: z.string().optional(),
+  payment_terms: z.string().optional(),
   notes: z.string().optional(),
-  is_active: z.boolean(),
+  status: z.enum(["active", "inactive"]),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
 interface Supplier {
   id: string;
-  name: string;
+  supplier_name: string;
   email?: string;
   phone?: string;
   address?: string;
+  city?: string;
   tax_number?: string;
   credit_limit?: number;
+  payment_terms?: number;
   notes?: string;
-  is_active?: boolean;
+  status?: string;
 }
 
 interface EditSupplierDialogProps {
@@ -65,28 +69,32 @@ export function EditSupplierDialog({ open, onOpenChange, supplier }: EditSupplie
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: "",
+      supplier_name: "",
       email: "",
       phone: "",
       address: "",
+      city: "",
       tax_number: "",
       credit_limit: "0",
+      payment_terms: "30",
       notes: "",
-      is_active: true,
+      status: "active",
     },
   });
 
   useEffect(() => {
     if (supplier) {
       form.reset({
-        name: supplier.name,
+        supplier_name: supplier.supplier_name,
         email: supplier.email || "",
         phone: supplier.phone || "",
         address: supplier.address || "",
+        city: supplier.city || "",
         tax_number: supplier.tax_number || "",
         credit_limit: supplier.credit_limit?.toString() || "0",
+        payment_terms: supplier.payment_terms?.toString() || "30",
         notes: supplier.notes || "",
-        is_active: supplier.is_active ?? true,
+        status: (supplier.status || "active") as "active" | "inactive",
       });
     }
   }, [supplier, form]);
@@ -96,14 +104,16 @@ export function EditSupplierDialog({ open, onOpenChange, supplier }: EditSupplie
       const { data, error } = await supabase
         .from("suppliers")
         .update({
-          name: values.name,
+          supplier_name: values.supplier_name,
           email: values.email || null,
           phone: values.phone || null,
           address: values.address || null,
+          city: values.city || null,
           tax_number: values.tax_number || null,
           credit_limit: values.credit_limit ? parseFloat(values.credit_limit) : 0,
+          payment_terms: values.payment_terms ? parseInt(values.payment_terms) : 30,
           notes: values.notes || null,
-          is_active: values.is_active,
+          status: values.status,
         })
         .eq("id", supplier?.id)
         .select();
@@ -145,7 +155,7 @@ export function EditSupplierDialog({ open, onOpenChange, supplier }: EditSupplie
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
-              name="name"
+              name="supplier_name"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>الاسم *</FormLabel>
@@ -187,19 +197,35 @@ export function EditSupplierDialog({ open, onOpenChange, supplier }: EditSupplie
               />
             </div>
 
-            <FormField
-              control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>العنوان</FormLabel>
-                  <FormControl>
-                    <Input placeholder="العنوان الكامل" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>العنوان</FormLabel>
+                    <FormControl>
+                      <Input placeholder="العنوان الكامل" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="city"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>المدينة</FormLabel>
+                    <FormControl>
+                      <Input placeholder="المدينة" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="grid grid-cols-2 gap-4">
               <FormField
@@ -218,12 +244,12 @@ export function EditSupplierDialog({ open, onOpenChange, supplier }: EditSupplie
 
               <FormField
                 control={form.control}
-                name="credit_limit"
+                name="payment_terms"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>حد الائتمان</FormLabel>
+                    <FormLabel>شروط السداد (بالأيام)</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="0" {...field} />
+                      <Input type="number" placeholder="30" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -233,19 +259,33 @@ export function EditSupplierDialog({ open, onOpenChange, supplier }: EditSupplie
 
             <FormField
               control={form.control}
-              name="is_active"
+              name="credit_limit"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>حد الائتمان (ر.س)</FormLabel>
+                  <FormControl>
+                    <Input type="number" placeholder="0" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="status"
               render={({ field }) => (
                 <FormItem className="flex items-center justify-between rounded-lg border p-4">
                   <div className="space-y-0.5">
                     <FormLabel className="text-base">حالة المورد</FormLabel>
                     <div className="text-sm text-muted-foreground">
-                      {field.value ? "نشط" : "غير نشط"}
+                      {field.value === "active" ? "نشط" : "غير نشط"}
                     </div>
                   </div>
                   <FormControl>
                     <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
+                      checked={field.value === "active"}
+                      onCheckedChange={(checked) => field.onChange(checked ? "active" : "inactive")}
                     />
                   </FormControl>
                 </FormItem>
