@@ -56,6 +56,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { safeFormatDate, formatCurrency, safeToLocaleString } from "@/utils/formatters";
+import { exportToCSV, exportToJSON } from "@/utils/exportImport";
 
 // Safe value helper
 const safeValue = (value: any, fallback: string = 'N/A'): string => {
@@ -1186,6 +1187,50 @@ const SalesInvoices = () => {
     }
   };
 
+  const handleExport = (format: 'csv' | 'json') => {
+    if (filteredInvoices.length === 0) {
+      toast({
+        title: "تنبيه",
+        description: "لا توجد بيانات للتصدير",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const exportData = filteredInvoices.map(invoice => ({
+      'رقم الفاتورة': invoice.invoice_number,
+      'التاريخ': new Date(invoice.invoice_date).toLocaleDateString('ar-SA'),
+      'تاريخ الاستحقاق': new Date(invoice.due_date).toLocaleDateString('ar-SA'),
+      'العميل': invoice.customers?.customer_name || '-',
+      'البريد الإلكتروني': invoice.customers?.email || '-',
+      'الهاتف': invoice.customers?.phone || '-',
+      'المجموع الفرعي': invoice.subtotal,
+      'الضريبة': invoice.tax_amount,
+      'الخصم': invoice.discount,
+      'الإجمالي': invoice.total_amount,
+      'المدفوع': invoice.paid_amount,
+      'المتبقي': invoice.remaining_amount,
+      'طريقة الدفع': invoice.payment_method === 'cash' ? 'نقداً' :
+                     invoice.payment_method === 'transfer' ? 'تحويل بنكي' :
+                     invoice.payment_method === 'card' ? 'بطاقة' : 'آجل',
+      'حالة الدفع': invoice.payment_status === 'paid' ? 'مدفوعة' :
+                    invoice.payment_status === 'partial' ? 'مدفوعة جزئياً' : 'غير مدفوعة',
+      'الحالة': invoice.status === 'posted' ? 'منشورة' : 'مسودة',
+      'الملاحظات': invoice.notes || '-'
+    }));
+
+    if (format === 'csv') {
+      exportToCSV(exportData, 'sales_invoices');
+    } else {
+      exportToJSON(exportData, 'sales_invoices');
+    }
+
+    toast({
+      title: "تم التصدير",
+      description: `تم تصدير ${filteredInvoices.length} فاتورة بنجاح`,
+    });
+  };
+
   // Render invoice row
   const renderInvoiceRow = (invoice: SalesInvoice) => {
     try {
@@ -1336,15 +1381,37 @@ const SalesInvoices = () => {
           </Card>
         </div>
 
-        {/* Search */}
-        <div className="relative max-w-md">
-          <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="بحث عن فاتورة..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pr-10"
-          />
+        {/* Search and Export */}
+        <div className="flex gap-4 items-center">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="بحث عن فاتورة..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pr-10"
+            />
+          </div>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className="gap-2 hover:bg-green-50 hover:text-green-600 hover:border-green-300 transition-all"
+              >
+                <Download className="h-4 w-4" />
+                تصدير
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => handleExport('csv')}>
+                تصدير CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('json')}>
+                تصدير JSON
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Table */}
