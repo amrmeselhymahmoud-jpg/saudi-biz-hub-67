@@ -39,6 +39,7 @@ import { format } from "date-fns";
 import { exportToCSV } from "@/utils/exportImport";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { addAmiriFontToPDF } from "@/utils/amiriFont";
 
 interface PurchaseOrder {
   id: string;
@@ -411,8 +412,14 @@ const PurchaseOrders = () => {
     } else if (exportFormat === 'pdf') {
       const doc = new jsPDF();
 
+      const fontLoaded = addAmiriFontToPDF(doc);
+
       doc.setFontSize(16);
-      doc.text("Purchase Orders / Awamer Al-Shera", 105, 15, { align: "center" });
+      if (fontLoaded) {
+        doc.text("أوامر الشراء", 200, 20, { align: "right" });
+      } else {
+        doc.text("Purchase Orders", 105, 15, { align: "center" });
+      }
 
       const tableData = filteredOrders.map(order => [
         order.order_number,
@@ -426,10 +433,11 @@ const PurchaseOrders = () => {
       ]);
 
       autoTable(doc, {
-        head: [['Order No', 'Supplier', 'Order Date', 'Delivery Date', 'Status', 'Subtotal', 'Tax', 'Total']],
+        head: [['\u0631\u0642\u0645 \u0627\u0644\u0623\u0645\u0631', '\u0627\u0644\u0645\u0648\u0631\u062f', '\u062a\u0627\u0631\u064a\u062e \u0627\u0644\u0623\u0645\u0631', '\u062a\u0627\u0631\u064a\u062e \u0627\u0644\u062a\u0633\u0644\u064a\u0645', '\u0627\u0644\u062d\u0627\u0644\u0629', '\u0627\u0644\u0645\u0628\u0644\u063a \u0627\u0644\u0641\u0631\u0639\u064a', '\u0627\u0644\u0636\u0631\u064a\u0628\u0629', '\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a']],
         body: tableData,
-        startY: 25,
+        startY: 30,
         styles: {
+          font: fontLoaded ? "Amiri" : "helvetica",
           fontSize: 10,
           halign: "center",
         },
@@ -437,8 +445,9 @@ const PurchaseOrders = () => {
           fillColor: [41, 128, 185],
           textColor: 255,
           fontStyle: "bold",
+          halign: "center",
         },
-        margin: { top: 25 },
+        margin: { top: 30 },
       });
 
       doc.save(`purchase_orders_${new Date().toISOString().split('T')[0]}.pdf`);
